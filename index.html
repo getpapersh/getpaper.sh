@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper</title>
+<meta name="description" content="Paper: scrolling tiling for macOS and Hyprland. PaperMac for macOS, Paperland for Hyprland.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfaf7;
+    --fg: #1d1c1a;
+    --muted: #66625b;
+    --rule: #e4e0d8;
+    --code-bg: #f1eee8;
+    --accent: #2f5d8a;
+    --selected: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615;
+      --fg: #e9e6df;
+      --muted: #a29d94;
+      --rule: #2e2d2a;
+      --code-bg: #22211f;
+      --accent: #8fb7e0;
+      --selected: #2b2a27;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.6 ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 4rem 1rem 3rem; }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 .5rem; letter-spacing: -.01em; }
+  h2, h3 {
+    font: 600 .8rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    margin: 2rem 0 .75rem;
+  }
+  p { margin: 0 0 1rem; }
+  .lede { color: var(--muted); font-size: 1.15rem; margin-bottom: 2rem; }
+  .note { font: .9rem/1.5 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+  a { color: var(--accent); text-underline-offset: .15em; }
+  ul { padding-left: 1.2rem; margin: 0 0 1rem; }
+  li { margin-bottom: .35rem; }
+  .cmd { display: flex; gap: .5rem; align-items: stretch; margin: 0 0 .75rem; }
+  pre {
+    flex: 1; min-width: 0; margin: 0; padding: .8rem 1rem;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+    background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px;
+    font: .9rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  button {
+    font: 600 .8rem/1 ui-sans-serif, system-ui, sans-serif; color: var(--fg);
+    background: transparent; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0 .9rem; cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible, a:focus-visible, [role="tabpanel"]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .fork { margin-top: 2.5rem; }
+  [role="tablist"] {
+    display: inline-flex; gap: .25rem; padding: .25rem;
+    border: 1px solid var(--rule); border-radius: 8px; background: var(--code-bg);
+  }
+  [role="tab"] { border: 0; padding: .55rem 1rem; border-radius: 6px; color: var(--muted); }
+  [role="tab"][aria-selected="true"] { background: var(--selected); color: var(--fg); box-shadow: 0 0 0 1px var(--rule); }
+  [role="tabpanel"] { padding-top: .5rem; }
+  .soon { font: 600 .9rem/1.5 ui-sans-serif, system-ui, sans-serif; }
+  footer { margin-top: 3rem; }
+  @media (max-width: 30rem) {
+    .cmd { flex-direction: column; }
+    pre { font-size: .82rem; }
+    .cmd button { padding: .6rem .9rem; align-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Paper</h1>
+  <p class="lede">Scrolling tiling for macOS + Hyprland.</p>
+
+  <div class="cmd">
+    <pre><code id="install">curl -fsSL https://getpaper.sh/install | sh</code></pre>
+    <button type="button" data-copy="install" aria-label="Copy the install command">Copy</button>
+  </div>
+  <p class="note">Detects your system and does the right thing. To update, run it again.
+    <a href="/install">Read the script</a> before you run it.</p>
+
+  <section class="fork" aria-label="Install by platform">
+    <div role="tablist" aria-label="Platform" hidden>
+      <button type="button" role="tab" id="tab-macos" aria-controls="panel-macos" aria-selected="true">macOS</button>
+      <button type="button" role="tab" id="tab-hyprland" aria-controls="panel-hyprland" aria-selected="false" tabindex="-1">Hyprland</button>
+    </div>
+
+    <div role="tabpanel" id="panel-macos" aria-labelledby="tab-macos" tabindex="0">
+      <h2>macOS: PaperMac</h2>
+      <div class="cmd">
+        <pre><code id="install-macos">curl -fsSL https://getpaper.sh/install | sh</code></pre>
+        <button type="button" data-copy="install-macos" aria-label="Copy the macOS install command">Copy</button>
+      </div>
+      <p class="soon">Homebrew: coming soon.</p>
+      <h3>Uninstall</h3>
+      <div class="cmd">
+        <pre><code id="uninstall-macos">curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code></pre>
+        <button type="button" data-copy="uninstall-macos" aria-label="Copy the macOS uninstall command">Copy</button>
+      </div>
+      <h3>Requirements</h3>
+      <ul>
+        <li>macOS 27 or newer.</li>
+        <li>PaperMac is an alpha and is not notarized yet, so it installs through the command above only.</li>
+      </ul>
+    </div>
+
+    <div role="tabpanel" id="panel-hyprland" aria-labelledby="tab-hyprland" tabindex="0">
+      <h2>Hyprland: Paperland</h2>
+      <p class="soon">Paperland: coming soon.</p>
+      <h3>Requirements</h3>
+      <ul>
+        <li>Omarchy 4 or newer, with Hyprland 0.56 or newer.</li>
+        <li>Quickshell, Python 3, git and jq.</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="note">Unannounced alpha. Expect rough edges.</p>
+  <footer class="note"><a href="https://github.com/getpapersh">GitHub</a></footer>
+</main>
+<script>
+  // Copy: clipboard API, else select the command so the visitor can copy it.
+  for (const button of document.querySelectorAll("button[data-copy]")) {
+    button.addEventListener("click", async () => {
+      const code = document.getElementById(button.dataset.copy);
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        button.textContent = "Copied";
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = "Selected";
+      }
+      setTimeout(() => { button.textContent = "Copy"; }, 2000);
+    });
+  }
+
+  // Platform fork: without JavaScript both panels stay visible.
+  const tablist = document.querySelector('[role="tablist"]');
+  const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+  function select(tab, focus) {
+    for (const other of tabs) {
+      const on = other === tab;
+      other.setAttribute("aria-selected", String(on));
+      other.tabIndex = on ? 0 : -1;
+      document.getElementById(other.getAttribute("aria-controls")).hidden = !on;
+    }
+    if (focus) tab.focus();
+  }
+  tablist.addEventListener("click", (event) => {
+    const tab = event.target.closest('[role="tab"]');
+    if (tab) select(tab, false);
+  });
+  tablist.addEventListener("keydown", (event) => {
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    const keys = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: tabs.length - 1 };
+    if (!(event.key in keys)) return;
+    event.preventDefault();
+    select(tabs[(keys[event.key] + tabs.length) % tabs.length], true);
+  });
+  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent;
+  const linux = /linux/i.test(platform) && !/android/i.test(platform);
+  tablist.hidden = false;
+  select(linux ? tabs[1] : tabs[0], false);
+</script>
+</body>
+</html>
