@@ -1,0 +1,10 @@
+// Cloudflare Workers static assets: serves the built, committed site/ folder as is.
+// No Worker script; response headers come from site/_headers. Deploy from this folder
+// with `bunx wrangler deploy` (see README.md).
+{
+  "name": "getpaper-sh",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./site"
+  }
+}
