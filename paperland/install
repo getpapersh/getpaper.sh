@@ -1,0 +1,309 @@
+#!/bin/sh
+# DISABLED Paperland installer (not served; see README.md in this folder).
+#
+# Linux (Omarchy): installs or upgrades Paperland as the Omarchy plugin json.paperland.
+# The pinned release is cloned and verified outside Omarchy's watched plugin folder,
+# then published into it with one rename, so omarchy-shell only ever sees verified code.
+#
+# This file is read from stdin under `curl | sh`: it never reads input from stdin,
+# and everything runs from main() on the last line so a truncated download runs nothing.
+set -eu
+
+# @RELEASE_ENV@
+
+PLUGIN_ID=json.paperland
+SITE=https://getpaper.sh
+UNINSTALL_CMD="curl --proto '=https' --tlsv1.2 -fsSL $SITE/uninstall | sh"
+MARKER="Paperland CLI installation v1"
+
+say() { printf '%s\n' "$*"; }
+warn() { printf 'paper: %s\n' "$*" >&2; }
+die() { warn "$*"; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Git that ignores the caller's and the system's git setup: no redirected repository,
+# no hooks, no replace refs, no prompts, and HTTPS as the only transport.
+cgit() {
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
+    -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 \
+    git -c core.hooksPath=/dev/null -c core.fsmonitor=false \
+      -c protocol.allow=never -c protocol.https.allow=always "$@"
+}
+
+check_release_values() {
+  [ -n "${PLUGIN_URL:-}" ] || die "This installer was not built: run scripts/build-site.sh and use site/install."
+  [ "$PLUGIN_SHA" != PENDING ] ||
+    die "No Paperland release is pinned yet (PLUGIN_SHA=PENDING). Nothing was changed."
+  case "$PLUGIN_URL" in https://*) ;; *) die "Refusing a plugin URL that is not HTTPS: $PLUGIN_URL" ;; esac
+  printf '%s\n' "$PLUGIN_SHA" | grep -Eq '^[0-9a-f]{40}$' ||
+    die "Pinned plugin commit is not a 40-character hex SHA: $PLUGIN_SHA"
+}
+
+# Prints "MAJOR.MINOR" of the installed Hyprland, or nothing.
+hyprland_version() {
+  if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    hv_out=$(hyprctl version 2>/dev/null || true)
+  elif have Hyprland; then
+    hv_out=$(Hyprland --version 2>/dev/null || true)
+  else
+    hv_out=
+  fi
+  printf '%s\n' "$hv_out" | sed -n '1s/^Hyprland \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p'
+}
+
+owned_runtime() { [ -d "$RUNTIME" ] && [ ! -L "$RUNTIME" ] && [ "$(cat "$RUNTIME/.installed-by-paperland" 2>/dev/null)" = "$MARKER" ]; }
+
+check_linux() {
+  have omarchy-version ||
+    die "Paperland installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
+  ov=$(omarchy-version 2>/dev/null || true)
+  case "$ov" in
+    dev*) ;;
+    *) ov_major=$(printf '%s\n' "$ov" | sed -n '1s/^\([0-9][0-9]*\)\..*/\1/p')
+       [ -n "$ov_major" ] && [ "$ov_major" -ge 4 ] ||
+         die "Paperland needs Omarchy 4 or newer; this system has Omarchy ${ov:-of unknown version}." ;;
+  esac
+  for cmd in omarchy omarchy-shell omarchy-plugin-list omarchy-plugin-validate hyprctl quickshell python3 git jq; do
+    have "$cmd" || die "Paperland needs $cmd, which was not found on PATH."
+  done
+  hv=$(hyprland_version)
+  [ -n "$hv" ] || die "Could not read the Hyprland version. Paperland needs Hyprland $MIN_HYPRLAND or newer."
+  hv_major=${hv%%.*}; hv_minor=${hv#*.}
+  min_major=${MIN_HYPRLAND%%.*}; min_minor=${MIN_HYPRLAND#*.}
+  if [ "$hv_major" -lt "$min_major" ] || { [ "$hv_major" -eq "$min_major" ] && [ "$hv_minor" -lt "$min_minor" ]; }; then
+    die "Paperland needs Hyprland $MIN_HYPRLAND or newer; this system has Hyprland $hv."
+  fi
+  omarchy-shell shell listPlugins >/dev/null 2>&1 ||
+    die "omarchy-shell is not running. Run this from a terminal inside your Omarchy session."
+
+  EXISTING=
+  if [ -L "$PLUGIN_DIR" ]; then
+    die "$PLUGIN_DIR is a link left by an earlier Paperland setup. First run: $UNINSTALL_CMD"
+  elif [ -e "$PLUGIN_DIR" ]; then
+    # Only a checkout of the pinned repo is replaced. --file reads exactly this config,
+    # with no repository discovery and nothing executed from the checkout.
+    [ -d "$PLUGIN_DIR/.git" ] && [ ! -L "$PLUGIN_DIR/.git" ] &&
+      [ "$(cgit config --file "$PLUGIN_DIR/.git/config" --get remote.origin.url 2>/dev/null || true)" = "$PLUGIN_URL" ] ||
+      die "Paperland is already installed at $PLUGIN_DIR from somewhere else. To reinstall, first run: $UNINSTALL_CMD"
+    EXISTING=1
+  fi
+  # Paperland's own installer refuses these; check before changing anything.
+  if [ -e "$RUNTIME" ] || [ -L "$RUNTIME" ]; then
+    owned_runtime || die "$RUNTIME exists and was not installed by Paperland. Move it aside, then rerun."
+  fi
+  if [ -e "$LAUNCHER" ] || [ -L "$LAUNCHER" ]; then
+    [ -L "$LAUNCHER" ] && [ "$(readlink "$LAUNCHER")" = "$RUNTIME/paperland" ] ||
+      die "$LAUNCHER already exists and is not Paperland's launcher. Move it aside, then rerun."
+  fi
+}
+
+# Saved choices win: fresh-install defaults only apply when there are none.
+setup_desc() {
+  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+    SETUP_DESC="Your saved Paperland shortcut and autostart choices are applied again."
+  else
+    SETUP_DESC="SUPER + M opens the minimap, replacing any existing SUPER + M binding,
+     and Paperland starts hidden at login."
+  fi
+}
+
+run_setup() {
+  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+    "$LAUNCHER" setup --apply --replace-bindings
+  else
+    "$LAUNCHER" setup --shortcut 'SUPER + M' --autostart on --apply --replace-bindings
+  fi
+}
+
+print_plan() {
+  if [ -n "$EXISTING" ]; then
+    head_line="Paperland is already installed from $PLUGIN_URL. This will:"
+    publish_line="Move the installed plugin out of the way (kept until this run succeeds)
+     and put the verified copy in its place."
+  else
+    head_line="This will:"
+    publish_line="Put the verified copy in place as the Omarchy plugin $PLUGIN_ID
+     and enable it in your Omarchy bar."
+  fi
+  if [ -n "$NEEDS_SETUP" ]; then
+    setup_desc
+    setup_line="Write $HYPR_DIR/paperland.lua and one marked include in
+     $HYPR_DIR/hyprland.lua (Paperland backs both up first).
+     $SETUP_DESC"
+  else
+    setup_line="Keep your Paperland shortcut and autostart setup unchanged."
+  fi
+  cat <<EOF
+Paperland installer (unannounced alpha; expect rough edges)
+
+$head_line
+  1. Clone $PLUGIN_URL
+     at the pinned release commit
+       $PLUGIN_SHA
+     into a private folder, and verify it before Omarchy can see it.
+  2. $publish_line
+  3. Install the Paperland runtime to $RUNTIME
+     with a launcher at $LAUNCHER (an older runtime is kept beside it).
+  4. $setup_line
+
+Omarchy plugins run as unsandboxed code inside omarchy-shell with your user's
+permissions. Continue only if you trust this source.
+
+EOF
+}
+
+# Consent: a terminal answer, or PAPER_YES=1 when there is no terminal to ask on.
+confirm() {
+  [ "${PAPER_YES:-}" != 1 ] || return 0
+  (: </dev/tty) 2>/dev/null ||
+    die "No terminal to confirm on, so nothing was changed. To accept the changes above without a prompt, run: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | PAPER_YES=1 sh"
+  printf 'Continue? [y/N] ' >/dev/tty
+  read -r answer </dev/tty || answer=
+  case "$answer" in y|Y|yes|YES) ;; *) say "Cancelled. Nothing was changed."; exit 1 ;; esac
+}
+
+# Clones the pin into $STAGE_ROOT/json.paperland and verifies it; any failure
+# removes the staging folder (on exit) and leaves the live plugin untouched.
+stage_and_verify() {
+  mkdir -p "$OMARCHY_DIR/plugins"
+  STAGE_ROOT=$(mktemp -d "$OMARCHY_DIR/.paperland-stage.XXXXXX")
+  tree=$STAGE_ROOT/$PLUGIN_ID
+  cgit clone --quiet --no-checkout --single-branch --branch release -- "$PLUGIN_URL" "$tree" ||
+    die "Could not clone $PLUGIN_URL. Nothing was changed."
+  cgit -C "$tree" checkout --quiet --detach "$PLUGIN_SHA" 2>/dev/null ||
+    die "The pinned release $PLUGIN_SHA was not found on the plugin remote. Nothing was changed."
+  actual=$(cgit -C "$tree" rev-parse HEAD 2>/dev/null || true)
+  [ "$actual" = "$PLUGIN_SHA" ] ||
+    die "Integrity check failed: expected commit $PLUGIN_SHA, got ${actual:-none}. Nothing was changed."
+  [ -z "$(cgit -C "$tree" status --porcelain --ignored 2>&1)" ] ||
+    die "The staged release does not match commit $PLUGIN_SHA exactly. Nothing was changed."
+  id=$(jq -r '.id // empty' "$tree/manifest.json" 2>/dev/null || true)
+  [ "$id" = "$PLUGIN_ID" ] ||
+    die "The release's manifest id is '${id:-missing}', not $PLUGIN_ID. Nothing was changed."
+  link=$(find "$tree" -path "$tree/.git" -prune -o -type l -print | head -n 1)
+  [ -z "$link" ] || die "The release contains a symlink (${link#"$tree"/}). Nothing was changed."
+  omarchy-plugin-validate "$tree" || die "The release failed Omarchy's plugin validation. Nothing was changed."
+}
+
+publish() {
+  if [ -n "$EXISTING" ]; then
+    OLD_HEAD=$(cgit -C "$PLUGIN_DIR" rev-parse HEAD 2>/dev/null || true)
+    BACKUP=$(mktemp -d "$OMARCHY_DIR/.paperland-previous-$(date +%Y%m%d-%H%M%S).XXXXXX")
+    mv "$PLUGIN_DIR" "$BACKUP/$PLUGIN_ID"
+    BACKED_UP=1
+  fi
+  mv "$tree" "$PLUGIN_DIR"
+  PUBLISHED=1
+}
+
+# Reports and undoes a failure after the plugin was published or moved aside.
+on_exit() {
+  status=$?
+  if [ "$status" -ne 0 ] && [ -n "$BACKED_UP" ]; then
+    if [ -n "$PUBLISHED" ] && ! mv "$PLUGIN_DIR" "$STAGE_ROOT/failed-$PLUGIN_ID"; then
+      warn "Could not take the new plugin out of $PLUGIN_DIR; the previous one is at $BACKUP/$PLUGIN_ID."
+    elif mv "$BACKUP/$PLUGIN_ID" "$PLUGIN_DIR"; then
+      rmdir "$BACKUP" 2>/dev/null || true
+      warn "The previous plugin was restored to $PLUGIN_DIR."
+      if [ -n "$RUNTIME_REFRESHED" ]; then
+        warn "The Paperland runtime had already been refreshed to this release; the one before it is in ${RUNTIME%/*}/.paperland-previous-*."
+      fi
+    else
+      warn "Could not restore the previous plugin; it is at $BACKUP/$PLUGIN_ID."
+    fi
+  elif [ "$status" -ne 0 ] && [ -n "$PUBLISHED" ]; then
+    warn "Paperland's plugin was installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+  fi
+  if [ -n "$STAGE_ROOT" ]; then rm -rf "$STAGE_ROOT"; fi
+}
+
+plugin_listed() { # JQ_FILTER: true when omarchy-plugin-list --json matches it
+  omarchy-plugin-list --json 2>/dev/null | jq -e --arg id "$PLUGIN_ID" "$1" >/dev/null 2>&1
+}
+
+# Idempotent: also finishes an earlier run that published the plugin but never enabled it.
+# shellcheck disable=SC2016 # $id is a jq variable
+enable_plugin() {
+  omarchy-shell -q shell rescanPlugins >/dev/null 2>&1 || true
+  i=0
+  until plugin_listed 'any(.[]; .id == $id)'; do
+    i=$((i + 1))
+    [ "$i" -lt 40 ] || die "Omarchy did not discover $PLUGIN_ID after it was installed."
+    sleep 0.05
+  done
+  plugin_listed 'any(.[]; .id == $id and .enabled)' || omarchy plugin enable "$PLUGIN_ID"
+}
+
+# After success: the moved-aside plugin is deleted only when git shows it clean.
+report_previous() {
+  [ -n "$BACKUP" ] || return 0
+  old=$BACKUP/$PLUGIN_ID
+  changes=$(cgit -C "$old" status --porcelain --ignored 2>&1) || changes="(git status failed)"
+  if [ -n "$changes" ]; then
+    say "The replaced plugin had local changes; it is kept at $old"
+    return 0
+  fi
+  if [ -n "$OLD_HEAD" ] && [ "$OLD_HEAD" != "$PLUGIN_SHA" ] &&
+     cgit -C "$old" merge-base --is-ancestor "$PLUGIN_SHA" "$OLD_HEAD" 2>/dev/null; then
+    say "Note: the replaced plugin was at $OLD_HEAD, newer than this release; it now runs the pinned release."
+  fi
+  rm -rf "$BACKUP"
+}
+
+install_linux() {
+  check_release_values
+  OMARCHY_DIR=$HOME/.config/omarchy
+  PLUGIN_DIR=$OMARCHY_DIR/plugins/$PLUGIN_ID
+  RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
+  LAUNCHER=$HOME/.local/bin/paperland
+  HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
+  STAGE_ROOT='' BACKUP='' OLD_HEAD='' BACKED_UP='' PUBLISHED='' RUNTIME_REFRESHED=''
+  check_linux
+  # Checked before the runtime refresh, which always recreates the launcher.
+  NEEDS_SETUP=
+  if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$HYPR_DIR/paperland.lua" ] ||
+     ! grep -qF -- '-- BEGIN Paperland setup' "$HYPR_DIR/hyprland.lua" 2>/dev/null; then
+    NEEDS_SETUP=1
+  fi
+  print_plan
+  confirm
+
+  trap on_exit EXIT
+  trap 'exit 130' INT TERM HUP
+  stage_and_verify
+  publish
+  enable_plugin
+  # setup only accepts the marker-owned runtime that `install --no-setup` publishes
+  # from the verified plugin; bindings then point at a launcher that exists.
+  "$PLUGIN_DIR/paperland/paperland" install --no-setup
+  RUNTIME_REFRESHED=1
+  if [ -n "$NEEDS_SETUP" ]; then run_setup; fi
+  BACKED_UP='' PUBLISHED=''
+  report_previous
+
+  say ""
+  if [ -n "$EXISTING" ]; then
+    say "Paperland is up to date at $PLUGIN_SHA."
+    # Paperland's install never restarts a running Paperland.
+    say "Restart Paperland to finish: paperland stop && paperland start-hidden"
+  else
+    say "Paperland is installed at $PLUGIN_SHA. Open the minimap with your Paperland shortcut (SUPER + M by default)."
+  fi
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) warn "$HOME/.local/bin is not on PATH. The Paperland bar widget runs 'paperland' from PATH; add it there." ;;
+  esac
+  say "To update, run the same command again. Uninstall: $UNINSTALL_CMD"
+}
+
+main() {
+  [ "$(id -u)" -ne 0 ] || die "Do not run this installer as root or with sudo; run it as your normal user."
+  case "$(uname -s)" in
+    Linux) install_linux ;;
+    Darwin) die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
+    *) die "Unsupported system: $(uname -s). Paperland needs Linux with Omarchy; PaperMac needs macOS." ;;
+  esac
+}
+
+main "$@"
