@@ -458,7 +458,7 @@ winner=$PID
 sleep 0.2
 mkdir "$apps/.PaperMac-install.lock"
 echo "$dead_pid" > "$apps/.PaperMac-install.lock/pid"
-run -- STUB_LOCK_RACE=$winner
+run -- STUB_LOCK_RACE="$winner"
 check "losing a stale-lock takeover stops the install" status 1
 check "it says the other run took over first" says "Another PaperMac install or uninstall took over $apps/.PaperMac-install.lock first."
 check "the winner's lock is kept" [ "$(cat "$apps/.PaperMac-install.lock/pid")" = "$winner" ]
@@ -478,7 +478,7 @@ check "a takeover in progress is left alone" [ "$(cat "$apps/.PaperMac-install.l
 
 new_case lock-not-ours
 sleeper
-run -- STUB_STEAL_LOCK=$PID
+run -- STUB_STEAL_LOCK="$PID"
 check "a lock that changed hands is never released" [ "$(cat "$apps/.PaperMac-install.lock/pid" 2>/dev/null)" = "$PID" ]
 
 new_case replaced-during-download
