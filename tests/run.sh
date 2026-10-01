@@ -11,7 +11,12 @@ set -u
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/getpaper-tests.XXXXXX")" && pwd -P)
 # Running-PaperMac stand-ins are detached sleeps; kill whatever is left of them.
-trap 'while read -r p; do kill -KILL "$p" 2>/dev/null; done < "$work/pids" 2>/dev/null; chmod -R u+w "$work" 2>/dev/null; rm -rf "$work"' EXIT
+finish() {
+  while read -r pid; do kill -KILL "$pid" 2>/dev/null; done < "$work/pids"
+  chmod -R u+w "$work" 2>/dev/null
+  rm -rf "$work"
+}
+trap finish EXIT
 : > "$work/pids"
 pass=0
 failed=0
@@ -45,12 +50,15 @@ manifest_mode() { # [KEY JSON_VALUE]...: switch the case's script to the manifes
   sed "s|^PAPERMAC_MANIFEST_URL=\$|PAPERMAC_MANIFEST_URL=$MANIFEST_URL|" "$case_dir/install" > "$case_dir/install.m"
   mv "$case_dir/install.m" "$case_dir/install"
   if [ "${1:-}" = raw ]; then printf '%s\n' "$2" > "$case_dir/latest.json"; return; fi
+  # The fields are named variables, overridden and read back through eval.
+  # shellcheck disable=SC2034,SC2154
   version='"27.0.0-alpha.4"' build=412 dmg_url="\"$M_URL\"" sha256="\"$M_SHA\"" min_macos='"27"' notarized=false
   while [ $# -gt 0 ]; do eval "$1=\$2"; shift 2; done
   {
     echo '{'
     for key in version build dmg_url sha256 min_macos notarized; do
       eval "value=\$$key"
+      # shellcheck disable=SC2154 # set by the eval above
       if [ "$value" != - ]; then printf '  "%s": %s,\n' "$key" "$value"; fi
     done
     echo '  "end": 0'
@@ -309,6 +317,7 @@ for kind in file symlink dangling-symlink foreign-app plain-folder; do
   run
   check "a $kind at the destination is refused" status 1
   check "a $kind is called not PaperMac" says "$apps/PaperMac.app is not PaperMac, so it was left alone."
+  # shellcheck disable=SC2016 # expanded by the inner sh
   check "a $kind is left exactly as it was" sh -c 'ls -lR "$1" | diff - "$2"' _ "$apps" "$case_dir/before"
   check "a $kind stops before downloading" not_called curl
   if [ "$kind" = symlink ]; then check "the symlink's target is kept" app_is "$home/real/PaperMac.app" old; fi
@@ -674,7 +683,8 @@ mkdir -p "$case_dir"
 : > "$case_dir/log"
 sh "$root/scripts/build-site.sh" "$case_dir/site" > /dev/null
 check "committed site/ equals a fresh build" diff -r "$root/site" "$case_dir/site"
-check "site/ has the install script, page and headers" [ "$(LC_ALL=C ls -A "$root/site" | tr '\n' ' ')" = "_headers index.html install " ]
+for file in _headers index.html install; do check "site/ has $file" [ -f "$root/site/$file" ]; done
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 3 ]
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"
