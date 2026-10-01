@@ -73,6 +73,10 @@
   [role="tab"][aria-selected="true"] { background: var(--selected); color: var(--fg); box-shadow: 0 0 0 1px var(--rule); }
   [role="tabpanel"] { padding-top: .5rem; }
   .soon { font: 600 .9rem/1.5 ui-sans-serif, system-ui, sans-serif; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
   footer { margin-top: 3rem; }
   @media (max-width: 30rem) {
     .cmd { flex-direction: column; }
@@ -90,7 +94,7 @@
     <pre><code id="install">curl -fsSL https://getpaper.sh/install | sh</code></pre>
     <button type="button" data-copy="install" aria-label="Copy the install command">Copy</button>
   </div>
-  <p class="note">Detects your system and does the right thing. To update, run it again.
+  <p class="note">On macOS it installs PaperMac. Paperland for Hyprland is coming soon. To update, run it again.
     <a href="/install">Read the script</a> before you run it.</p>
 
   <section class="fork" aria-label="Install by platform">
@@ -111,6 +115,7 @@
         <pre><code id="uninstall-macos">curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code></pre>
         <button type="button" data-copy="uninstall-macos" aria-label="Copy the macOS uninstall command">Copy</button>
       </div>
+      <p class="note">If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows.</p>
       <h3>Requirements</h3>
       <ul>
         <li>macOS 27 or newer.</li>
@@ -121,6 +126,11 @@
     <div role="tabpanel" id="panel-hyprland" aria-labelledby="tab-hyprland" tabindex="0">
       <h2>Hyprland: Paperland</h2>
       <p class="soon">Paperland: coming soon.</p>
+      <h3>Uninstall</h3>
+      <div class="cmd">
+        <pre><code id="uninstall-hyprland">curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code></pre>
+        <button type="button" data-copy="uninstall-hyprland" aria-label="Copy the Hyprland uninstall command">Copy</button>
+      </div>
       <h3>Requirements</h3>
       <ul>
         <li>Omarchy 4 or newer, with Hyprland 0.56 or newer.</li>
@@ -131,15 +141,19 @@
 
   <p class="note">Unannounced alpha. Expect rough edges.</p>
   <footer class="note"><a href="https://github.com/getpapersh">GitHub</a></footer>
+  <p id="copy-status" class="visually-hidden" aria-live="polite"></p>
 </main>
 <script>
-  // Copy: clipboard API, else select the command so the visitor can copy it.
+  // Copy: clipboard API, else select the command so the visitor can copy it. The
+  // buttons' aria-labels hide their text changes, so a live region announces them.
+  const copyStatus = document.getElementById("copy-status");
   for (const button of document.querySelectorAll("button[data-copy]")) {
     button.addEventListener("click", async () => {
       const code = document.getElementById(button.dataset.copy);
       try {
         await navigator.clipboard.writeText(code.textContent);
         button.textContent = "Copied";
+        copyStatus.textContent = "Copied to the clipboard.";
       } catch {
         const range = document.createRange();
         range.selectNodeContents(code);
@@ -147,8 +161,9 @@
         selection.removeAllRanges();
         selection.addRange(range);
         button.textContent = "Selected";
+        copyStatus.textContent = "Command selected. Copy it with your keyboard.";
       }
-      setTimeout(() => { button.textContent = "Copy"; }, 2000);
+      setTimeout(() => { button.textContent = "Copy"; copyStatus.textContent = ""; }, 2000);
     });
   }
 

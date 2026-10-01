@@ -5,62 +5,234 @@
 #
 # macOS: installs PaperMac. Hyprland (Paperland): coming soon.
 #
-# This file is read from stdin under `curl | sh`: it never reads input, and everything
-# runs from main() on the last line, so a truncated download runs nothing.
+# The whole script is one { ... } block ending in `main "$@"; }` on the last line, so
+# the shell reads all of it before running any of it: a download cut short anywhere is
+# a syntax error and runs nothing. It never reads stdin.
+{
 set -eu
 
-# Pinned release. The pin stays until PaperMac's scripts/release.sh publishes
-# latest.json; then the installer reads version, URL and SHA-256 from it instead.
+# Where the release comes from. Empty: the pinned release below. Set it to
+# https://dl.getpaper.sh/papermac/latest.json to read the release from PaperMac's
+# manifest instead; then any manifest problem stops the install, never falling back to
+# the pin.
+PAPERMAC_MANIFEST_URL=
 PAPERMAC_VERSION=27.0.0-alpha.3
 PAPERMAC_DMG_URL=https://mjcscmicvgmdk1ey.public.blob.vercel-storage.com/papermac/PaperMac-27.0.0-alpha.3.dmg
 PAPERMAC_DMG_SHA256=84eb7a5ff6c0319476b6249f6060470437fd9c5b00d4fc5b6360ef342d585e03
-MIN_MACOS=27
+PAPERMAC_MIN_MACOS=27
+PAPERMAC_NOTARIZED=false
+# A manifest may only point at a disk image directly under this URL.
+MANIFEST_DMG_PREFIX=https://dl.getpaper.sh/papermac/
 
+PAPERMAC_ID=dev.jsonmartin.papermac
 SYSTEM_APPLICATIONS=/Applications
 SITE=https://getpaper.sh
 QUIT_TIMEOUT_SECONDS=20
+# PaperMac's SIGTERM handler exits within 5 seconds.
+TERM_TIMEOUT_SECONDS=10
 COMING_SOON="Paperland install is coming soon. Follow along at $SITE"
-# Shown before PaperMac is quit for an uninstall.
-UNINSTALL_WARNING="Before uninstalling, make sure all windows are visible. PaperMac alphas can leave windows off-screen when they quit (tracked in PAP-268)."
+UNINSTALL_WARNING="If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows."
+NOT_CHANGED="The installed PaperMac was not changed."
+NOT_REMOVED="Nothing was removed."
+NL='
+'
 
 say() { printf '%s\n' "$*"; }
 warn() { printf 'paper: %s\n' "$*" >&2; }
 die() { warn "$*"; exit 1; }
+present() { [ -e "$1" ] || [ -L "$1" ]; }
+
+# The manifest and the disk image download with the same flags.
+fetch() { # URL FILE
+  curl -fsSL --proto '=https' --tlsv1.2 -o "$2" "$1"
+}
+
+bad_manifest() { # FIELD
+  die "The PaperMac release manifest at $PAPERMAC_MANIFEST_URL has a missing or invalid \"$1\". Nothing was changed."
+}
+
+# Reads the release from the manifest, or stops. plutil reads JSON and checks each
+# field's type; python3 is not used because without the Command Line Tools it is a stub
+# that opens an install dialog.
+read_manifest() {
+  manifest=$WORK/latest.json
+  fetch "$PAPERMAC_MANIFEST_URL" "$manifest" ||
+    die "Could not download the PaperMac release manifest from $PAPERMAC_MANIFEST_URL. Nothing was changed."
+  version=$(plutil -extract version raw -expect string -o - "$manifest" 2>/dev/null) || bad_manifest version
+  url=$(plutil -extract dmg_url raw -expect string -o - "$manifest" 2>/dev/null) || bad_manifest dmg_url
+  sha=$(plutil -extract sha256 raw -expect string -o - "$manifest" 2>/dev/null) || bad_manifest sha256
+  min=$(plutil -extract min_macos raw -expect string -o - "$manifest" 2>/dev/null) || bad_manifest min_macos
+  notarized=$(plutil -extract notarized raw -expect bool -o - "$manifest" 2>/dev/null) || bad_manifest notarized
+
+  case $version in ''|*[!0-9a-z.-]*) bad_manifest version ;; esac
+  printf '%s\n' "$version" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?' || bad_manifest version
+  name=${url#"$MANIFEST_DMG_PREFIX"}
+  [ "$name" != "$url" ] || bad_manifest dmg_url
+  case $name in ''|.*|*[!A-Za-z0-9._-]*) bad_manifest dmg_url ;; *.dmg) ;; *) bad_manifest dmg_url ;; esac
+  case $sha in *[!0-9a-f]*) bad_manifest sha256 ;; esac
+  [ "${#sha}" -eq 64 ] || bad_manifest sha256
+  case $min in ''|*[!0-9]*|????*) bad_manifest min_macos ;; esac
+  case $notarized in true|false) ;; *) bad_manifest notarized ;; esac
+
+  PAPERMAC_VERSION=$version PAPERMAC_DMG_URL=$url PAPERMAC_DMG_SHA256=$sha
+  PAPERMAC_MIN_MACOS=$min PAPERMAC_NOTARIZED=$notarized
+}
 
 check_macos_version() {
   version=$(sw_vers -productVersion 2>/dev/null || true)
   major=${version%%.*}
   case "$major" in ''|*[!0-9]*) die "Could not read the macOS version." ;; esac
-  [ "$major" -ge "$MIN_MACOS" ] ||
-    die "PaperMac needs macOS $MIN_MACOS or newer; this Mac runs macOS $version. Nothing was changed."
+  [ "$major" -ge "$PAPERMAC_MIN_MACOS" ] ||
+    die "PaperMac needs macOS $PAPERMAC_MIN_MACOS or newer; this Mac runs macOS $version. Nothing was changed."
 }
 
-papermac_running() { pgrep -x PaperMac >/dev/null 2>&1; }
+# Only a real PaperMac bundle is ever moved or removed: never a symlink, a file, or
+# another app that happens to be called PaperMac.app.
+check_papermac() { # PATH OUTCOME
+  if [ -L "$1" ] || [ ! -d "$1" ] ||
+     [ "$(plutil -extract CFBundleIdentifier raw -o - "$1/Contents/Info.plist" 2>/dev/null)" != "$PAPERMAC_ID" ]; then
+    die "$1 is not PaperMac, so it was left alone. Move it out of the way, then run this again. $2"
+  fi
+  [ -w "${1%/*}" ] ||
+    die "PaperMac is installed in ${1%/*}, which this user cannot change. Ask an administrator, or remove it and run this again. $2"
+  # Moving or deleting a bundle needs write access to the bundle itself.
+  [ -w "$1" ] ||
+    die "$1 belongs to another user, so this user cannot replace or remove it. Ask that user or an administrator to remove it. $2"
+}
 
-# PaperMac is a singleton; it must be gone before its app is replaced or removed.
-quit_papermac() {
-  papermac_running || return 0
+# One install or uninstall at a time per Applications folder. A lock whose process is
+# gone is taken over.
+take_lock() { # APPS OUTCOME
+  lock=$1/.PaperMac-install.lock
+  if ! mkdir "$lock" 2>/dev/null; then
+    present "$lock" || die "Could not write to $1. $2"
+    pid=$(cat "$lock/pid" 2>/dev/null) || pid=
+    case $pid in
+      ''|*[!0-9]*)
+        die "Another PaperMac install or uninstall may be running: $lock exists. If none is running, remove that folder and run this again. $2" ;;
+    esac
+    if ps -p "$pid" >/dev/null 2>&1; then
+      die "Another PaperMac install or uninstall is running (process $pid). Let it finish, then run this again. $2"
+    fi
+    say "Taking over the lock left by process $pid, which is no longer running."
+    # Known limit: two runs taking over the same stale lock at the same instant can
+    # both get it. Stale locks need a crash first, so this is left simple.
+    { rm -f "$lock/pid" && rmdir "$lock" && mkdir "$lock"; } 2>/dev/null ||
+      die "Could not take over $lock. Remove it, then run this again. $2"
+  fi
+  LOCK=$lock
+  printf '%s\n' "$$" > "$LOCK/pid" || die "Could not write $LOCK/pid. $2"
+}
+
+release_lock() {
+  [ -n "$LOCK" ] || return 0
+  { rm -f "$LOCK/pid" && rmdir "$LOCK"; } 2>/dev/null ||
+    warn "Could not remove the lock $LOCK. Remove it before running this again."
+  LOCK=''
+}
+
+# Sets PIDS to this user's PaperMac processes running from the bundles in BUNDLES (one
+# path per line). Stops if this user runs PaperMac from anywhere else, or another user
+# runs it from one of those bundles: neither is this run's to quit.
+find_papermac() { # BUNDLES OUTCOME
+  execs=
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
+    # A process shows the path it was started with: check the symlink-free one too.
+    real=$(cd -P "${app%/*}" 2>/dev/null && pwd) || real=${app%/*}
+    execs=$execs$app/Contents/MacOS/PaperMac$NL$real/PaperMac.app/Contents/MacOS/PaperMac$NL
+  done <<EOF
+$1
+EOF
+  procs=$(ps -axo uid=,pid=,comm=) || die "Could not list running processes to look for PaperMac. $2"
+  PIDS=
+  while read -r uid pid exe; do
+    case $exe in PaperMac|*/PaperMac) ;; *) continue ;; esac
+    case $NL$execs in
+      *"$NL$exe$NL"*)
+        [ "$uid" = "$ME" ] ||
+          die "Another user on this Mac is running PaperMac from ${exe%/Contents/MacOS/PaperMac}. It must be quit first. $2"
+        PIDS="$PIDS $pid" ;;
+      *)
+        [ "$uid" != "$ME" ] ||
+          die "PaperMac is running from ${exe%/Contents/MacOS/PaperMac}. Quit it, then run this again. $2" ;;
+    esac
+  done <<EOF
+$procs
+EOF
+}
+
+papermac_running() {
+  for pid in $PIDS; do kill -0 "$pid" 2>/dev/null && return 0; done
+  return 1
+}
+
+# Quits the PIDS that find_papermac found. First the Apple-event quit its menu uses,
+# with the whole request bounded: osascript itself can hang on an unresponsive app.
+# SIGTERM only if that request fails or PaperMac still runs after the full wait, so a
+# quit in progress is never cut short. Never SIGKILL: PaperMac returns hidden windows as
+# it quits.
+quit_papermac() { # OUTCOME
+  [ -n "$PIDS" ] || return 0
   say "Quitting PaperMac..."
-  osascript -e 'quit app "PaperMac"' >/dev/null 2>&1 || true
+  rm -f "$WORK/quit.status"
+  (
+    status=0
+    osascript -e "quit app id \"$PAPERMAC_ID\"" > "$WORK/quit.log" 2>&1 || status=$?
+    echo "$status" > "$WORK/quit.status"
+  ) 2>/dev/null &
+  request=$!
   waited=0
   while papermac_running; do
-    [ "$waited" -lt $((QUIT_TIMEOUT_SECONDS * 2)) ] ||
-      die "PaperMac did not quit within $QUIT_TIMEOUT_SECONDS seconds. Quit it from its menu bar icon, then run this again."
+    if [ -s "$WORK/quit.status" ] && [ "$(cat "$WORK/quit.status")" != 0 ]; then
+      warn "PaperMac did not accept the request to quit: $(cat "$WORK/quit.log")"
+      break
+    fi
+    if [ "$waited" -ge $((QUIT_TIMEOUT_SECONDS * 2)) ]; then
+      warn "PaperMac did not quit within $QUIT_TIMEOUT_SECONDS seconds."
+      break
+    fi
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+  kill "$request" 2>/dev/null || :
+  papermac_running || return 0
+
+  say "Sending PaperMac SIGTERM..."
+  for pid in $PIDS; do kill -TERM "$pid" 2>/dev/null || :; done
+  waited=0
+  while papermac_running; do
+    [ "$waited" -lt $((TERM_TIMEOUT_SECONDS * 2)) ] ||
+      die "PaperMac is still running. Quit it from its menu bar icon, then run this again. $1"
     sleep 0.5
     waited=$((waited + 1))
   done
 }
 
-# Undo whatever a failed or interrupted install left. Never deletes the download
-# while its disk image may still be mounted.
+# Undoes whatever a failed or interrupted run left, and always gets to the detach.
+# Every step reports its own failure; none stops the cleanup. Returns 1 only when the
+# disk image stays attached.
 cleanup() {
-  status=$?
+  result=0
   if [ -n "$APP_STAGE" ]; then
-    if [ -d "$APP_STAGE/previous.app" ] && [ ! -e "$DEST" ]; then
-      mv "$APP_STAGE/previous.app" "$DEST" && warn "The previous PaperMac was put back at $DEST."
+    if present "$APP_STAGE/previous.app"; then
+      if ! present "$DEST"; then
+        # The new copy never went in: put the old one back.
+        if mv "$APP_STAGE/previous.app" "$DEST" 2>/dev/null; then
+          warn "The previous PaperMac was put back at $DEST."
+        else
+          keep_backup
+        fi
+      elif present "$APP_STAGE/PaperMac.app"; then
+        # Something that is not the new copy is at $DEST.
+        keep_backup
+      fi
     fi
-    rm -rf "$APP_STAGE"
-    APP_STAGE=''
+    if [ -n "$APP_STAGE" ]; then
+      rm -rf "$APP_STAGE" 2>/dev/null ||
+        warn "Could not fully remove $APP_STAGE. Delete that folder."
+      APP_STAGE=''
+    fi
   fi
   if [ -n "$MOUNTED" ]; then
     if hdiutil detach -quiet "$MOUNTED"; then
@@ -68,86 +240,125 @@ cleanup() {
     else
       warn "Could not detach the PaperMac disk image. Detach it with: hdiutil detach '$MOUNTED'"
       warn "The download is kept at $WORK"
-      MOUNTED='' WORK=''
-      return 1
+      MOUNTED='' WORK='' result=1
     fi
   fi
   if [ -n "$WORK" ]; then
-    rm -f "$WORK/PaperMac.dmg"
-    rmdir "$WORK/mnt" 2>/dev/null || true
-    rmdir "$WORK" 2>/dev/null || warn "Could not remove $WORK"
+    rm -rf "$WORK" 2>/dev/null || warn "Could not remove $WORK"
     WORK=''
   fi
-  return "$status"
+  release_lock
+  return "$result"
+}
+
+# The previous app could not be put back: never delete the folder that holds it.
+keep_backup() {
+  rm -rf "$APP_STAGE/PaperMac.app" 2>/dev/null || :
+  warn "The previous PaperMac is kept at $APP_STAGE/previous.app"
+  if present "$DEST"; then
+    warn "Something else is now at $DEST. Move it away, then put PaperMac back with:"
+  else
+    warn "Put it back with:"
+  fi
+  warn "  mv '$APP_STAGE/previous.app' '$DEST'"
+  APP_STAGE=''
 }
 
 install_macos() {
+  [ -z "$PAPERMAC_MANIFEST_URL" ] || read_manifest
   check_macos_version
   # Upgrade in place; otherwise /Applications, or ~/Applications without write access.
-  if [ -e "$SYSTEM_APPLICATIONS/PaperMac.app" ]; then
+  if present "$SYSTEM_APPLICATIONS/PaperMac.app"; then
     apps=$SYSTEM_APPLICATIONS
-    [ -w "$apps" ] || die "PaperMac is installed in $apps, which this user cannot change. Ask an administrator, or remove it and run this again."
-  elif [ -e "$HOME/Applications/PaperMac.app" ] || [ ! -w "$SYSTEM_APPLICATIONS" ]; then
+  elif present "$HOME/Applications/PaperMac.app" || [ ! -w "$SYSTEM_APPLICATIONS" ]; then
     apps=$HOME/Applications
   else
     apps=$SYSTEM_APPLICATIONS
   fi
   DEST=$apps/PaperMac.app
-  if [ -e "$DEST" ]; then action="Replacing the PaperMac at"; else action="Installing to"; fi
-  say "Installing PaperMac $PAPERMAC_VERSION (alpha, not notarized)."
+  mkdir -p "$apps" 2>/dev/null || :
+  [ -w "$apps" ] ||
+    die "This user cannot change $apps, so PaperMac cannot be installed or updated there. Ask an administrator, or remove $DEST and run this again. Nothing was changed."
+  take_lock "$apps" "Nothing was changed."
+  if present "$DEST"; then
+    check_papermac "$DEST" "Nothing was changed."
+    action="Replacing the PaperMac at"
+  else
+    action="Installing to"
+  fi
+  if [ "$PAPERMAC_NOTARIZED" = true ]; then notarized=notarized; else notarized="not notarized"; fi
+  say "Installing PaperMac $PAPERMAC_VERSION ($notarized)."
   say "  From:    $PAPERMAC_DMG_URL"
   say "  SHA-256: $PAPERMAC_DMG_SHA256"
   say "  $action $DEST"
 
-  WORK=$(mktemp -d "${TMPDIR:-/tmp}/papermac.XXXXXX")
-  trap cleanup EXIT
-  trap 'exit 130' INT TERM HUP
-  curl -fsSL --proto '=https' --tlsv1.2 -o "$WORK/PaperMac.dmg" "$PAPERMAC_DMG_URL" ||
-    die "Could not download PaperMac. Nothing was changed."
+  # Everything up to the swap happens while PaperMac keeps running, so any failure
+  # before it leaves the user's PaperMac running and untouched.
+  fetch "$PAPERMAC_DMG_URL" "$WORK/PaperMac.dmg" || die "Could not download PaperMac. Nothing was changed."
   actual=$(shasum -a 256 "$WORK/PaperMac.dmg" | awk '{print $1}')
   [ "$actual" = "$PAPERMAC_DMG_SHA256" ] ||
     die "Checksum mismatch for the PaperMac download (expected $PAPERMAC_DMG_SHA256, got $actual). Nothing was changed."
 
-  quit_papermac
   mkdir "$WORK/mnt"
   MOUNTED=$WORK/mnt
-  hdiutil attach -nobrowse -readonly -mountpoint "$WORK/mnt" "$WORK/PaperMac.dmg" >/dev/null
-  [ -d "$WORK/mnt/PaperMac.app" ] || die "The PaperMac disk image does not contain PaperMac.app. The installed PaperMac was not changed."
+  # hdiutil attach prints a deprecation warning on macOS 27; its output is shown only
+  # when it fails.
+  if ! attach_log=$(hdiutil attach -nobrowse -readonly -mountpoint "$WORK/mnt" "$WORK/PaperMac.dmg" 2>&1); then
+    MOUNTED=''
+    warn "$attach_log"
+    die "Could not open the PaperMac disk image. $NOT_CHANGED"
+  fi
+  [ -d "$WORK/mnt/PaperMac.app" ] || die "The PaperMac disk image does not contain PaperMac.app. $NOT_CHANGED"
 
-  # Copy under a private name in the destination, verify, then rename: never a partial PaperMac.app.
-  mkdir -p "$apps"
-  APP_STAGE=$(mktemp -d "$apps/.PaperMac-install.XXXXXX")
-  ditto "$WORK/mnt/PaperMac.app" "$APP_STAGE/PaperMac.app"
+  # Copy under a private name next to the destination and verify it, so the swap below
+  # is two renames and there is never a partial PaperMac.app.
+  APP_STAGE=$(mktemp -d "$apps/.PaperMac-install.XXXXXX") || die "Could not write to $apps. $NOT_CHANGED"
+  ditto "$WORK/mnt/PaperMac.app" "$APP_STAGE/PaperMac.app" || die "Could not copy PaperMac into $apps. $NOT_CHANGED"
   codesign --verify --deep --strict "$APP_STAGE/PaperMac.app" ||
-    die "The downloaded PaperMac failed code signature verification. The installed PaperMac was not changed."
-  if [ -e "$DEST" ]; then mv "$DEST" "$APP_STAGE/previous.app"; fi
-  mv "$APP_STAGE/PaperMac.app" "$DEST"
-  rm -rf "$APP_STAGE"
-  APP_STAGE=''
+    die "The downloaded PaperMac failed code signature verification. $NOT_CHANGED"
 
-  cleanup || die "PaperMac is installed at $DEST. Open it with: open '$DEST'"
+  # The new copy is ready: only now quit PaperMac, and only the copy being replaced.
+  find_papermac "$DEST" "$NOT_CHANGED"
+  quit_papermac "$NOT_CHANGED"
+  if present "$DEST"; then
+    # A SIGKILL or power loss between the two renames leaves the old app here.
+    say "Moving the current PaperMac to $APP_STAGE/previous.app while the new one goes in."
+    mv "$DEST" "$APP_STAGE/previous.app" || die "Could not move the current PaperMac aside. $NOT_CHANGED"
+  fi
+  # mv onto an existing directory would put the app inside it.
+  ! present "$DEST" || die "Something else appeared at $DEST during the install."
+  mv "$APP_STAGE/PaperMac.app" "$DEST" || die "Could not move the new PaperMac into $apps."
+
+  if ! cleanup; then
+    die "PaperMac $PAPERMAC_VERSION is installed at $DEST. Open it with: open '$DEST'"
+  fi
   say "PaperMac $PAPERMAC_VERSION is installed at $DEST. Opening it; its Welcome window sets up Accessibility."
   open "$DEST"
   say "Sparkle keeps PaperMac up to date. To reinstall, run the same command again."
 }
 
-remove_app() { # PATH
-  [ -e "$1" ] || [ -L "$1" ] || return 0
-  [ -w "${1%/*}" ] || die "Cannot remove $1: this user cannot change ${1%/*}."
-  rm -rf "$1"
-  say "Removed $1"
-}
-
 uninstall_macos() {
-  if [ ! -e "$SYSTEM_APPLICATIONS/PaperMac.app" ] && [ ! -L "$SYSTEM_APPLICATIONS/PaperMac.app" ] &&
-     [ ! -e "$HOME/Applications/PaperMac.app" ] && [ ! -L "$HOME/Applications/PaperMac.app" ]; then
+  say "$UNINSTALL_WARNING"
+  targets=
+  for app in "$SYSTEM_APPLICATIONS/PaperMac.app" "$HOME/Applications/PaperMac.app"; do
+    present "$app" || continue
+    check_papermac "$app" "$NOT_REMOVED"
+    targets=$targets$app$NL
+  done
+  if [ -z "$targets" ]; then
     say "PaperMac is not installed in $SYSTEM_APPLICATIONS or ~/Applications; nothing to do."
     return 0
   fi
-  say "$UNINSTALL_WARNING"
-  quit_papermac
-  remove_app "$SYSTEM_APPLICATIONS/PaperMac.app"
-  remove_app "$HOME/Applications/PaperMac.app"
+  find_papermac "$targets" "$NOT_REMOVED"
+  quit_papermac "$NOT_REMOVED"
+  for app in "$SYSTEM_APPLICATIONS/PaperMac.app" "$HOME/Applications/PaperMac.app"; do
+    case $NL$targets in *"$NL$app$NL"*) ;; *) continue ;; esac
+    take_lock "${app%/*}" "$NOT_REMOVED"
+    check_papermac "$app" "$NOT_REMOVED"
+    rm -rf "$app" || die "Could not fully remove $app. Delete it from Finder."
+    release_lock
+    say "Removed $app"
+  done
   say "PaperMac's settings were kept. To remove them too, run:"
   say "  rm -rf ~/.config/papermac"
   say "  rm -rf ~/'Library/Application Support/PaperMac'"
@@ -159,14 +370,18 @@ main() {
     --uninstall) action=uninstall ;;
     *) die "Unknown option: $1 (use --uninstall to remove PaperMac)" ;;
   esac
-  [ "$(id -u)" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
+  ME=$(id -u)
+  [ "$ME" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Darwin)
-      WORK='' MOUNTED='' APP_STAGE='' DEST=''
+      WORK='' MOUNTED='' APP_STAGE='' DEST='' LOCK='' PIDS=''
+      trap 'cleanup || :' EXIT
+      trap 'exit 130' INT TERM HUP
+      WORK=$(mktemp -d "${TMPDIR:-/tmp}/papermac.XXXXXX") || die "Could not create a temporary folder. Nothing was changed."
       if [ "$action" = install ]; then install_macos; else uninstall_macos; fi ;;
     Linux) say "$COMING_SOON"; exit 1 ;;
     *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and, soon, Hyprland (Paperland)." ;;
   esac
 }
 
-main "$@"
+main "$@"; }

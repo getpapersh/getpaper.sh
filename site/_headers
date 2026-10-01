@@ -1,0 +1,14 @@
+# Response headers for Cloudflare Workers static assets. scripts/build-site.sh copies
+# this file into site/; Workers reads it there and does not serve it.
+
+# The installer: shown as text in a browser ("Read the script"), and always fresh, so
+# `curl | sh` never runs a stale copy.
+/install
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+# The page: browsers may reuse it for five minutes, then revalidate with its ETag.
+/
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff
