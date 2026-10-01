@@ -25,6 +25,8 @@ for arg in "$@"; do last=$arg; done
 procs=$HOME/.stub-procs
 polls=$HOME/.stub-quit-polls
 me=${STUB_UID:-501}
+lock=$APPS/.PaperMac-install.lock
+foreign() { printf '{\n  "CFBundleIdentifier": "com.example.other"\n}\n' > "$APPS/PaperMac.app/Contents/Info.plist"; }
 
 case "$name" in
   id) echo "$me" ;;
@@ -38,7 +40,12 @@ case "$name" in
     done
     case "$last" in
       *.json) [ -n "${STUB_MANIFEST:-}" ] || exit 22; cp "$STUB_MANIFEST" "$out" ;;
-      *) [ -z "${STUB_CURL_FAILS:-}" ] || exit 22; echo dmg > "$out" ;;
+      *)
+        [ -z "${STUB_CURL_FAILS:-}" ] || exit 22
+        if [ "${STUB_DEST_FOREIGN:-}" = download ]; then foreign; fi
+        # Another run's pid in this run's lock: this run must not remove it.
+        if [ -n "${STUB_STEAL_LOCK:-}" ]; then echo "$STUB_STEAL_LOCK" > "$lock/pid"; fi
+        echo dmg > "$out" ;;
     esac ;;
   shasum) echo "${STUB_DMG_SHA:-0}  $last" ;;
   plutil) # plutil -extract KEY raw [-expect TYPE] -o - FILE, for one-key-per-line JSON
@@ -59,7 +66,12 @@ case "$name" in
     fi
     printf '%s\n' "$value" ;;
   ps)
-    if [ "$1" = -p ]; then kill -0 "$2" 2>/dev/null; exit; fi
+    if [ "$1" = -p ]; then
+      # Another run takes the stale lock over between this run's check and its takeover.
+      if [ -n "${STUB_LOCK_RACE:-}" ]; then echo "$STUB_LOCK_RACE" > "$lock/pid"; exit 1; fi
+      kill -0 "$2" 2>/dev/null
+      exit
+    fi
     [ -z "${STUB_PS_FAILS:-}" ] || exit 1
     echo "    0     1 /sbin/launchd"
     [ -f "$procs" ] || exit 0
@@ -74,10 +86,11 @@ case "$name" in
             "$(cat "$APPS/PaperMac.app/Contents/version" 2>/dev/null)" \
             "$(cat "$APPS"/.PaperMac-install.*/PaperMac.app/Contents/version 2>/dev/null)" >> "$LOG"
         fi
+        if [ "${STUB_DEST_FOREIGN:-}" = quit ]; then foreign; fi
         echo "${STUB_QUIT_POLLS:-0}" > "$polls" ;;
       ignore) ;;
       refuse) echo "execution error: Not authorized to send Apple events to PaperMac. (-1743)" >&2; exit 1 ;;
-      hang) exec /bin/sleep 5 ;;
+      hang) echo "$$" > "$HOME/.stub-osascript"; exec /bin/sleep 60 ;;
     esac ;;
   sleep)
     /bin/sleep "${STUB_SLEEP:-0.01}"
@@ -103,7 +116,12 @@ case "$name" in
           prev=$arg
         done
         echo "/dev/disk9s1	Apple_HFS	$last" ;;
-      detach) [ -z "${STUB_DETACH_FAILS:-}" ] || exit 1; rm -rf "$last/PaperMac.app" ;;
+      detach)
+        case "${STUB_DETACH_FAILS:-}" in
+          once) if [ ! -f "$HOME/.stub-detach-failed" ]; then touch "$HOME/.stub-detach-failed"; exit 1; fi ;;
+          ?*) exit 1 ;;
+        esac
+        rm -rf "$last/PaperMac.app" ;;
     esac ;;
   ditto)
     mkdir -p "$last/Contents"
@@ -111,8 +129,15 @@ case "$name" in
     echo new > "$last/Contents/version"
     printf '{\n  "CFBundleIdentifier": "dev.jsonmartin.papermac"\n}\n' > "$last/Contents/Info.plist" ;;
   codesign) [ -z "${STUB_CODESIGN_FAILS:-}" ] || exit 1 ;;
-  open) ;;
+  open) if [ -d "$lock" ]; then echo "at open: lock held" >> "$LOG"; fi ;;
+  rm) # only in cases that link it: deleting the renamed-aside bundle fails on request
+    case "${STUB_RM:-}:$last" in fail:*/.PaperMac-uninstall.*) exit 1 ;; esac
+    exec /bin/rm "$@" ;;
   mv) # only in cases that link it: fails or interrupts the swap's renames on request
+    if [ "$1" = "$APPS/PaperMac.app" ] && [ -f "$HOME/.stub-osascript" ]; then
+      if kill -0 "$(cat "$HOME/.stub-osascript")" 2>/dev/null; then state=running; else state=gone; fi
+      echo "at swap: quit request $state" >> "$LOG"
+    fi
     case "${STUB_MV:-}:$1" in
       *aside*:"$APPS"/PaperMac.app) # the old app moves aside, then something else lands in its place
         /bin/mv "$@" && mkdir "$1" && exit 0 ;;

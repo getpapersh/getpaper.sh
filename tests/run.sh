@@ -29,7 +29,7 @@ STUBS="id uname sw_vers curl shasum plutil ps osascript sleep hdiutil ditto code
 
 tools=$work/tools
 mkdir -p "$tools"
-for tool in env sed grep awk mkdir mv rm rmdir mktemp cat cp ln touch chmod head; do
+for tool in env sed grep awk mkdir mv rm rmdir mktemp cat cp ln touch chmod head find pkill; do
   ln -s "$(command -v "$tool")" "$tools/$tool"
 done
 ln -s "$(command -v "${TEST_SH:-sh}")" "$tools/sh"
@@ -101,7 +101,7 @@ calls() { # EXPECTED: the calls after the version checks, one per line, random n
   printf '%s\n' "$1" | diff -u - "$case_dir/calls" >&2
 }
 app_is() { [ "$(cat "$1/Contents/version" 2>/dev/null)" = "$2" ]; }
-no_staging() { [ -z "$(find "$apps" "$home" -name '.PaperMac-install.*' 2>/dev/null)" ]; }
+no_staging() { [ -z "$(find "$apps" "$home" -name '.PaperMac-*' 2>/dev/null)" ]; }
 tmp_empty() { [ -z "$(ls -A "$case_dir/tmp")" ]; }
 existing() { # DIR: an installed older PaperMac
   mkdir -p "$1/PaperMac.app/Contents"
@@ -145,7 +145,9 @@ ditto [$MNT/PaperMac.app] [$STAGED]
 codesign [--verify] [--deep] [--strict] [$STAGED]
 ps [-axo] [uid=,pid=,comm=]
 hdiutil [detach] [-quiet] [$MNT]
-open [/Applications/PaperMac.app]"
+open [/Applications/PaperMac.app]
+at open: lock held"
+check "install holds its lock until PaperMac is opened" called "at open: lock held"
 check "install puts the app in /Applications" app_is "$apps/PaperMac.app" new
 check "install hides hdiutil's deprecation warning" silent "deprecated"
 check "install leaves no private copy or lock" no_staging
@@ -166,11 +168,14 @@ shasum [-a] [256] [$DMG]
 hdiutil [attach] [-nobrowse] [-readonly] [-mountpoint] [$MNT] [$DMG]
 ditto [$MNT/PaperMac.app] [$STAGED]
 codesign [--verify] [--deep] [--strict] [$STAGED]
+$ID_CHECK
 ps [-axo] [uid=,pid=,comm=]
 $QUIT
 at quit: installed=old staged=new
+$ID_CHECK
 hdiutil [detach] [-quiet] [$MNT]
-open [/Applications/PaperMac.app]"
+open [/Applications/PaperMac.app]
+at open: lock held"
 check "upgrade prints the backup path before swapping" says "Moving the current PaperMac to $apps/.PaperMac-install."
 check "upgrade quit PaperMac" dead "$app"
 check "upgrade never sends SIGTERM after a clean quit" silent "SIGTERM"
@@ -194,12 +199,14 @@ check "SIGTERM stopped PaperMac" dead "$app"
 check "SIGTERM went only to that PaperMac" alive "$other"
 check "the app was replaced" app_is "$apps/PaperMac.app" new
 
-new_case quit-request-hangs
+new_case quit-request-hangs mv
 existing "$apps"
 running 501 "$apps/PaperMac.app"
 app=$PID
 run -- STUB_QUIT=hang
 check "a hung quit request is bounded" status 0
+check "the hung quit request is ended before the swap" called "at swap: quit request gone"
+check "the hung quit request is gone afterwards" dead "$(cat "$home/.stub-osascript")"
 check "the hang is reported" says "PaperMac did not quit within 20 seconds."
 check "SIGTERM after the hung request" dead "$app"
 check "the app was replaced after a hung request" app_is "$apps/PaperMac.app" new
@@ -331,7 +338,7 @@ mkdir "$apps/.PaperMac-install.lock"
 echo "$holder" > "$apps/.PaperMac-install.lock/pid"
 run
 check "a held lock stops the install" status 1
-check "it names the running process" says "Another PaperMac install or uninstall is running (process $holder)."
+check "it names the running process" says "Another PaperMac install or uninstall may be running (process $holder): $apps/.PaperMac-install.lock exists. If none is running, remove that folder and run this again."
 check "a held lock is kept" [ "$(cat "$apps/.PaperMac-install.lock/pid")" = "$holder" ]
 check "nothing is downloaded while locked" not_called curl
 check "the app is kept while locked" app_is "$apps/PaperMac.app" old
@@ -345,7 +352,7 @@ mkdir "$apps/.PaperMac-install.lock"
 echo "$PID" > "$apps/.PaperMac-install.lock/pid"
 run
 check "a stale lock is taken over" status 0
-check "it says so" says "Taking over the lock left by process $PID, which is no longer running."
+check "it says so" says "Took over the lock left by process $PID, which is no longer running."
 check "the install completes" app_is "$apps/PaperMac.app" new
 check "the lock is released" no_staging
 
@@ -441,6 +448,70 @@ check "an interrupted swap puts the old app back" app_is "$apps/PaperMac.app" ol
 check "an interrupted swap leaves no private copy or lock" no_staging
 check "an interrupted swap still detaches" called "hdiutil [detach]"
 
+new_case lock-takeover-race
+existing "$apps"
+sleeper
+dead_pid=$PID
+kill -KILL "$dead_pid"
+sleeper
+winner=$PID
+sleep 0.2
+mkdir "$apps/.PaperMac-install.lock"
+echo "$dead_pid" > "$apps/.PaperMac-install.lock/pid"
+run -- STUB_LOCK_RACE=$winner
+check "losing a stale-lock takeover stops the install" status 1
+check "it says the other run took over first" says "Another PaperMac install or uninstall took over $apps/.PaperMac-install.lock first."
+check "the winner's lock is kept" [ "$(cat "$apps/.PaperMac-install.lock/pid")" = "$winner" ]
+check "the takeover lock is released" [ ! -e "$apps/.PaperMac-install.lock.takeover" ]
+check "nothing is downloaded after losing a takeover" not_called curl
+
+new_case lock-takeover-busy
+existing "$apps"
+sleeper
+kill -KILL "$PID"
+sleep 0.2
+mkdir "$apps/.PaperMac-install.lock" "$apps/.PaperMac-install.lock.takeover"
+echo "$PID" > "$apps/.PaperMac-install.lock/pid"
+run
+check "a takeover in progress stops the install" says "Another run is taking over $apps/.PaperMac-install.lock."
+check "a takeover in progress is left alone" [ "$(cat "$apps/.PaperMac-install.lock/pid")" = "$PID" ]
+
+new_case lock-not-ours
+sleeper
+run -- STUB_STEAL_LOCK=$PID
+check "a lock that changed hands is never released" [ "$(cat "$apps/.PaperMac-install.lock/pid" 2>/dev/null)" = "$PID" ]
+
+new_case replaced-during-download
+existing "$apps"
+running 501 "$apps/PaperMac.app"
+app=$PID
+run -- STUB_DEST_FOREIGN=download
+check "a destination replaced during the download is refused" says "$apps/PaperMac.app is not PaperMac, so it was left alone."
+check "it is refused before PaperMac is quit" alive "$app"
+check "the replacement is kept" [ -d "$apps/PaperMac.app" ]
+check "it leaves no private copy" no_staging
+
+new_case replaced-during-quit
+existing "$apps"
+running 501 "$apps/PaperMac.app"
+run -- STUB_DEST_FOREIGN=quit
+check "a destination replaced during the quit is refused" says "$apps/PaperMac.app is not PaperMac, so it was left alone."
+check "it is never moved aside" [ -f "$apps/PaperMac.app/Contents/version" ]
+check "the replacement is not deleted" no_staging
+
+new_case running-bare-name
+existing "$apps"
+sleeper
+echo "501 $PID PaperMac" >> "$home/.stub-procs"
+run
+check "a PaperMac started by bare name gets a clear message" says "PaperMac is running from an unknown location. Quit it, then run this again."
+
+new_case detach-retry
+run -- STUB_DETACH_FAILS=once
+check "a detach that fails once is retried" status 0
+check "the retry detached" [ "$(grep -c 'hdiutil \[detach\]' "$case_dir/log")" = 2 ]
+check "the app is opened after a retried detach" called open
+
 new_case download-fails
 run -- STUB_CURL_FAILS=1
 check "a failed download fails" status 1
@@ -482,9 +553,12 @@ shasum [-a] [256] [$DMG]
 hdiutil [attach] [-nobrowse] [-readonly] [-mountpoint] [$MNT] [$DMG]
 ditto [$MNT/PaperMac.app] [$STAGED]
 codesign [--verify] [--deep] [--strict] [$STAGED]
+$ID_CHECK
 ps [-axo] [uid=,pid=,comm=]
+$ID_CHECK
 hdiutil [detach] [-quiet] [$MNT]
-open [/Applications/PaperMac.app]"
+open [/Applications/PaperMac.app]
+at open: lock held"
 check "manifest install names the manifest's release" says "Installing PaperMac 27.0.0-alpha.4 (not notarized)."
 check "manifest install shows the manifest's checksum" says "SHA-256: $M_SHA"
 check "manifest install replaced the app" app_is "$apps/PaperMac.app" new
@@ -622,11 +696,40 @@ check "uninstall keeps the app when PaperMac does not quit" app_is "$apps/PaperM
 new_case uninstall-locked
 existing "$apps"
 sleeper
+holder=$PID
+running 501 "$apps/PaperMac.app"
+app=$PID
 mkdir "$apps/.PaperMac-install.lock"
-echo "$PID" > "$apps/.PaperMac-install.lock/pid"
+echo "$holder" > "$apps/.PaperMac-install.lock/pid"
 run --uninstall
-check "uninstall waits for a running install" says "Another PaperMac install or uninstall is running (process $PID)."
+check "uninstall waits for a running install" says "Another PaperMac install or uninstall may be running (process $holder)"
 check "uninstall removes nothing while locked" app_is "$apps/PaperMac.app" old
+check "uninstall takes the lock before quitting" not_called osascript
+check "uninstall leaves PaperMac running while locked" alive "$app"
+
+new_case uninstall-protected-files
+existing "$apps"
+mkdir -p "$apps/PaperMac.app/Contents/MacOS"
+echo binary > "$apps/PaperMac.app/Contents/MacOS/PaperMac"
+chmod 555 "$apps/PaperMac.app/Contents/MacOS"
+running 501 "$apps/PaperMac.app"
+app=$PID
+find "$apps/PaperMac.app" | sort > "$case_dir/before"
+run --uninstall
+check "uninstall refuses a bundle it cannot fully delete" status 1
+check "it names the protected folder" says "This user cannot delete $apps/PaperMac.app/Contents/MacOS, inside $apps/PaperMac.app."
+# shellcheck disable=SC2016 # expanded by the inner sh
+check "every file of that bundle is kept" sh -c 'find "$1" | sort | diff - "$2"' _ "$apps/PaperMac.app" "$case_dir/before"
+check "PaperMac is not quit for a refused uninstall" alive "$app"
+
+new_case uninstall-leftover rm
+existing "$apps"
+run --uninstall -- STUB_RM=fail
+check "a failed delete makes uninstall fail" status 1
+check "the real path is never left half-deleted" [ ! -e "$apps/PaperMac.app" ]
+leftover=$(find "$apps" -name '.PaperMac-uninstall.*' | head -n 1)
+check "the leftover is reported where it is" says "PaperMac was removed from $apps/PaperMac.app, but some of its files could not be deleted. They are in $leftover; delete that folder."
+check "the leftover is that folder" app_is "$leftover/PaperMac.app" old
 
 new_case uninstall-nothing
 run --uninstall
@@ -637,7 +740,7 @@ for args in "" "--uninstall"; do
   new_case "linux${args:+-uninstall}"
   run $args -- STUB_OS=Linux
   check "Linux${args:+ $args} exits 1" status 1
-  check "Linux${args:+ $args} says coming soon" says "Paperland install is coming soon"
+  check "Linux${args:+ $args} says coming soon" says "Paperland is coming soon. Follow along at https://getpaper.sh"
   check "Linux${args:+ $args} does nothing else" [ "$(grep -Ecv '^(id|uname)( |$)' "$case_dir/log")" = 0 ]
 done
 

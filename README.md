@@ -9,7 +9,7 @@ curl -fsSL https://getpaper.sh/install | sh
 
 - **macOS:** installs PaperMac. Run it again to reinstall or upgrade; Sparkle handles
   updates after that.
-- **Linux:** prints "Paperland install is coming soon" and exits 1, for install and
+- **Linux:** prints "Paperland is coming soon" and exits 1, for install and
   uninstall alike.
 
 Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
@@ -37,12 +37,17 @@ Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uni
 4. Chooses the destination: the existing install's folder, else `/Applications`, or
    `~/Applications` when `/Applications` is not writable. No `sudo`, ever.
 5. Takes a lock, `<Applications>/.PaperMac-install.lock` (a folder holding the owner's
-   pid), so two installs or uninstalls never interleave. A lock whose process is gone is
-   taken over; a lock without a pid is reported, never taken over.
+   pid), and holds it until PaperMac is opened, so two installs or uninstalls never
+   interleave. A lock whose pid is no longer running is taken over under a second,
+   short-lived lock (`.PaperMac-install.lock.takeover`), so two runs can never both
+   take it over; the loser stops. A lock without a pid, or whose pid now belongs to
+   some other process, is reported with how to clear it, never taken over. A run only
+   ever removes a lock that holds its own pid.
 6. Checks that an existing `PaperMac.app` is PaperMac before touching it: a real folder,
    not a symlink or file, with `CFBundleIdentifier` `dev.jsonmartin.papermac` (read
    with `plutil`), writable by this user. Anything else is left alone and the install
-   stops.
+   stops. The check runs again before the quit and again before the old app is moved
+   aside.
 7. Downloads with `curl -fsSL --proto '=https' --tlsv1.2` into `mktemp -d` and checks
    the SHA-256. A curl download carries no quarantine mark, which is why the
    un-notarized alpha opens without a Gatekeeper prompt.
@@ -54,7 +59,9 @@ Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uni
    finds this user's PaperMac processes by executable path (`ps`). PaperMac running
    from another folder, or another user's PaperMac running from the destination, stops
    the install instead. The quit is `osascript -e 'quit app id "dev.jsonmartin.papermac"'`
-   run in the background so the request itself is bounded; it waits up to 20 seconds.
+   run in the background so the request itself is bounded; it waits up to 20 seconds,
+   then ends a request that is still pending (osascript itself, then its wrapper), so
+   it can never reach the newly installed PaperMac.
    `kill -TERM` goes to those exact pids only if the request failed (its error is
    printed) or PaperMac still runs after the wait; then it waits 10 more seconds and,
    if PaperMac is still running, says so and stops with nothing changed. Never
@@ -63,9 +70,9 @@ Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uni
     `previous.app` (its path is printed first), then the new copy into place.
 11. Cleans up in a trap that always reaches the detach. If the new copy did not go in,
     it puts `previous.app` back; if that fails or is impossible, it keeps the folder,
-    prints its path and the exact `mv` command to restore it, and never deletes it. If
-    detaching fails, the download and mount are kept and the `hdiutil detach` command is
-    printed.
+    prints its path and the exact `mv` command to restore it, and never deletes it.
+    Detaching is retried once after a second; if it still fails, the download and mount
+    are kept and the `hdiutil detach` command is printed.
 12. `open`s the app, whose Welcome window sets up Accessibility.
 
 **Interruption guarantee.** Ctrl-C, SIGTERM, SIGHUP and every failure go through the
@@ -73,15 +80,20 @@ cleanup above, so the previous PaperMac is either in place or restored. A SIGKIL
 crash or power loss between the two renames cannot run the cleanup: `PaperMac.app` is
 then missing, and the previous app is in the printed
 `<Applications>/.PaperMac-install.XXXXXX/previous.app`. Move it back with the printed
-path (`mv '<that path>' '<Applications>/PaperMac.app'`) and remove the empty lock
-folder `<Applications>/.PaperMac-install.lock`.
+path (`mv '<that path>' '<Applications>/PaperMac.app'`). The lock left behind holds
+the dead run's pid, and the next run takes it over by itself.
 
 `--uninstall` prints "If PaperMac crashed or was force-quit, open it once and quit it
-before uninstalling, so it can return any hidden windows." first, checks each
-`PaperMac.app` in `/Applications` and `~/Applications` the same way as step 6 (any
-non-PaperMac stops it before anything is removed), quits PaperMac as in step 9, removes
-the apps under the lock, and prints the commands to remove `~/.config/papermac` and
-`~/Library/Application Support/PaperMac` without running them.
+before uninstalling, so it can return any hidden windows." first. It then takes the lock
+of each folder holding a `PaperMac.app` (`/Applications`, then `~/Applications`) and
+holds them through the checks, the quit and the removal. It checks each app as in
+step 6 and also that every folder inside it is deletable by this user; any problem
+stops it before anything is quit or removed. It quits PaperMac as in step 9, then
+renames each app to `<Applications>/.PaperMac-uninstall.XXXXXX/` before deleting it,
+so a failed delete never leaves a half-deleted `PaperMac.app`: the leftover folder is
+named and the uninstall exits 1. It prints the commands to remove
+`~/.config/papermac` and `~/Library/Application Support/PaperMac` without running
+them.
 
 The whole script is one `{ ... }` block ending in `main "$@"; }`, so a truncated
 download is a syntax error and runs nothing.

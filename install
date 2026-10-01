@@ -30,7 +30,7 @@ SITE=https://getpaper.sh
 QUIT_TIMEOUT_SECONDS=20
 # PaperMac's SIGTERM handler exits within 5 seconds.
 TERM_TIMEOUT_SECONDS=10
-COMING_SOON="Paperland install is coming soon. Follow along at $SITE"
+COMING_SOON="Paperland is coming soon. Follow along at $SITE"
 UNINSTALL_WARNING="If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows."
 NOT_CHANGED="The installed PaperMac was not changed."
 NOT_REMOVED="Nothing was removed."
@@ -101,34 +101,49 @@ check_papermac() { # PATH OUTCOME
 }
 
 # One install or uninstall at a time per Applications folder. A lock whose process is
-# gone is taken over.
+# gone is taken over under a second, short-lived lock, so two runs can never both take
+# it over, and a run never removes a lock it does not own.
 take_lock() { # APPS OUTCOME
   lock=$1/.PaperMac-install.lock
+  clear_it="If none is running, remove that folder and run this again."
   if ! mkdir "$lock" 2>/dev/null; then
-    present "$lock" || die "Could not write to $1. $2"
+    present "$lock" || die "This user cannot change $1. $2"
     pid=$(cat "$lock/pid" 2>/dev/null) || pid=
     case $pid in
-      ''|*[!0-9]*)
-        die "Another PaperMac install or uninstall may be running: $lock exists. If none is running, remove that folder and run this again. $2" ;;
+      ''|*[!0-9]*) die "Another PaperMac install or uninstall may be running: $lock exists. $clear_it $2" ;;
     esac
     if ps -p "$pid" >/dev/null 2>&1; then
-      die "Another PaperMac install or uninstall is running (process $pid). Let it finish, then run this again. $2"
+      die "Another PaperMac install or uninstall may be running (process $pid): $lock exists. $clear_it $2"
     fi
-    say "Taking over the lock left by process $pid, which is no longer running."
-    # Known limit: two runs taking over the same stale lock at the same instant can
-    # both get it. Stale locks need a crash first, so this is left simple.
-    { rm -f "$lock/pid" && rmdir "$lock" && mkdir "$lock"; } 2>/dev/null ||
-      die "Could not take over $lock. Remove it, then run this again. $2"
+    mkdir "$lock.takeover" 2>/dev/null ||
+      die "Another run is taking over $lock. Run this again in a moment; if this repeats, remove $lock.takeover. $2"
+    # Holding the takeover lock, the stale lock can only have changed hands before now.
+    if [ "$(cat "$lock/pid" 2>/dev/null)" = "$pid" ] && rm -f "$lock/pid" &&
+       rmdir "$lock" 2>/dev/null && mkdir "$lock" 2>/dev/null; then
+      rmdir "$lock.takeover" 2>/dev/null || :
+      say "Took over the lock left by process $pid, which is no longer running."
+    else
+      rmdir "$lock.takeover" 2>/dev/null || :
+      die "Another PaperMac install or uninstall took over $lock first. Let it finish, then run this again. $2"
+    fi
   fi
-  LOCK=$lock
-  printf '%s\n' "$$" > "$LOCK/pid" || die "Could not write $LOCK/pid. $2"
+  LOCKS=$LOCKS$lock$NL
+  printf '%s\n' "$$" > "$lock/pid" || die "Could not write $lock/pid. $2"
 }
 
-release_lock() {
-  [ -n "$LOCK" ] || return 0
-  { rm -f "$LOCK/pid" && rmdir "$LOCK"; } 2>/dev/null ||
-    warn "Could not remove the lock $LOCK. Remove it before running this again."
-  LOCK=''
+# Removes the locks this run took, unless another run owns one by now.
+release_locks() {
+  while IFS= read -r lock; do
+    [ -n "$lock" ] || continue
+    owner=$(cat "$lock/pid" 2>/dev/null) || owner=
+    if [ -z "$owner" ] || [ "$owner" = "$$" ]; then
+      { rm -f "$lock/pid" && rmdir "$lock"; } 2>/dev/null ||
+        warn "Could not remove the lock $lock. Remove it before running this again."
+    fi
+  done <<EOF
+$LOCKS
+EOF
+  LOCKS=''
 }
 
 # Sets PIDS to this user's PaperMac processes running from the bundles in BUNDLES (one
@@ -154,8 +169,8 @@ EOF
           die "Another user on this Mac is running PaperMac from ${exe%/Contents/MacOS/PaperMac}. It must be quit first. $2"
         PIDS="$PIDS $pid" ;;
       *)
-        [ "$uid" != "$ME" ] ||
-          die "PaperMac is running from ${exe%/Contents/MacOS/PaperMac}. Quit it, then run this again. $2" ;;
+        case $exe in */*) from=${exe%/Contents/MacOS/PaperMac} ;; *) from="an unknown location" ;; esac
+        [ "$uid" != "$ME" ] || die "PaperMac is running from $from. Quit it, then run this again. $2" ;;
     esac
   done <<EOF
 $procs
@@ -181,7 +196,7 @@ quit_papermac() { # OUTCOME
     osascript -e "quit app id \"$PAPERMAC_ID\"" > "$WORK/quit.log" 2>&1 || status=$?
     echo "$status" > "$WORK/quit.status"
   ) 2>/dev/null &
-  request=$!
+  QUIT_REQUEST=$!
   waited=0
   while papermac_running; do
     if [ -s "$WORK/quit.status" ] && [ "$(cat "$WORK/quit.status")" != 0 ]; then
@@ -195,7 +210,7 @@ quit_papermac() { # OUTCOME
     sleep 0.5
     waited=$((waited + 1))
   done
-  kill "$request" 2>/dev/null || :
+  stop_quit_request
   papermac_running || return 0
 
   say "Sending PaperMac SIGTERM..."
@@ -209,11 +224,23 @@ quit_papermac() { # OUTCOME
   done
 }
 
+# Ends a quit request that is still pending, so it can never reach the PaperMac that is
+# about to be installed and opened: osascript first (it is the wrapper's child, and
+# would outlive the wrapper), then the wrapper.
+stop_quit_request() {
+  [ -n "$QUIT_REQUEST" ] || return 0
+  pkill -TERM -P "$QUIT_REQUEST" 2>/dev/null || :
+  kill "$QUIT_REQUEST" 2>/dev/null || :
+  wait "$QUIT_REQUEST" 2>/dev/null || :
+  QUIT_REQUEST=''
+}
+
 # Undoes whatever a failed or interrupted run left, and always gets to the detach.
 # Every step reports its own failure; none stops the cleanup. Returns 1 only when the
-# disk image stays attached.
+# disk image stays attached. Locks are released separately, after the last step.
 cleanup() {
   result=0
+  stop_quit_request
   if [ -n "$APP_STAGE" ]; then
     if present "$APP_STAGE/previous.app"; then
       if ! present "$DEST"; then
@@ -235,7 +262,8 @@ cleanup() {
     fi
   fi
   if [ -n "$MOUNTED" ]; then
-    if hdiutil detach -quiet "$MOUNTED"; then
+    # A Spotlight pass over the image can make the first detach fail with "busy".
+    if hdiutil detach -quiet "$MOUNTED" || { sleep 1; hdiutil detach -quiet "$MOUNTED"; }; then
       MOUNTED=''
     else
       warn "Could not detach the PaperMac disk image. Detach it with: hdiutil detach '$MOUNTED'"
@@ -247,7 +275,6 @@ cleanup() {
     rm -rf "$WORK" 2>/dev/null || warn "Could not remove $WORK"
     WORK=''
   fi
-  release_lock
   return "$result"
 }
 
@@ -318,9 +345,12 @@ install_macos() {
     die "The downloaded PaperMac failed code signature verification. $NOT_CHANGED"
 
   # The new copy is ready: only now quit PaperMac, and only the copy being replaced.
+  # What is at $DEST is checked again before the quit and before it is moved aside.
+  if present "$DEST"; then check_papermac "$DEST" "$NOT_CHANGED"; fi
   find_papermac "$DEST" "$NOT_CHANGED"
   quit_papermac "$NOT_CHANGED"
   if present "$DEST"; then
+    check_papermac "$DEST" "$NOT_CHANGED"
     # A SIGKILL or power loss between the two renames leaves the old app here.
     say "Moving the current PaperMac to $APP_STAGE/previous.app while the new one goes in."
     mv "$DEST" "$APP_STAGE/previous.app" || die "Could not move the current PaperMac aside. $NOT_CHANGED"
@@ -335,14 +365,46 @@ install_macos() {
   say "PaperMac $PAPERMAC_VERSION is installed at $DEST. Opening it; its Welcome window sets up Accessibility."
   open "$DEST"
   say "Sparkle keeps PaperMac up to date. To reinstall, run the same command again."
+  release_locks
+}
+
+# Uninstall removes a bundle whole or not at all, so a checked bundle must also be
+# deletable throughout: every folder in it readable and writable by this user.
+check_deletable() { # APP
+  locked=$(find "$1" -type d 2>/dev/null | while IFS= read -r dir; do
+    if [ ! -r "$dir" ] || [ ! -w "$dir" ] || [ ! -x "$dir" ]; then printf '%s\n' "$dir"; break; fi
+  done)
+  [ -z "$locked" ] ||
+    die "This user cannot delete $locked, inside $1. Ask an administrator to remove $1. $NOT_REMOVED"
+}
+
+# Renames the bundle out of place first, so a failed delete never leaves a half-deleted
+# PaperMac.app at the real path; anything left over is reported where it is.
+remove_papermac() { # APP
+  aside=$(mktemp -d "${1%/*}/.PaperMac-uninstall.XXXXXX") || die "Could not remove $1; it was left in place."
+  if ! mv "$1" "$aside/PaperMac.app"; then
+    rmdir "$aside" 2>/dev/null || :
+    die "Could not remove $1; it was left in place."
+  fi
+  if rm -rf "$aside" 2>/dev/null; then
+    say "Removed $1"
+  else
+    warn "PaperMac was removed from $1, but some of its files could not be deleted. They are in $aside; delete that folder."
+    LEFTOVER=1
+  fi
 }
 
 uninstall_macos() {
   say "$UNINSTALL_WARNING"
+  # The locks come first, in a fixed order, and cover the checks, the quit and the removal.
+  for app in "$SYSTEM_APPLICATIONS/PaperMac.app" "$HOME/Applications/PaperMac.app"; do
+    if present "$app"; then take_lock "${app%/*}" "$NOT_REMOVED"; fi
+  done
   targets=
   for app in "$SYSTEM_APPLICATIONS/PaperMac.app" "$HOME/Applications/PaperMac.app"; do
     present "$app" || continue
     check_papermac "$app" "$NOT_REMOVED"
+    check_deletable "$app"
     targets=$targets$app$NL
   done
   if [ -z "$targets" ]; then
@@ -351,17 +413,15 @@ uninstall_macos() {
   fi
   find_papermac "$targets" "$NOT_REMOVED"
   quit_papermac "$NOT_REMOVED"
+  LEFTOVER=
   for app in "$SYSTEM_APPLICATIONS/PaperMac.app" "$HOME/Applications/PaperMac.app"; do
-    case $NL$targets in *"$NL$app$NL"*) ;; *) continue ;; esac
-    take_lock "${app%/*}" "$NOT_REMOVED"
-    check_papermac "$app" "$NOT_REMOVED"
-    rm -rf "$app" || die "Could not fully remove $app. Delete it from Finder."
-    release_lock
-    say "Removed $app"
+    case $NL$targets in *"$NL$app$NL"*) remove_papermac "$app" ;; esac
   done
+  release_locks
   say "PaperMac's settings were kept. To remove them too, run:"
   say "  rm -rf ~/.config/papermac"
   say "  rm -rf ~/'Library/Application Support/PaperMac'"
+  [ -z "$LEFTOVER" ] || exit 1
 }
 
 main() {
@@ -374,8 +434,8 @@ main() {
   [ "$ME" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Darwin)
-      WORK='' MOUNTED='' APP_STAGE='' DEST='' LOCK='' PIDS=''
-      trap 'cleanup || :' EXIT
+      WORK='' MOUNTED='' APP_STAGE='' DEST='' LOCKS='' PIDS='' QUIT_REQUEST=''
+      trap 'cleanup || :; release_locks' EXIT
       trap 'exit 130' INT TERM HUP
       WORK=$(mktemp -d "${TMPDIR:-/tmp}/papermac.XXXXXX") || die "Could not create a temporary folder. Nothing was changed."
       if [ "$action" = install ]; then install_macos; else uninstall_macos; fi ;;
