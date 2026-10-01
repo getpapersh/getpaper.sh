@@ -1,0 +1,172 @@
+#!/bin/sh
+# Paper installer.
+#   Install or update:  curl -fsSL https://getpaper.sh/install | sh
+#   Uninstall:          curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall
+#
+# macOS: installs PaperMac. Hyprland (Paperland): coming soon.
+#
+# This file is read from stdin under `curl | sh`: it never reads input, and everything
+# runs from main() on the last line, so a truncated download runs nothing.
+set -eu
+
+# Pinned release. The pin stays until PaperMac's scripts/release.sh publishes
+# latest.json; then the installer reads version, URL and SHA-256 from it instead.
+PAPERMAC_VERSION=27.0.0-alpha.3
+PAPERMAC_DMG_URL=https://mjcscmicvgmdk1ey.public.blob.vercel-storage.com/papermac/PaperMac-27.0.0-alpha.3.dmg
+PAPERMAC_DMG_SHA256=84eb7a5ff6c0319476b6249f6060470437fd9c5b00d4fc5b6360ef342d585e03
+MIN_MACOS=27
+
+SYSTEM_APPLICATIONS=/Applications
+SITE=https://getpaper.sh
+QUIT_TIMEOUT_SECONDS=20
+COMING_SOON="Paperland install is coming soon. Follow along at $SITE"
+# Shown before PaperMac is quit for an uninstall.
+UNINSTALL_WARNING="Before uninstalling, make sure all windows are visible. PaperMac alphas can leave windows off-screen when they quit (tracked in PAP-268)."
+
+say() { printf '%s\n' "$*"; }
+warn() { printf 'paper: %s\n' "$*" >&2; }
+die() { warn "$*"; exit 1; }
+
+check_macos_version() {
+  version=$(sw_vers -productVersion 2>/dev/null || true)
+  major=${version%%.*}
+  case "$major" in ''|*[!0-9]*) die "Could not read the macOS version." ;; esac
+  [ "$major" -ge "$MIN_MACOS" ] ||
+    die "PaperMac needs macOS $MIN_MACOS or newer; this Mac runs macOS $version. Nothing was changed."
+}
+
+papermac_running() { pgrep -x PaperMac >/dev/null 2>&1; }
+
+# PaperMac is a singleton; it must be gone before its app is replaced or removed.
+quit_papermac() {
+  papermac_running || return 0
+  say "Quitting PaperMac..."
+  osascript -e 'quit app "PaperMac"' >/dev/null 2>&1 || true
+  waited=0
+  while papermac_running; do
+    [ "$waited" -lt $((QUIT_TIMEOUT_SECONDS * 2)) ] ||
+      die "PaperMac did not quit within $QUIT_TIMEOUT_SECONDS seconds. Quit it from its menu bar icon, then run this again."
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+}
+
+# Undo whatever a failed or interrupted install left. Never deletes the download
+# while its disk image may still be mounted.
+cleanup() {
+  status=$?
+  if [ -n "$APP_STAGE" ]; then
+    if [ -d "$APP_STAGE/previous.app" ] && [ ! -e "$DEST" ]; then
+      mv "$APP_STAGE/previous.app" "$DEST" && warn "The previous PaperMac was put back at $DEST."
+    fi
+    rm -rf "$APP_STAGE"
+    APP_STAGE=''
+  fi
+  if [ -n "$MOUNTED" ]; then
+    if hdiutil detach -quiet "$MOUNTED"; then
+      MOUNTED=''
+    else
+      warn "Could not detach the PaperMac disk image. Detach it with: hdiutil detach '$MOUNTED'"
+      warn "The download is kept at $WORK"
+      MOUNTED='' WORK=''
+      return 1
+    fi
+  fi
+  if [ -n "$WORK" ]; then
+    rm -f "$WORK/PaperMac.dmg"
+    rmdir "$WORK/mnt" 2>/dev/null || true
+    rmdir "$WORK" 2>/dev/null || warn "Could not remove $WORK"
+    WORK=''
+  fi
+  return "$status"
+}
+
+install_macos() {
+  check_macos_version
+  # Upgrade in place; otherwise /Applications, or ~/Applications without write access.
+  if [ -e "$SYSTEM_APPLICATIONS/PaperMac.app" ]; then
+    apps=$SYSTEM_APPLICATIONS
+    [ -w "$apps" ] || die "PaperMac is installed in $apps, which this user cannot change. Ask an administrator, or remove it and run this again."
+  elif [ -e "$HOME/Applications/PaperMac.app" ] || [ ! -w "$SYSTEM_APPLICATIONS" ]; then
+    apps=$HOME/Applications
+  else
+    apps=$SYSTEM_APPLICATIONS
+  fi
+  DEST=$apps/PaperMac.app
+  if [ -e "$DEST" ]; then action="Replacing the PaperMac at"; else action="Installing to"; fi
+  say "Installing PaperMac $PAPERMAC_VERSION (alpha, not notarized)."
+  say "  From:    $PAPERMAC_DMG_URL"
+  say "  SHA-256: $PAPERMAC_DMG_SHA256"
+  say "  $action $DEST"
+
+  WORK=$(mktemp -d "${TMPDIR:-/tmp}/papermac.XXXXXX")
+  trap cleanup EXIT
+  trap 'exit 130' INT TERM HUP
+  curl -fsSL --proto '=https' --tlsv1.2 -o "$WORK/PaperMac.dmg" "$PAPERMAC_DMG_URL" ||
+    die "Could not download PaperMac. Nothing was changed."
+  actual=$(shasum -a 256 "$WORK/PaperMac.dmg" | awk '{print $1}')
+  [ "$actual" = "$PAPERMAC_DMG_SHA256" ] ||
+    die "Checksum mismatch for the PaperMac download (expected $PAPERMAC_DMG_SHA256, got $actual). Nothing was changed."
+
+  quit_papermac
+  mkdir "$WORK/mnt"
+  MOUNTED=$WORK/mnt
+  hdiutil attach -nobrowse -readonly -mountpoint "$WORK/mnt" "$WORK/PaperMac.dmg" >/dev/null
+  [ -d "$WORK/mnt/PaperMac.app" ] || die "The PaperMac disk image does not contain PaperMac.app. The installed PaperMac was not changed."
+
+  # Copy under a private name in the destination, verify, then rename: never a partial PaperMac.app.
+  mkdir -p "$apps"
+  APP_STAGE=$(mktemp -d "$apps/.PaperMac-install.XXXXXX")
+  ditto "$WORK/mnt/PaperMac.app" "$APP_STAGE/PaperMac.app"
+  codesign --verify --deep --strict "$APP_STAGE/PaperMac.app" ||
+    die "The downloaded PaperMac failed code signature verification. The installed PaperMac was not changed."
+  if [ -e "$DEST" ]; then mv "$DEST" "$APP_STAGE/previous.app"; fi
+  mv "$APP_STAGE/PaperMac.app" "$DEST"
+  rm -rf "$APP_STAGE"
+  APP_STAGE=''
+
+  cleanup || die "PaperMac is installed at $DEST. Open it with: open '$DEST'"
+  say "PaperMac $PAPERMAC_VERSION is installed at $DEST. Opening it; its Welcome window sets up Accessibility."
+  open "$DEST"
+  say "Sparkle keeps PaperMac up to date. To reinstall, run the same command again."
+}
+
+remove_app() { # PATH
+  [ -e "$1" ] || [ -L "$1" ] || return 0
+  [ -w "${1%/*}" ] || die "Cannot remove $1: this user cannot change ${1%/*}."
+  rm -rf "$1"
+  say "Removed $1"
+}
+
+uninstall_macos() {
+  if [ ! -e "$SYSTEM_APPLICATIONS/PaperMac.app" ] && [ ! -L "$SYSTEM_APPLICATIONS/PaperMac.app" ] &&
+     [ ! -e "$HOME/Applications/PaperMac.app" ] && [ ! -L "$HOME/Applications/PaperMac.app" ]; then
+    say "PaperMac is not installed in $SYSTEM_APPLICATIONS or ~/Applications; nothing to do."
+    return 0
+  fi
+  say "$UNINSTALL_WARNING"
+  quit_papermac
+  remove_app "$SYSTEM_APPLICATIONS/PaperMac.app"
+  remove_app "$HOME/Applications/PaperMac.app"
+  say "PaperMac's settings were kept. To remove them too, run:"
+  say "  rm -rf ~/.config/papermac"
+  say "  rm -rf ~/'Library/Application Support/PaperMac'"
+}
+
+main() {
+  case "${1:-}" in
+    '') action=install ;;
+    --uninstall) action=uninstall ;;
+    *) die "Unknown option: $1 (use --uninstall to remove PaperMac)" ;;
+  esac
+  [ "$(id -u)" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
+  case "$(uname -s)" in
+    Darwin)
+      WORK='' MOUNTED='' APP_STAGE='' DEST=''
+      if [ "$action" = install ]; then install_macos; else uninstall_macos; fi ;;
+    Linux) say "$COMING_SOON"; exit 1 ;;
+    *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and, soon, Hyprland (Paperland)." ;;
+  esac
+}
+
+main "$@"
