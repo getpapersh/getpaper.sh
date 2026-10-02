@@ -3,7 +3,7 @@
 This folder holds the Omarchy-plugin installer and uninstaller for Paperland. **It is
 not served and must not be inlined into `../install`**, which prints "Paperland
 install is coming soon" on Linux. It is parked here until "Hyprland next" (PAPER-7),
-and needs the checks under "Not yet proven" before it ships.
+and is ready to wire in once the owner approves serving it; see "Live check" for what has and has not been proven.
 
 ## Files
 
@@ -113,21 +113,29 @@ explicitly; every `GIT_*` variable is cleared and `GIT_ATTR_NOSYSTEM=1` is set.
 Not done: file modes are not compared by the content check (a `100755` blob checked
 out without its execute bit would pass; the caller cannot cause that).
 
-## Not yet proven
+## Live check (2026-10-02)
 
-The tests stub Omarchy and Hyprland. That `omarchy bar set` exists and writes the
-widget's setting, that enabling updates omarchy-shell's config before the call
-returns, and that `omarchy plugin remove` splices the widget's item out of
-`shell.json` were read from Omarchy 4.0.4's source. Only a run against a real
-omarchy-shell proves:
+Run on hotrod, owner-approved, in Paperland's end-to-end sandbox (`tests/e2e/run.py`
+style: Bubblewrap with no network, read-only `/`, private home, `/tmp`, runtime folder
+and D-Bus). The installed Hyprland 0.56.2 ran nested with only a headless output, with
+the installed Omarchy 4.0.4-1 shell inside it. The release was published from Paperland
+`5f41bba` and checked by the real `omarchy-plugin-validate`. Results:
 
-1. The `shell.json` write after `omarchy plugin remove` lands within the
-   uninstaller's 2-second wait.
-2. After `omarchy bar set json.paperland executable …`, the running widget runs that
-   launcher.
-3. The whole lifecycle once: install, rerun, uninstall, and one `--edit-dotfiles`
-   run on a symlinked `hyprland.lua`.
-4. The real-`setup.py` suite against current Paperland `main`, and `shellcheck`.
+- Install, rerun and uninstall each exited 0. After install, the widget's item in
+  `shell.json` held `"executable": "<runtime>/paperland"`, `omarchy plugin enable` had
+  reported it enabled in time, and the widget loaded.
+- The widget runs that launcher: with no `paperland` on omarchy-shell's `PATH`, a click
+  on its toggle button showed the minimap of a running Paperland, and a second click hid it.
+- `omarchy plugin remove` took 189 ms, and its item was already gone from `shell.json`
+  when it returned, well inside the uninstaller's 2-second wait. Uninstall removed the
+  item, the plugin, the launcher and the include.
+- `--edit-dotfiles` on a relative symlink into `~/dotfiles` exited 0: one include in the
+  target, the link and the target's `-rw-r-----` mode kept, nothing else written there.
+  After `hyprctl reload`, Hyprland reported no config errors, loaded exactly the setup
+  revision in `paperland.lua`, and bound SUPER + M.
+
+Not covered: a fresh Omarchy install with a real login (autostart at login), and the
+Omarchy bar on a physical display rather than a headless output.
 
 ## Owner decisions (2026-10-02)
 
