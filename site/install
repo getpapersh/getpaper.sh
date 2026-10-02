@@ -444,7 +444,7 @@ paperland_install() (
 set -eu
 
 PLUGIN_URL=https://github.com/getpapersh/paperland.git
-PLUGIN_SHA=52db6d6306328976cc18bb56d2c50a80268db11a
+PLUGIN_SHA=f444cc52fb83c3b6f96bc9983f14a12b8379733f
 MIN_HYPRLAND=0.56
 
 PLUGIN_ID=json.paperland
