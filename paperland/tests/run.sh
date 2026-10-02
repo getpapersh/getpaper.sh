@@ -496,7 +496,7 @@ check "a signal during the refresh exits on the signal" status 130
 check "a signal during the refresh keeps the new plugin" head_is "$SHA"
 check "a signal during the refresh keeps the previous plugin" previous_kept "$OLD"
 check "a signal during the refresh says the runtime may be unfinished" says "The Paperland runtime may not have finished installing. Run the same command again to finish"
-check "a signal before setup asks for no paste" lacks "Paste the lines"
+check "a signal before setup asks for no paste" lacks "paste them into"
 check "a signal before setup runs no setup" not_called "[setup]"
 
 # Something creates the plugin folder between the check and the rename.
@@ -552,7 +552,7 @@ mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
 ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 check "a pasted include Paperland rejects fails the run" status 1
-check "a pasted include Paperland rejects says where to fix it" says "Paperland did not accept the Paperland lines in $home/hyprland.lua"
+check "a pasted include Paperland rejects says where to fix it" says "Paperland's setup check failed; see its message above. If it names the include, fix it in $home/hyprland.lua."
 
 # --edit-dotfiles: the block Paperland prints goes into the link's target, in place.
 new_case symlinked-main-edit
@@ -582,7 +582,7 @@ ARGS=--edit-dotfiles
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 ARGS=
 check "--edit-dotfiles fails when Paperland rejects the result" status 1
-check "--edit-dotfiles says Paperland rejected it" says "Paperland did not accept the Paperland lines in $home/dotfiles/hyprland.lua"
+check "--edit-dotfiles says Paperland rejected it" says "Paperland's setup check failed; see its message above. If it names the include, fix it in $home/dotfiles/hyprland.lua."
 
 new_case symlinked-main-edit-other-error
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
@@ -594,6 +594,44 @@ ARGS=
 check "--edit-dotfiles stops when setup fails for another reason" status 1
 check "--edit-dotfiles says the file was not edited" says "so $home/dotfiles/hyprland.lua was not edited"
 check "--edit-dotfiles leaves the target alone on another failure" [ "$(cat "$home/dotfiles/hyprland.lua")" = "-- user" ]
+check "--edit-dotfiles points to the reported problem, not to pasting" says "Fix what Paperland reported above, then run the same command again with --edit-dotfiles."
+check "--edit-dotfiles prints no paste hint after refusing" lacks "paste them into"
+
+new_case edit-dotfiles-regular-file
+mkdir -p "$home/.config/hypr"
+echo "-- user" > "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" "$HIS"
+ARGS=
+check "--edit-dotfiles with a regular hyprland.lua is refused" status 1
+check "--edit-dotfiles with a regular hyprland.lua says why" says "--edit-dotfiles applies only when $home/.config/hypr/hyprland.lua is a symlink"
+check "--edit-dotfiles with a regular hyprland.lua changes nothing" not_called "git [clone]"
+
+new_case edit-dotfiles-relative-link
+mkdir -p "$home/dotfiles" "$home/.config/hypr"
+echo "-- user" > "$home/dotfiles/hyprland.lua"
+ln -s ../../dotfiles/hyprland.lua "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" "$HIS"
+ARGS=
+check "--edit-dotfiles through a relative link installs" status 0
+check "--edit-dotfiles through a relative link names the real file" says "Added Paperland's include to $home/dotfiles/hyprland.lua."
+check "--edit-dotfiles through a relative link edits the real file" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
+check "--edit-dotfiles keeps the relative link" [ "$(readlink "$home/.config/hypr/hyprland.lua")" = ../../dotfiles/hyprland.lua ]
+
+new_case edit-dotfiles-chained-link
+mkdir -p "$home/dotfiles" "$home/.config/hypr"
+echo "-- user" > "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/middle.lua"
+ln -s "$home/middle.lua" "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" "$HIS"
+ARGS=
+check "--edit-dotfiles through chained links installs" status 0
+check "--edit-dotfiles through chained links names the final file" says "Added Paperland's include to $home/dotfiles/hyprland.lua."
+check "--edit-dotfiles through chained links edits the final file" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
+check "--edit-dotfiles keeps the middle link" [ -L "$home/middle.lua" ]
+check "--edit-dotfiles keeps the first link" [ -L "$home/.config/hypr/hyprland.lua" ]
 
 new_case symlinked-config-folder
 mkdir -p "$home/dotfiles/hypr" "$home/.config"
@@ -768,6 +806,27 @@ check "uninstall keeps a copy of any real plugin folder" [ -f "$(find "$home/.co
 
 # Install, rerun and uninstall in one HOME: the rerun keeps the bar item, and the
 # uninstall gets past Paperland's check on shell.json.
+# omarchy-shell writes shell.json after `plugin remove` returns; the uninstaller waits.
+new_case uninstall-delayed-write
+installed "$SHA"
+run "$UNINSTALL" STUB_REMOVE_DELAY=0.3
+check "uninstall waits for a delayed shell.json write" status 0
+check "uninstall after a delayed write removes the runtime" [ ! -e "$home/.local/share/paperland" ]
+
+# The item outlives `plugin remove`: say exactly how to clear it, and leave Paperland's
+# uninstall for the rerun instead of letting it refuse.
+new_case uninstall-item-remains
+installed "$SHA"
+run "$UNINSTALL" STUB_REMOVE_KEEPS_ITEM=1
+check "uninstall with the bar item left fails" status 1
+check "uninstall with the bar item left gives the targeted fix" says "Run 'omarchy plugin disable json.paperland' (or remove its item from $home/.config/omarchy/shell.json), then rerun this uninstaller."
+check "uninstall with the bar item left skips Paperland's uninstall" not_called "[uninstall]"
+check "uninstall with the bar item left does not say to reinstall" lacks "install again"
+# What `omarchy plugin disable` does to shell.json; then a plain rerun finishes.
+printf '{"bar":{"layout":{"left":[],"center":[],"right":[]}}}\n' > "$home/.config/omarchy/shell.json"
+run "$UNINSTALL"
+check "uninstall after clearing the item succeeds" status 0
+
 new_case lifecycle
 mkdir -p "$home/.config/hypr"
 echo "-- user" > "$home/.config/hypr/hyprland.lua"

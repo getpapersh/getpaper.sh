@@ -82,9 +82,10 @@ before changing anything if omarchy-shell is not running.
 ## Review findings
 
 From the second correctness, security, requirements and product reviews of
-getpaper.sh `b17510a`, and an independent review of the fixes (H1 and L1 to L7).
-Each is fixed in the scripts with a test in `tests/` that fails on the earlier
-scripts; the tests stub Omarchy and Hyprland (see "Not yet proven" below):
+getpaper.sh `b17510a`, and two independent reviews of the fixes. Each is fixed in
+the scripts with a test in `tests/`. Every such test fails on the scripts before its
+fix, except `real-git-rewritten-bytes`, which adds coverage for a check that already
+existed. The tests stub Omarchy and Hyprland (see "Not yet proven" below):
 
 1. Git isolation and a filter-independent content check (High), including a
    real-git case where a release's own attributes rewrite bytes and the install is
@@ -114,17 +115,19 @@ out without its execute bit would pass; the caller cannot cause that).
 
 ## Not yet proven
 
-The tests stub Omarchy and Hyprland. Omarchy's behavior below was read from its
-scripts on an Omarchy 4.0.4-1 machine, not exercised. Before this is served, run
-install, rerun and uninstall once on a real Omarchy desktop and check:
+The tests stub Omarchy and Hyprland. That `omarchy bar set` exists and writes the
+widget's setting, that enabling updates omarchy-shell's config before the call
+returns, and that `omarchy plugin remove` splices the widget's item out of
+`shell.json` were read from Omarchy 4.0.4's source. Only a run against a real
+omarchy-shell proves:
 
-- `omarchy bar set json.paperland executable <runtime>/paperland` succeeds right
-  after `omarchy plugin enable`, and the widget then runs that launcher.
-- `omarchy plugin enable` reports the widget enabled before `set_widget_launcher`
-  asks; a slow enable would leave the widget's `executable` unset and print the
-  enable command instead.
-- `omarchy plugin remove` drops the widget's item from `shell.json` before Paperland's
-  uninstall reads it (the uninstaller waits up to 2 seconds for that write).
+1. The `shell.json` write after `omarchy plugin remove` lands within the
+   uninstaller's 2-second wait.
+2. After `omarchy bar set json.paperland executable …`, the running widget runs that
+   launcher.
+3. The whole lifecycle once: install, rerun, uninstall, and one `--edit-dotfiles`
+   run on a symlinked `hyprland.lua`.
+4. The real-`setup.py` suite against current Paperland `main`, and `shellcheck`.
 
 ## Owner decisions (2026-10-02)
 

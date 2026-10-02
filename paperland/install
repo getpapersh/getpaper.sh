@@ -265,6 +265,8 @@ on_exit() {
   elif [ -n "$RUNTIME_STARTED" ]; then
     if [ -z "$RUNTIME_DONE" ]; then
       warn "The Paperland runtime may not have finished installing. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ] && [ -n "$EDIT_DOTFILES" ]; then
+      warn "Fix what Paperland reported above, then run the same command again with --edit-dotfiles."
     elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ]; then
       warn "If Paperland printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
     else
@@ -343,7 +345,7 @@ report_previous() {
 # without writing anything.
 check_symlinked_include() {
   "$LAUNCHER" setup --dry-run >/dev/null ||
-    die "Paperland did not accept the Paperland lines in $MAIN_LINK; fix them as reported above."
+    die "Paperland's setup check failed; see its message above. If it names the include, fix it in $MAIN_LINK."
 }
 
 # --edit-dotfiles: appends the block Paperland's setup printed to the file hyprland.lua
@@ -364,8 +366,10 @@ add_include_to_dotfiles() {
   [ -f "$main" ] && [ -w "$main" ] || die "$MAIN_LINK is not a writable file, so it was not edited."
   # Appending through the link edits the real file in place: same file, mode and owner,
   # and the link stays a link. The layout matches what Paperland's setup appends.
-  if [ -s "$main" ] && [ -n "$(tail -c 1 "$main")" ]; then printf '\n' >> "$main"; fi
-  printf '\n%s\n' "$block" >> "$main"
+  sep=
+  if [ -s "$main" ] && [ -n "$(tail -c 1 "$main")" ]; then sep='
+'; fi
+  printf '%s\n%s\n' "$sep" "$block" >> "$main"
   INCLUDE_ADDED=1
   say "Added Paperland's include to $MAIN_LINK."
 }
@@ -397,8 +401,11 @@ install_linux() {
     fi
   fi
   if [ -L "$HYPR_DIR/hyprland.lua" ]; then
-    MAIN_LINK=$(readlink "$HYPR_DIR/hyprland.lua")
+    # The file at the end of the chain, which is what an append through the link edits.
+    MAIN_LINK=$(readlink -f "$HYPR_DIR/hyprland.lua" 2>/dev/null || readlink "$HYPR_DIR/hyprland.lua")
     case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
+  elif [ -n "$EDIT_DOTFILES" ]; then
+    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua is a symlink, and here it is not; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
   fi
   print_plan
   confirm

@@ -39,7 +39,7 @@ first_symlink() {
 manual_recipe() { # LINK FOLDER_TOO
   main=$hypr/hyprland.lua
   if [ -L "$main" ]; then
-    main=$(readlink "$main")
+    main=$(readlink -f "$main" 2>/dev/null || readlink "$main")
     case "$main" in /*) ;; *) main=$hypr/$main ;; esac
   fi
   printf '%s\n' "paper: $1 is a symlink, and Paperland never edits through one. Nothing was removed." \
@@ -73,6 +73,7 @@ uninstall_linux() {
   hypr=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
   LEFT=
   found=
+  REPAIR="To repair, install again and then rerun this uninstaller, or remove these by hand."
 
   # Omarchy's plugin removal needs omarchy-shell; check before anything is removed.
   if [ -e "$plugin_dir" ] || [ -L "$plugin_dir" ]; then
@@ -142,8 +143,15 @@ uninstall_linux() {
     # omarchy-shell may finish writing shell.json after `omarchy plugin remove` returns.
     i=0
     while bar_names_launcher && [ "$i" -lt 40 ]; do i=$((i + 1)); sleep 0.05; done
-    "$launcher" uninstall || LEFT="$LEFT
+    if bar_names_launcher; then
+      # Paperland's uninstall would refuse; neither a rerun nor a reinstall clears the item.
+      LEFT="$LEFT
+  $launcher (not run: $omarchy_dir/shell.json still names $PLUGIN_ID with this launcher)"
+      REPAIR="Run 'omarchy plugin disable $PLUGIN_ID' (or remove its item from $omarchy_dir/shell.json), then rerun this uninstaller."
+    elif ! "$launcher" uninstall; then
+      LEFT="$LEFT
   $launcher (Paperland's uninstall stopped; its reason is above)"
+    fi
   fi
 
   if [ -e "$runtime" ] || [ -L "$runtime" ]; then LEFT="$LEFT
@@ -160,7 +168,7 @@ uninstall_linux() {
 
   if [ -n "$LEFT" ]; then
     printf 'paper: Paperland was not fully uninstalled. Left in place:%s\n' "$LEFT" >&2
-    die "To repair, install again and then rerun this uninstaller, or remove these by hand."
+    die "$REPAIR"
   elif [ -z "$found" ]; then
     say "Paperland is not installed; nothing to do."
   else

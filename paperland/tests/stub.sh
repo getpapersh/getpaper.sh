@@ -121,9 +121,15 @@ case "$name" in
         mv "$shell_json.tmp" "$shell_json" ;;
       "plugin remove")
         rm -rf "$plugin" "$enabled"
-        if [ -f "$shell_json" ]; then
-          jq '.bar.layout[] |= map(select(.id != "json.paperland"))' "$shell_json" > "$shell_json.tmp"
-          mv "$shell_json.tmp" "$shell_json"
+        # STUB_REMOVE_KEEPS_ITEM: omarchy-shell never splices the item (a rejected manifest,
+        # a duplicate entry). STUB_REMOVE_DELAY: it writes shell.json after returning.
+        if [ -f "$shell_json" ] && [ -z "${STUB_REMOVE_KEEPS_ITEM:-}" ]; then
+          (
+            sleep "${STUB_REMOVE_DELAY:-0}"
+            jq '.bar.layout[] |= map(select(.id != "json.paperland"))' "$shell_json" > "$shell_json.tmp"
+            mv "$shell_json.tmp" "$shell_json"
+          ) > /dev/null 2>&1 &
+          if [ -z "${STUB_REMOVE_DELAY:-}" ]; then wait; fi
         fi ;;
     esac ;;
   paperland)
