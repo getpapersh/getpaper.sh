@@ -18,12 +18,44 @@ die() { printf 'paper: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # Same isolation as the installer: nothing from the caller's or system git setup.
-cgit() {
-  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
-    -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
-    GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 \
-    git -c core.hooksPath=/dev/null -c core.fsmonitor=false \
-      -c protocol.allow=never -c protocol.https.allow=always "$@"
+cgit() (
+  for var in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$var"; done
+  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_ATTR_NOSYSTEM=1 GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0
+  exec git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c core.attributesFile=/dev/null \
+    -c http.sslVerify=true -c protocol.allow=never -c protocol.https.allow=always "$@"
+)
+
+# Prints PATH or the first of its parents that is a symlink, or nothing.
+first_symlink() {
+  p=$1
+  while [ -n "$p" ]; do
+    if [ -L "$p" ]; then printf '%s\n' "$p"; return 0; fi
+    case "$p" in */*) p=${p%/*} ;; *) p= ;; esac
+  done
+}
+
+# Paperland's setup and uninstall never write through a symlink, so a symlinked
+# hyprland.lua or Hyprland folder is undone by hand before this uninstaller can finish.
+manual_recipe() { # LINK FOLDER_TOO
+  main=$hypr/hyprland.lua
+  if [ -L "$main" ]; then
+    main=$(readlink -f "$main" 2>/dev/null || readlink "$main")
+    case "$main" in /*) ;; *) main=$hypr/$main ;; esac
+  fi
+  printf '%s\n' "paper: $1 is a symlink, and Paperland never edits through one. Nothing was removed." \
+    "Remove Paperland's setup by hand:" \
+    "  1. Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $main, if present." \
+    "  2. rm '$hypr/paperland.lua'" >&2
+  if [ -n "$2" ]; then printf '%s\n' "  3. rm '$launcher' && rm -rf '$runtime'" >&2; fi
+  printf '%s\n' "Then run this uninstaller again." >&2
+  exit 1
+}
+
+# Paperland's uninstall refuses while shell.json names this plugin with its launcher,
+# which the widget's executable setting does.
+bar_names_launcher() {
+  grep -qF "$PLUGIN_ID" "$omarchy_dir/shell.json" 2>/dev/null &&
+    { grep -qF "$runtime/paperland" "$omarchy_dir/shell.json" || grep -qF "$launcher" "$omarchy_dir/shell.json"; }
 }
 
 remove_plugin() {
@@ -41,6 +73,25 @@ uninstall_linux() {
   hypr=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
   LEFT=
   found=
+  REPAIR="To repair, install again and then rerun this uninstaller, or remove these by hand."
+
+  # Omarchy's plugin removal needs omarchy-shell; check before anything is removed.
+  if [ -e "$plugin_dir" ] || [ -L "$plugin_dir" ]; then
+    omarchy-shell shell listPlugins >/dev/null 2>&1 ||
+      die "omarchy-shell is not running, and Omarchy needs it to remove the plugin. Run this from a terminal inside your Omarchy session. Nothing was removed."
+  fi
+  ours=
+  if [ -L "$launcher" ] && [ "$(readlink "$launcher")" = "$runtime/paperland" ] && [ ! -L "$runtime" ] &&
+     [ "$(cat "$runtime/.installed-by-paperland" 2>/dev/null)" = "$MARKER" ] && [ -x "$runtime/paperland" ]; then
+    ours=1
+    folder_link=$(first_symlink "$hypr")
+    if [ -n "$folder_link" ]; then
+      manual_recipe "$folder_link" folder
+    elif [ -L "$hypr/hyprland.lua" ] && { [ -e "$hypr/paperland.lua" ] ||
+         grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; }; then
+      manual_recipe "$hypr/hyprland.lua" ''
+    fi
+  fi
 
   # An earlier `paperland setup --omarchy-bar enable` linked the plugin into the
   # runtime; Paperland's uninstall refuses while that link exists, so it goes first.
@@ -49,42 +100,58 @@ uninstall_linux() {
     remove_plugin
   fi
 
-  if [ -L "$launcher" ] && [ "$(readlink "$launcher")" = "$runtime/paperland" ] && [ ! -L "$runtime" ] &&
-     [ "$(cat "$runtime/.installed-by-paperland" 2>/dev/null)" = "$MARKER" ] && [ -x "$runtime/paperland" ]; then
+  if [ -n "$ours" ]; then
     found=1
     say "Removing Paperland shortcuts and autostart..."
     "$launcher" setup --shortcut none --resize system --autostart off --strip-chord none --apply ||
       die "Paperland setup could not remove its shortcuts; nothing else was removed. Fix the reported problem and rerun."
-    "$launcher" uninstall ||
-      die "Paperland could not detach its runtime; the Omarchy plugin was kept. Fix the reported problem and rerun."
   elif [ -e "$launcher" ] || [ -L "$launcher" ]; then
     LEFT="$LEFT
   $launcher (not Paperland's launcher, or its runtime is missing; not run)"
   fi
 
+  # The plugin goes before Paperland's uninstall: removing it drops the widget's bar item
+  # from shell.json, and with it the launcher path that Paperland refuses to uninstall under.
   if [ -L "$plugin_dir" ]; then
     LEFT="$LEFT
   $plugin_dir (a link this uninstaller did not create)"
-  elif [ -d "$plugin_dir/.git" ]; then
+  elif [ -d "$plugin_dir" ]; then
     found=1
-    origin=$(cgit config --file "$plugin_dir/.git/config" --get remote.origin.url 2>/dev/null || true)
-    if [ "$origin" != "$PLUGIN_URL" ]; then
+    origin=
+    if [ -d "$plugin_dir/.git" ]; then
+      origin=$(cgit config --file "$plugin_dir/.git/config" --get remote.origin.url 2>/dev/null || true)
+    fi
+    if [ -d "$plugin_dir/.git" ] && [ "$origin" != "$PLUGIN_URL" ]; then
       LEFT="$LEFT
   $plugin_dir (a checkout of ${origin:-an unknown repository}, not $PLUGIN_URL)"
     else
-      # Omarchy deletes git checkouts outright; keep a copy if it holds local changes.
-      changes=$(cgit -C "$plugin_dir" status --porcelain --ignored 2>&1) || changes="(git status failed)"
-      if [ -n "$changes" ]; then
-        kept=$(mktemp -d "$omarchy_dir/.paperland-removed-$(date +%Y%m%d-%H%M%S).XXXXXX")
-        cp -R "$plugin_dir" "$kept/"
-        say "The plugin had local changes; a copy is kept at $kept/$PLUGIN_ID"
-      fi
+      # Omarchy deletes what it takes for a git checkout, and git cannot show all of a
+      # checkout's work (assume-unchanged files, a moved worktree, unpushed commits):
+      # always keep a copy.
+      kept=$(mktemp -d "$omarchy_dir/.paperland-removed-$(date +%Y%m%d-%H%M%S).XXXXXX")
+      cp -RP "$plugin_dir" "$kept/" || die "Could not copy $plugin_dir to $kept, so the plugin was not removed."
+      say "A copy of the plugin is kept at $kept/$PLUGIN_ID"
+      say "Delete it when you no longer need it: rm -rf '$kept'"
       remove_plugin
     fi
   elif [ -e "$plugin_dir" ]; then
-    # Not a git checkout: Omarchy moves it to a backup instead of deleting it.
     found=1
     remove_plugin
+  fi
+
+  if [ -n "$ours" ]; then
+    # omarchy-shell may finish writing shell.json after `omarchy plugin remove` returns.
+    i=0
+    while bar_names_launcher && [ "$i" -lt 40 ]; do i=$((i + 1)); sleep 0.05; done
+    if bar_names_launcher; then
+      # Paperland's uninstall would refuse; neither a rerun nor a reinstall clears the item.
+      LEFT="$LEFT
+  $launcher (not run: $omarchy_dir/shell.json still names $PLUGIN_ID with this launcher)"
+      REPAIR="Run 'omarchy plugin disable $PLUGIN_ID' (or remove its item from $omarchy_dir/shell.json), then rerun this uninstaller."
+    elif ! "$launcher" uninstall; then
+      LEFT="$LEFT
+  $launcher (Paperland's uninstall stopped; its reason is above)"
+    fi
   fi
 
   if [ -e "$runtime" ] || [ -L "$runtime" ]; then LEFT="$LEFT
@@ -94,9 +161,14 @@ uninstall_linux() {
   if grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; then LEFT="$LEFT
   the marked Paperland include in $hypr/hyprland.lua"; fi
 
+  # The installer never prunes the plugins it replaced; list them, never delete them.
+  for previous in "$omarchy_dir"/.paperland-previous-*; do
+    if [ -d "$previous" ]; then say "Kept by earlier installs: $previous (delete with: rm -rf '$previous')"; fi
+  done
+
   if [ -n "$LEFT" ]; then
     printf 'paper: Paperland was not fully uninstalled. Left in place:%s\n' "$LEFT" >&2
-    die "To repair, install again and then rerun this uninstaller, or remove these by hand."
+    die "$REPAIR"
   elif [ -z "$found" ]; then
     say "Paperland is not installed; nothing to do."
   else
@@ -105,6 +177,12 @@ uninstall_linux() {
 }
 
 main() {
+  for arg do
+    case "$arg" in
+      --edit-dotfiles) die "--edit-dotfiles applies only to the installer. For a symlinked Hyprland config, this uninstaller prints the lines to remove by hand." ;;
+      *) die "Unknown option: $arg. The uninstaller takes no options." ;;
+    esac
+  done
   [ "$(id -u)" -ne 0 ] || die "Do not run this uninstaller as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Linux) uninstall_linux ;;

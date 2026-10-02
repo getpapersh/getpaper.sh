@@ -1,4 +1,4 @@
-# shellcheck shell=sh disable=SC2154 # work, root, bin, home and helpers come from tests/run.sh
+# shellcheck shell=sh disable=SC2154,SC2034 # work, root, bin, home, ARGS and helpers belong to tests/run.sh
 # Sourced by tests/run.sh when PAPERLAND_SRC names a Paperland checkout.
 # Publishes two releases from it (first run creates the orphan `release` branch,
 # second run commits on top), then installs the first, upgrades to the second and
@@ -29,6 +29,11 @@ git init --quiet --bare "$e2e/empty.git"
 first=$(publish HEAD~1 "$e2e/empty.git")
 check "first publish creates a release work dir" [ -d "$first/.git" ]
 second=$(publish HEAD "$first")
+if [ -z "$second" ]; then
+  # An identical second package is pinned, not committed, so there is no second release.
+  check "PAPERLAND_SRC's HEAD~1 and HEAD package differently (use a checkout whose last commit changes the package)" false
+  return 0
+fi
 check "second publish builds on the first" [ "$(git -C "$second" rev-parse HEAD~1)" = "$(git -C "$first" rev-parse HEAD)" ]
 pinned=$(sed -n 's/^PLUGIN_SHA=//p' "$e2e/release.env")
 check "publish pins the new release commit" [ "$pinned" = "$(git -C "$second" rev-parse HEAD)" ]
@@ -61,6 +66,7 @@ check "binding targets the runtime launcher" grep -qF "$home/.local/share/paperl
 check "binding is SUPER + M" grep -qF 'hl.bind("SUPER + M"' "$home/.config/hypr/paperland.lua"
 check "autostart is on" grep -qF 'hl.on("hyprland.start"' "$home/.config/hypr/paperland.lua"
 check "include was added" grep -qF -- '-- BEGIN Paperland setup' "$home/.config/hypr/hyprland.lua"
+check "the bar item runs the runtime launcher" grep -qF "$home/.local/share/paperland/paperland" "$home/.config/omarchy/shell.json"
 
 # The user turns autostart off; an upgrade must keep that choice.
 # shellcheck disable=SC2016 # $HOME expands inside the test HOME, not here
@@ -75,7 +81,9 @@ check "real upgrade refreshed the runtime" [ -n "$(find "$home/.local/share" -ma
 check "real upgrade kept autostart off" lacks_file 'hl.on("hyprland.start"' "$home/.config/hypr/paperland.lua"
 check "real upgrade kept the shortcut" grep -qF 'hl.bind("SUPER + M"' "$home/.config/hypr/paperland.lua"
 check "real upgrade asks for a restart" says "Restart Paperland to finish"
-check "real upgrade replaced a clean checkout without leftovers" no_leftovers
+check "real upgrade leaves no staging folder" no_stage_left
+check "real upgrade keeps the replaced checkout" [ "$(git -C "$(find "$home/.config/omarchy" -maxdepth 2 -path '*/.paperland-previous-*/json.paperland')" rev-parse HEAD)" = "$first_sha" ]
+check "real upgrade names the kept checkout" says "The replaced plugin is kept at"
 
 run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
 check "real uninstall succeeds" status 0
@@ -84,4 +92,44 @@ check "user config was kept" grep -qF -- '-- user config' "$home/.config/hypr/hy
 check "generated config was removed" [ ! -e "$home/.config/hypr/paperland.lua" ]
 check "launcher was removed" [ ! -e "$home/.local/bin/paperland" ]
 check "plugin was removed" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+check "the bar item was removed" lacks_file json.paperland "$home/.config/omarchy/shell.json"
+check "uninstall kept a copy of the plugin" [ -n "$(find "$home/.config/omarchy" -maxdepth 2 -path '*/.paperland-removed-*/json.paperland')" ]
 check "Paperland kept its backups" [ -d "$home/.local/state/paperland" ]
+
+# Symlinked hyprland.lua: install stops after Paperland prints the include to paste,
+# a rerun after pasting finishes, and uninstall gives the manual recipe.
+mkdir -p "$home/dotfiles"
+mv "$home/.config/hypr/hyprland.lua" "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked install stops for the paste" status 1
+check "symlinked install shows Paperland's include" says "Symlinked main config needs a manual include"
+check "symlinked install says where to paste" says "If Paperland printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
+check "symlinked install keeps the plugin" [ "$(git -C "$home/.config/omarchy/plugins/json.paperland" rev-parse HEAD)" = "$pinned" ]
+sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$case_dir/out" >> "$home/dotfiles/hyprland.lua"
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked install finishes after the paste" status 0
+check "symlinked install never replaced the link" [ -L "$home/.config/hypr/hyprland.lua" ]
+run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked uninstall stops with the recipe" says "Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $home/dotfiles/hyprland.lua"
+sed '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/d' "$home/dotfiles/hyprland.lua" > "$e2e/main.lua"
+cat "$e2e/main.lua" > "$home/dotfiles/hyprland.lua"
+rm "$home/.config/hypr/paperland.lua"
+run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked uninstall finishes after the recipe" status 0
+check "symlinked uninstall removed the launcher" [ ! -e "$home/.local/bin/paperland" ]
+check "symlinked uninstall removed the plugin" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+
+# --edit-dotfiles with real Paperland: the block goes into the link's target, the link
+# and the target's mode stay, and Paperland's own check passes.
+chmod 640 "$home/dotfiles/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+ARGS=
+check "--edit-dotfiles install succeeds with real Paperland" status 0
+check "--edit-dotfiles added the include to the target" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
+check "--edit-dotfiles kept the link" [ -L "$home/.config/hypr/hyprland.lua" ]
+check "--edit-dotfiles kept the target's mode" [ "$(mode_of "$home/dotfiles/hyprland.lua")" = "-rw-r-----" ]
+check "--edit-dotfiles left paperland.lua out of the dotfiles" [ ! -e "$home/dotfiles/paperland.lua" ]
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "a rerun after --edit-dotfiles passes Paperland's check" status 0

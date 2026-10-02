@@ -21,15 +21,16 @@ warn() { printf 'paper: %s\n' "$*" >&2; }
 die() { warn "$*"; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# Git that ignores the caller's and the system's git setup: no redirected repository,
-# no hooks, no replace refs, no prompts, and HTTPS as the only transport.
-cgit() {
-  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
-    -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
-    GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 \
-    git -c core.hooksPath=/dev/null -c core.fsmonitor=false \
-      -c protocol.allow=never -c protocol.https.allow=always "$@"
-}
+# Git that ignores the caller's and the system's git setup: no inherited GIT_* variable
+# (redirected repositories, injected config, templates, TLS or exec-path overrides), no
+# global, system or attributes files, no hooks, no replace refs, no prompts, verified
+# TLS, and HTTPS as the only transport.
+cgit() (
+  for var in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$var"; done
+  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_ATTR_NOSYSTEM=1 GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0
+  exec git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c core.attributesFile=/dev/null \
+    -c http.sslVerify=true -c protocol.allow=never -c protocol.https.allow=always "$@"
+)
 
 check_release_values() {
   [ -n "${PLUGIN_URL:-}" ] || die "This installer was not built: run scripts/build-site.sh and use site/install."
@@ -52,18 +53,32 @@ hyprland_version() {
   printf '%s\n' "$hv_out" | sed -n '1s/^Hyprland \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p'
 }
 
+# Prints PATH or the first of its parents that is a symlink, or nothing.
+# Paperland's setup never writes through one.
+first_symlink() {
+  p=$1
+  while [ -n "$p" ]; do
+    if [ -L "$p" ]; then printf '%s\n' "$p"; return 0; fi
+    case "$p" in */*) p=${p%/*} ;; *) p= ;; esac
+  done
+}
+
 owned_runtime() { [ -d "$RUNTIME" ] && [ ! -L "$RUNTIME" ] && [ "$(cat "$RUNTIME/.installed-by-paperland" 2>/dev/null)" = "$MARKER" ]; }
 
 check_linux() {
   have omarchy-version ||
     die "Paperland installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
   ov=$(omarchy-version 2>/dev/null || true)
+  # A development checkout reports "dev"; the checkout's own version file says which.
   case "$ov" in
-    dev*) ;;
-    *) ov_major=$(printf '%s\n' "$ov" | sed -n '1s/^\([0-9][0-9]*\)\..*/\1/p')
-       [ -n "$ov_major" ] && [ "$ov_major" -ge 4 ] ||
-         die "Paperland needs Omarchy 4 or newer; this system has Omarchy ${ov:-of unknown version}." ;;
+    dev*) dev=$ov ov=
+          if [ -n "${OMARCHY_PATH:-}" ]; then ov=$(head -n 1 "${OMARCHY_PATH%/}/version" 2>/dev/null || true); fi
+          [ -n "$ov" ] ||
+            die "This system runs a development build of Omarchy ($dev) whose version could not be read from \$OMARCHY_PATH/version. Paperland needs Omarchy 4 or newer." ;;
   esac
+  ov_major=$(printf '%s\n' "$ov" | sed -n '1s/^\([0-9][0-9]*\)\..*/\1/p')
+  [ -n "$ov_major" ] && [ "$ov_major" -ge 4 ] ||
+    die "Paperland needs Omarchy 4 or newer; this system has Omarchy ${ov:-of unknown version}."
   for cmd in omarchy omarchy-shell omarchy-plugin-list omarchy-plugin-validate hyprctl quickshell python3 git jq; do
     have "$cmd" || die "Paperland needs $cmd, which was not found on PATH."
   done
@@ -119,20 +134,34 @@ run_setup() {
 print_plan() {
   if [ -n "$EXISTING" ]; then
     head_line="Paperland is already installed from $PLUGIN_URL. This will:"
-    publish_line="Move the installed plugin out of the way (kept until this run succeeds)
-     and put the verified copy in its place."
+    publish_line="Move the installed plugin to a backup folder in $OMARCHY_DIR (kept;
+     its path is printed) and put the verified copy in its place."
   else
     head_line="This will:"
     publish_line="Put the verified copy in place as the Omarchy plugin $PLUGIN_ID
      and enable it in your Omarchy bar."
   fi
-  if [ -n "$NEEDS_SETUP" ]; then
+  if [ -z "$NEEDS_SETUP" ]; then
+    setup_line="Keep your Paperland shortcut and autostart setup unchanged."
+  elif [ -n "$MAIN_LINK" ] && [ -n "$EDIT_DOTFILES" ]; then
+    setup_desc
+    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+     $MAIN_LINK. With --edit-dotfiles, add Paperland's marked include to
+     that file in place (the link stays a link, and nothing else is written
+     there), then have Paperland check it.
+     $SETUP_DESC"
+  elif [ -n "$MAIN_LINK" ]; then
+    setup_desc
+    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+     $MAIN_LINK, which this installer does not edit by default: Paperland
+     prints the lines to paste there, and this run stops. Paste them and run it
+     again, or rerun with --edit-dotfiles to have them added for you.
+     $SETUP_DESC"
+  else
     setup_desc
     setup_line="Write $HYPR_DIR/paperland.lua and one marked include in
      $HYPR_DIR/hyprland.lua (Paperland backs both up first).
      $SETUP_DESC"
-  else
-    setup_line="Keep your Paperland shortcut and autostart setup unchanged."
   fi
   cat <<EOF
 Paperland installer (unannounced alpha; expect rough edges)
@@ -169,60 +198,110 @@ stage_and_verify() {
   mkdir -p "$OMARCHY_DIR/plugins"
   STAGE_ROOT=$(mktemp -d "$OMARCHY_DIR/.paperland-stage.XXXXXX")
   tree=$STAGE_ROOT/$PLUGIN_ID
-  cgit clone --quiet --no-checkout --single-branch --branch release -- "$PLUGIN_URL" "$tree" ||
-    die "Could not clone $PLUGIN_URL. Nothing was changed."
+  mkdir "$STAGE_ROOT/template"
+  cgit clone --quiet --no-checkout --single-branch --branch release --template "$STAGE_ROOT/template" \
+    -- "$PLUGIN_URL" "$tree" || die "Could not clone $PLUGIN_URL. Nothing was changed."
   cgit -C "$tree" checkout --quiet --detach "$PLUGIN_SHA" 2>/dev/null ||
     die "The pinned release $PLUGIN_SHA was not found on the plugin remote. Nothing was changed."
   actual=$(cgit -C "$tree" rev-parse HEAD 2>/dev/null || true)
   [ "$actual" = "$PLUGIN_SHA" ] ||
     die "Integrity check failed: expected commit $PLUGIN_SHA, got ${actual:-none}. Nothing was changed."
-  [ -z "$(cgit -C "$tree" status --porcelain --ignored 2>&1)" ] ||
-    die "The staged release does not match commit $PLUGIN_SHA exactly. Nothing was changed."
+  link=$(find "$tree" -path "$tree/.git" -prune -o -type l -print | head -n 1)
+  [ -z "$link" ] || die "The release contains a symlink (${link#"$tree"/}). Nothing was changed."
+  same_bytes_as_pin || die "The staged release does not match commit $PLUGIN_SHA exactly. Nothing was changed."
   id=$(jq -r '.id // empty' "$tree/manifest.json" 2>/dev/null || true)
   [ "$id" = "$PLUGIN_ID" ] ||
     die "The release's manifest id is '${id:-missing}', not $PLUGIN_ID. Nothing was changed."
-  link=$(find "$tree" -path "$tree/.git" -prune -o -type l -print | head -n 1)
-  [ -z "$link" ] || die "The release contains a symlink (${link#"$tree"/}). Nothing was changed."
   omarchy-plugin-validate "$tree" || die "The release failed Omarchy's plugin validation. Nothing was changed."
 }
 
+# True when the staged files are exactly the pinned tree's blobs: the same paths, and
+# each file's raw bytes hash to its blob id. --no-filters hashes the bytes on disk, so no
+# filter, attribute or line-ending setting can make other bytes pass as the pin.
+same_bytes_as_pin() {
+  # Regular blobs only; git quotes unusual paths, and those fail closed.
+  cgit -C "$tree" ls-tree -r --full-tree "$PLUGIN_SHA" > "$STAGE_ROOT/tree" || return 1
+  awk -F '\t' '
+    $1 !~ /^100(644|755) blob [0-9a-f]+$/ || $2 ~ /^"/ { bad = 1 }
+    { split($1, f, " "); print f[3] " " $2 }
+    END { exit bad }' "$STAGE_ROOT/tree" > "$STAGE_ROOT/listed" || return 1
+  sort "$STAGE_ROOT/listed" > "$STAGE_ROOT/expected"
+  (cd "$tree" && find . -path ./.git -prune -o -type f -print) | sed 's|^\./||' > "$STAGE_ROOT/paths"
+  cgit -C "$tree" hash-object --no-filters --stdin-paths < "$STAGE_ROOT/paths" > "$STAGE_ROOT/hashes" || return 1
+  awk 'NR == FNR { oid[FNR] = $0; next } { print oid[FNR] " " $0 }' "$STAGE_ROOT/hashes" "$STAGE_ROOT/paths" |
+    sort > "$STAGE_ROOT/actual"
+  [ -s "$STAGE_ROOT/expected" ] && [ "$(cat "$STAGE_ROOT/expected")" = "$(cat "$STAGE_ROOT/actual")" ]
+}
+
+# Renames only into empty destinations. on_exit works out what happened from the
+# paths, so a signal between a rename and the next line cannot mislead it.
 publish() {
   if [ -n "$EXISTING" ]; then
     OLD_HEAD=$(cgit -C "$PLUGIN_DIR" rev-parse HEAD 2>/dev/null || true)
     BACKUP=$(mktemp -d "$OMARCHY_DIR/.paperland-previous-$(date +%Y%m%d-%H%M%S).XXXXXX")
     mv "$PLUGIN_DIR" "$BACKUP/$PLUGIN_ID"
-    BACKED_UP=1
   fi
+  absent "$PLUGIN_DIR" || die "Something else created $PLUGIN_DIR during the install."
   mv "$tree" "$PLUGIN_DIR"
-  PUBLISHED=1
+  # A folder created between the check and the rename gets the tree nested inside it;
+  # take the tree back out so on_exit never mistakes that folder for this release.
+  if [ ! -f "$PLUGIN_DIR/manifest.json" ] || ! absent "$PLUGIN_DIR/$PLUGIN_ID"; then
+    if absent "$tree"; then mv "$PLUGIN_DIR/$PLUGIN_ID" "$tree" || true; fi
+    die "Something else created $PLUGIN_DIR during the install."
+  fi
 }
 
-# Reports and undoes a failure after the plugin was published or moved aside.
+absent() { [ ! -e "$1" ] && [ ! -L "$1" ]; }
+
+# Reports and undoes a failure. Before the runtime refresh starts, a moved-aside plugin
+# is put back; after it, the new plugin stays with the new runtime and a rerun finishes.
 on_exit() {
   status=$?
-  if [ "$status" -ne 0 ] && [ -n "$BACKED_UP" ]; then
-    if [ -n "$PUBLISHED" ] && ! mv "$PLUGIN_DIR" "$STAGE_ROOT/failed-$PLUGIN_ID"; then
-      warn "Could not take the new plugin out of $PLUGIN_DIR; the previous one is at $BACKUP/$PLUGIN_ID."
-    elif mv "$BACKUP/$PLUGIN_ID" "$PLUGIN_DIR"; then
-      rmdir "$BACKUP" 2>/dev/null || true
-      warn "The previous plugin was restored to $PLUGIN_DIR."
-      if [ -n "$RUNTIME_REFRESHED" ]; then
-        warn "The Paperland runtime had already been refreshed to this release; the one before it is in ${RUNTIME%/*}/.paperland-previous-*."
-      fi
+  # A second signal must not cut the rollback short.
+  trap '' INT TERM HUP
+  prev=${BACKUP:+$BACKUP/$PLUGIN_ID}
+  if [ "$status" -eq 0 ]; then
+    :
+  elif [ -n "$RUNTIME_STARTED" ]; then
+    if [ -z "$RUNTIME_DONE" ]; then
+      warn "The Paperland runtime may not have finished installing. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ] && [ -n "$EDIT_DOTFILES" ]; then
+      warn "Fix what Paperland reported above, then run the same command again with --edit-dotfiles."
+    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ]; then
+      warn "If Paperland printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
     else
-      warn "Could not restore the previous plugin; it is at $BACKUP/$PLUGIN_ID."
+      warn "Paperland's plugin and runtime were installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
     fi
-  elif [ "$status" -ne 0 ] && [ -n "$PUBLISHED" ]; then
+    if [ -n "$prev" ] && [ -e "$prev" ]; then
+      warn "The replaced plugin is kept at $prev"
+      warn "Delete it when you no longer need it: rm -rf '$BACKUP'"
+    fi
+  elif [ -n "$prev" ] && [ -e "$prev" ]; then
+    # Never mv into an occupied path: that nests one plugin inside the other. Only the
+    # copy this run published (its staged tree is gone) is taken out again.
+    if ! absent "$PLUGIN_DIR" && absent "$tree"; then mv "$PLUGIN_DIR" "$STAGE_ROOT/failed-$PLUGIN_ID" || true; fi
+    if absent "$PLUGIN_DIR" && mv "$prev" "$PLUGIN_DIR"; then
+      warn "The previous plugin was restored to $PLUGIN_DIR."
+    else
+      if absent "$PLUGIN_DIR"; then
+        warn "Could not restore the previous plugin to $PLUGIN_DIR. Restore it with: mv '$prev' '$PLUGIN_DIR'"
+      else
+        warn "Could not restore the previous plugin to $PLUGIN_DIR, which is occupied; it is at $prev. Once $PLUGIN_DIR is moved away, restore it with: mv '$prev' '$PLUGIN_DIR'"
+      fi
+    fi
+  elif [ -z "$EXISTING" ] && [ -n "$tree" ] && absent "$tree" && [ -d "$PLUGIN_DIR" ]; then
     warn "Paperland's plugin was installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
   fi
   if [ -n "$STAGE_ROOT" ]; then rm -rf "$STAGE_ROOT"; fi
+  if [ -n "$BACKUP" ]; then rmdir "$BACKUP" 2>/dev/null || true; fi
 }
 
 plugin_listed() { # JQ_FILTER: true when omarchy-plugin-list --json matches it
   omarchy-plugin-list --json 2>/dev/null | jq -e --arg id "$PLUGIN_ID" "$1" >/dev/null 2>&1
 }
 
-# Idempotent: also finishes an earlier run that published the plugin but never enabled it.
+# Enables the widget on a first install only. On a rerun a disabled widget may be the
+# user's choice, so it stays off and the command to turn it on is printed.
 # shellcheck disable=SC2016 # $id is a jq variable
 enable_plugin() {
   omarchy-shell -q shell rescanPlugins >/dev/null 2>&1 || true
@@ -232,23 +311,67 @@ enable_plugin() {
     [ "$i" -lt 40 ] || die "Omarchy did not discover $PLUGIN_ID after it was installed."
     sleep 0.05
   done
-  plugin_listed 'any(.[]; .id == $id and .enabled)' || omarchy plugin enable "$PLUGIN_ID"
+  if [ -z "$EXISTING" ] && ! plugin_listed 'any(.[]; .id == $id and .enabled)'; then
+    omarchy plugin enable "$PLUGIN_ID"
+  fi
 }
 
-# After success: the moved-aside plugin is deleted only when git shows it clean.
+# The widget runs this launcher instead of whatever `paperland` omarchy-shell's PATH finds.
+# shellcheck disable=SC2016 # $id is a jq variable
+set_widget_launcher() {
+  if ! plugin_listed 'any(.[]; .id == $id and .enabled)'; then
+    WIDGET_OFF=1
+  elif ! omarchy bar set "$PLUGIN_ID" executable "$RUNTIME/paperland" >/dev/null; then
+    warn "Could not point the bar widget at $RUNTIME/paperland, so it runs 'paperland' from PATH. To set it: omarchy bar set $PLUGIN_ID executable $RUNTIME/paperland"
+  fi
+}
+
+# The replaced plugin is always kept: git cannot show all of a checkout's work
+# (assume-unchanged files, a moved worktree, unpushed commits).
 report_previous() {
   [ -n "$BACKUP" ] || return 0
   old=$BACKUP/$PLUGIN_ID
-  changes=$(cgit -C "$old" status --porcelain --ignored 2>&1) || changes="(git status failed)"
-  if [ -n "$changes" ]; then
-    say "The replaced plugin had local changes; it is kept at $old"
-    return 0
-  fi
+  say "The replaced plugin is kept at $old"
+  say "Delete it when you no longer need it: rm -rf '$BACKUP'"
+  # Git in the user's old checkout only reads (rev-parse in publish, merge-base here),
+  # and the -c settings override its local hooks and fsmonitor.
   if [ -n "$OLD_HEAD" ] && [ "$OLD_HEAD" != "$PLUGIN_SHA" ] &&
      cgit -C "$old" merge-base --is-ancestor "$PLUGIN_SHA" "$OLD_HEAD" 2>/dev/null; then
     say "Note: the replaced plugin was at $OLD_HEAD, newer than this release; it now runs the pinned release."
   fi
-  rm -rf "$BACKUP"
+}
+
+# Paperland's preview checks an include that was added by hand or by --edit-dotfiles,
+# without writing anything.
+check_symlinked_include() {
+  "$LAUNCHER" setup --dry-run >/dev/null ||
+    die "Paperland's setup check failed; see its message above. If it names the include, fix it in $MAIN_LINK."
+}
+
+# --edit-dotfiles: appends the block Paperland's setup printed to the file hyprland.lua
+# links to. Only for a plain "add these lines" request: anything else (a block to
+# replace, lines to remove, another error) stops with the file untouched.
+add_include_to_dotfiles() {
+  out=$STAGE_ROOT/setup.out
+  main=$HYPR_DIR/hyprland.lua
+  if ! grep -qF 'Symlinked main config needs a manual include.' "$out" ||
+     ! grep -qF 'Add these exact lines to its tracked target:' "$out" || grep -q '^Remove ' "$out" ||
+     grep -qF -- '-- BEGIN Paperland setup' "$main"; then
+    die "Paperland's setup stopped for another reason (above), so $MAIN_LINK was not edited."
+  fi
+  block=$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$out")
+  [ "$(printf '%s\n' "$block" | grep -c '^-- BEGIN Paperland setup$')" = 1 ] &&
+    [ "$(printf '%s\n' "$block" | tail -n 1)" = '-- END Paperland setup' ] ||
+    die "Paperland's setup did not print one complete include, so $MAIN_LINK was not edited."
+  [ -f "$main" ] && [ -w "$main" ] || die "$MAIN_LINK is not a writable file, so it was not edited."
+  # Appending through the link edits the real file in place: same file, mode and owner,
+  # and the link stays a link. The layout matches what Paperland's setup appends.
+  sep=
+  if [ -s "$main" ] && [ -n "$(tail -c 1 "$main")" ]; then sep='
+'; fi
+  printf '%s\n%s\n' "$sep" "$block" >> "$main"
+  INCLUDE_ADDED=1
+  say "Added Paperland's include to $MAIN_LINK."
 }
 
 install_linux() {
@@ -258,13 +381,31 @@ install_linux() {
   RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   LAUNCHER=$HOME/.local/bin/paperland
   HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
-  STAGE_ROOT='' BACKUP='' OLD_HEAD='' BACKED_UP='' PUBLISHED='' RUNTIME_REFRESHED=''
+  STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED='' INCLUDE_ADDED=''
+  WIDGET_OFF='' MAIN_LINK=''
   check_linux
   # Checked before the runtime refresh, which always recreates the launcher.
   NEEDS_SETUP=
   if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$HYPR_DIR/paperland.lua" ] ||
      ! grep -qF -- '-- BEGIN Paperland setup' "$HYPR_DIR/hyprland.lua" 2>/dev/null; then
     NEEDS_SETUP=1
+  fi
+  if [ -n "$NEEDS_SETUP" ]; then
+    # Paperland's setup refuses a symlinked folder anywhere above paperland.lua, and
+    # for a symlinked hyprland.lua only prints an include to paste.
+    folder_link=$(first_symlink "$HYPR_DIR")
+    if [ -n "$folder_link" ]; then
+      refusal="Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink to $(readlink "$folder_link"). Paperland's setup writes its generated files into $HYPR_DIR and never writes through a symlink. This is lifted once Paperland keeps its generated files outside $HYPR_DIR."
+      if [ -n "$EDIT_DOTFILES" ]; then refusal="$refusal --edit-dotfiles does not lift this yet."; fi
+      die "$refusal Nothing was changed."
+    fi
+  fi
+  if [ -L "$HYPR_DIR/hyprland.lua" ]; then
+    # The file at the end of the chain, which is what an append through the link edits.
+    MAIN_LINK=$(readlink -f "$HYPR_DIR/hyprland.lua" 2>/dev/null || readlink "$HYPR_DIR/hyprland.lua")
+    case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
+  elif [ -n "$EDIT_DOTFILES" ]; then
+    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua is a symlink, and here it is not; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
   fi
   print_plan
   confirm
@@ -276,10 +417,26 @@ install_linux() {
   enable_plugin
   # setup only accepts the marker-owned runtime that `install --no-setup` publishes
   # from the verified plugin; bindings then point at a launcher that exists.
-  "$PLUGIN_DIR/paperland/paperland" install --no-setup
-  RUNTIME_REFRESHED=1
-  if [ -n "$NEEDS_SETUP" ]; then run_setup; fi
-  BACKED_UP='' PUBLISHED=''
+  # Set first: after a signal during the refresh the runtime may be new, so on_exit
+  # keeps the new plugin. A failed refresh has rolled itself back.
+  RUNTIME_STARTED=1
+  "$PLUGIN_DIR/paperland/paperland" install --no-setup || { RUNTIME_STARTED=; exit 1; }
+  RUNTIME_DONE=1
+  set_widget_launcher
+  if [ -n "$NEEDS_SETUP" ]; then
+    SETUP_STARTED=1
+    if [ -n "$EDIT_DOTFILES" ] && [ -n "$MAIN_LINK" ]; then
+      setup_status=0
+      run_setup > "$STAGE_ROOT/setup.out" 2>&1 || setup_status=$?
+      cat "$STAGE_ROOT/setup.out"
+      if [ "$setup_status" -ne 0 ]; then add_include_to_dotfiles; fi
+      check_symlinked_include
+    else
+      run_setup
+    fi
+  elif [ -n "$MAIN_LINK" ]; then
+    check_symlinked_include
+  fi
   report_previous
 
   say ""
@@ -290,18 +447,46 @@ install_linux() {
   else
     say "Paperland is installed at $PLUGIN_SHA. Open the minimap with your Paperland shortcut (SUPER + M by default)."
   fi
+  if [ -n "$INCLUDE_ADDED" ]; then
+    say "Hyprland loads the new include on its next config reload (hyprctl reload)."
+  fi
+  if [ -n "$WIDGET_OFF" ]; then
+    say "The Paperland bar widget is off. To add it to your bar: omarchy plugin enable $PLUGIN_ID && omarchy bar set $PLUGIN_ID executable $RUNTIME/paperland"
+  fi
   case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
-    *) warn "$HOME/.local/bin is not on PATH. The Paperland bar widget runs 'paperland' from PATH; add it there." ;;
+    *) warn "$HOME/.local/bin is not on PATH; add it to run 'paperland' in a terminal." ;;
   esac
   say "To update, run the same command again. Uninstall: $UNINSTALL_CMD"
 }
 
+usage() {
+  cat <<EOF
+Usage: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- [--edit-dotfiles]
+
+  --edit-dotfiles  When ~/.config/hypr/hyprland.lua is a symlink (into a dotfiles
+                   repository, say), add Paperland's marked include to the file it
+                   points to instead of printing the lines for you to paste. The link
+                   stays a link, and Paperland's generated files never go there.
+                   A symlinked ~/.config/hypr folder is still refused.
+EOF
+}
+
 main() {
+  EDIT_DOTFILES=
+  for arg do
+    case "$arg" in
+      --edit-dotfiles) EDIT_DOTFILES=1 ;;
+      -h|--help) usage; exit 0 ;;
+      *) usage >&2; die "Unknown option: $arg" ;;
+    esac
+  done
   [ "$(id -u)" -ne 0 ] || die "Do not run this installer as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Linux) install_linux ;;
-    Darwin) die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
+    Darwin)
+      [ -z "$EDIT_DOTFILES" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+      die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
     *) die "Unsupported system: $(uname -s). Paperland needs Linux with Omarchy; PaperMac needs macOS." ;;
   esac
 }

@@ -3,7 +3,7 @@
 This folder holds the Omarchy-plugin installer and uninstaller for Paperland. **It is
 not served and must not be inlined into `../install`**, which prints "Paperland
 install is coming soon" on Linux. It is parked here until "Hyprland next" (PAPER-7),
-and must fix the open review findings below before it ships.
+and is ready to wire in once the owner approves serving it; see "Live check" for what has and has not been proven.
 
 ## Files
 
@@ -18,68 +18,134 @@ and must fix the open review findings below before it ships.
 ## Design, in short
 
 The installer clones the pinned commit into `~/.config/omarchy/.paperland-stage.*`,
-outside the `plugins/` folder that omarchy-shell watches, verifies it (pinned HEAD,
-clean status, manifest id, no symlinks, `omarchy-plugin-validate`), then publishes it
-with one rename. A rerun renames the installed plugin aside first. It then refreshes
-Paperland's runtime with `paperland install --no-setup` and runs `paperland setup` only
-when the launcher, `paperland.lua` or the include is missing, keeping saved choices.
+outside the `plugins/` folder that omarchy-shell watches, with git isolated from the
+caller (every inherited `GIT_*` variable dropped, no global, system or attributes
+files, an empty private template, verified TLS, HTTPS only). It verifies the copy
+(pinned HEAD, no symlinks, every file's raw bytes hashing to the pinned tree's blob
+with `hash-object --no-filters`, manifest id, `omarchy-plugin-validate`), then
+publishes it with one rename. A rerun renames the installed plugin into
+`~/.config/omarchy/.paperland-previous-*` first and always keeps it there. It then
+refreshes Paperland's runtime with `paperland install --no-setup`, points the bar
+widget at the runtime's launcher (`omarchy bar set json.paperland executable ...`,
+which writes the setting into the widget's item in `~/.config/omarchy/shell.json`),
+and runs `paperland setup` only when the launcher, `paperland.lua` or the include is
+missing, keeping saved choices.
 
-## Open findings to fix before this ships
+Failures: up to the runtime refresh, cleanup works out the state from the real
+staged, live and moved-aside paths (never from flags a signal can interrupt), ignores
+further signals while it runs, and puts the previous plugin back, never renaming into
+an occupied path. Once the refresh has started, the new plugin stays and a rerun
+finishes the job; after a signal during the refresh the run says the runtime may not
+have finished installing.
 
-From the second correctness and security review of getpaper.sh `b17510a`:
+Only a first install enables the widget; a rerun leaves a disabled widget off and
+prints the command to turn it on. A development Omarchy (`omarchy-version` prints
+`dev...`) is accepted when `$OMARCHY_PATH/version` says 4 or newer.
 
-1. **High: git isolation does not prove the staged files are the pinned bytes.** The
-   `cgit` helper still lets `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n`,
-   `GIT_CONFIG_PARAMETERS`, `GIT_TEMPLATE_DIR` and `GIT_SSL_NO_VERIFY` through and uses
-   the default clone template. Inherited clean/smudge filters can make
-   `HEAD == pin` and an empty `status` hold for different bytes. Fix: a controlled
-   environment without inherited git config or transport overrides, an empty private
-   template, forced TLS verification, and a content check that does not rely on
-   caller-controlled normalization.
-2. **High: deleting a "clean" replaced checkout can lose work.** `report_previous`
-   (install) and the uninstaller trust the old checkout's own `git status`, which a
-   local `core.worktree` or assume-unchanged bits can hide, and which says nothing of
-   unpushed commits. Fix: always keep the renamed previous plugin and report it; on
-   uninstall, keep a copy before Omarchy deletes the checkout.
-3. **Medium: rename and rollback state can disagree on a signal.** A TERM between a
-   `mv` and its state assignment leaves the live plugin missing with no message, or
-   nests the old plugin inside the new one while claiming it was restored. Fix:
-   reconcile the real staged, live and backup paths in cleanup, and never `mv` into
-   an occupied destination.
-4. **Medium: a rerun re-enables a widget the user disabled.** Disabled state alone is
-   not evidence of an interrupted install. Fix: preserve a completed install's
-   disabled state; only finish enablement for a known-unfinished first install, or
-   print the enable command.
-5. **Low: `omarchy-version` `dev*` bypasses the Omarchy 4 check.** Refuse an
-   unverified development version or read its real version; or make development
-   builds an explicit, documented owner decision.
-6. (The dormant macOS Medium from that review, a failed detach deleting the mounted
-   image's download, was fixed in the served `../install`, which now owns macOS.)
+Symlinked Hyprland config (dotfiles): the installer detects a symlinked
+`hyprland.lua`, `~/.config/hypr` or any parent, and names where it points. It never
+reads stdin, so there is no prompt; the choice is a flag:
 
-From the second requirements and product review of `b17510a`:
+- **Default, symlinked `hyprland.lua`:** the installer never writes into the
+  dotfiles. Paperland's setup stages `paperland.lua` and prints the marked include
+  block; the run stops and asks you to paste it into the link's target and rerun.
+  The rerun has Paperland check the pasted lines with `paperland setup --dry-run`.
+- **`--edit-dotfiles`** (`curl … | sh -s -- --edit-dotfiles`, listed in `--help`):
+  the installer appends exactly the block Paperland printed to the file
+  `hyprland.lua` links to, in place, so the link stays a link and the file keeps its
+  mode and owner. Then Paperland checks it with `setup --dry-run`, and the run fails
+  if that does not pass. It edits only for a plain "add these exact lines" request;
+  a block to replace, lines to remove, or any other setup error stops with the file
+  untouched. Paperland's generated files never go into the dotfiles. Hyprland loads
+  the include on its next config reload.
+- **Symlinked `~/.config/hypr` (or a parent):** refused before any change, with or
+  without the flag, because Paperland's setup writes its generated files into
+  `~/.config/hypr` and refuses any symlinked folder above them. The message names
+  the link's target and says this is lifted once Paperland keeps its generated
+  files outside `~/.config/hypr`.
+- `--edit-dotfiles` is refused on macOS and by the uninstaller, which takes no
+  options. For a symlinked config the uninstaller prints the manual steps instead
+  of running Paperland's setup or uninstall.
 
-7. **High: restore-on-failure undoes a correct upgrade, and loops for a symlinked
-   `hyprland.lua`.** Paperland's setup exits 1 with "Symlinked main config needs a
-   manual include" whenever `hyprland.lua` (or a parent) is a symlink and the include
-   is absent, after the runtime was already refreshed; the installer then restores
-   the old plugin, leaving old widget plus new runtime, and every rerun repeats it.
-   Fix: stop restoring once the runtime is refreshed, report the kept previous plugin,
-   and for symlinked configs say in the plan and the failure message that Paperland
-   prints lines to paste into the tracked `hyprland.lua` before rerunning.
-8. **Medium: the uninstaller loops on a symlinked `hyprland.lua`.** Paperland's
-   `setup`/`uninstall` refuse "Symlinked configuration requires manual integration"
-   even after the include was pasted. Fix: detect it and print the manual recipe
-   (remove the marked block from the symlink target, delete `paperland.lua`, rerun)
-   instead of "fix the reported problem and rerun"; correct the "could not remove its
-   shortcuts" message for that case.
-9. **Medium (`publish-plugin-release.sh`): a failed default-branch check cannot be
-   retried.** After `--push` the release branch exists; the rerun dies "package ... is
-   identical to the current release" before pinning, so `release.env` never gets the
-   pushed SHA. Fix: print the new SHA in the default-branch failure, and when the
-   package equals the fetched `release` tip, pin that tip instead of dying.
+Backups: every upgrade keeps the replaced plugin in
+`~/.config/omarchy/.paperland-previous-*`, and every uninstall keeps a copy in
+`~/.config/omarchy/.paperland-removed-*`. Nothing prunes them. Each is printed with
+its `rm -rf` command when it is made, and the uninstaller lists the installer's
+kept copies with theirs.
 
-The same review's Lows are worth taking at the same time: check omarchy-shell is running
-in the uninstaller; set the widget's `executable` explicitly instead of trusting
-omarchy-shell's PATH; clear `GIT_COMMON_DIR` and `GIT_EXEC_PATH` too; and add tests for
-a symlinked `hyprland.lua`, the uninstaller with omarchy-shell down, and a failing
-`mv` in rollback.
+Uninstall order: Paperland's setup removes the shortcuts; a copy of the plugin folder
+is kept in `~/.config/omarchy/.paperland-removed-*`; `omarchy plugin remove` takes the
+widget's item (and its `executable`) out of `shell.json`; then Paperland's own
+uninstall runs, which refuses while `shell.json` still names the launcher. It stops
+before changing anything if omarchy-shell is not running.
+
+## Review findings
+
+From the second correctness, security, requirements and product reviews of
+getpaper.sh `b17510a`, and two independent reviews of the fixes. Each is fixed in
+the scripts with a test in `tests/`. Every such test fails on the scripts before its
+fix, except `real-git-rewritten-bytes`, which adds coverage for a check that already
+existed. The tests stub Omarchy and Hyprland (see "Not yet proven" below):
+
+1. Git isolation and a filter-independent content check (High), including a
+   real-git case where a release's own attributes rewrite bytes and the install is
+   refused.
+2. The replaced or removed plugin folder is always kept, never trusted to
+   `git status` (High).
+3. Rollback reconciles real paths, never renames into an occupied path, and
+   survives a second signal; tested with a TERM right after each rename, a TERM during
+   cleanup, a failing restore `mv`, and a folder appearing during the publish (Medium).
+4. A rerun keeps a disabled widget off (Medium).
+5. `dev*` Omarchy versions are read from `$OMARCHY_PATH/version` (Low).
+6. The macOS detach finding was fixed in the served `../install`.
+7. No restore after the runtime refresh; symlinked `hyprland.lua` handled in the
+   plan, the failure message and the rerun's check (High).
+8. The uninstaller prints the manual recipe for symlinked configs; both recipes
+   are tested through to the second, successful run (Medium).
+9. `publish-plugin-release.sh` pins an already-pushed identical release and prints the
+   pushed SHA when the default-branch check fails (Medium).
+H1. Uninstall no longer stops at Paperland's `shell.json` check: the plugin is
+   removed first. The stubs model `shell.json` the way Omarchy and Paperland treat it,
+   and the real-`setup.py` run covers install, upgrade and uninstall through it.
+Lows: the uninstaller checks omarchy-shell; the widget's `executable` is set
+explicitly; every `GIT_*` variable is cleared and `GIT_ATTR_NOSYSTEM=1` is set.
+
+Not done: file modes are not compared by the content check (a `100755` blob checked
+out without its execute bit would pass; the caller cannot cause that).
+
+## Live check (2026-10-02)
+
+Run on hotrod, owner-approved, in Paperland's end-to-end sandbox (`tests/e2e/run.py`
+style: Bubblewrap with no network, read-only `/`, private home, `/tmp`, runtime folder
+and D-Bus). The installed Hyprland 0.56.2 ran nested with only a headless output, with
+the installed Omarchy 4.0.4-1 shell inside it. The release was published from Paperland
+`5f41bba` and checked by the real `omarchy-plugin-validate`. Results:
+
+- Install, rerun and uninstall each exited 0. After install, the widget's item in
+  `shell.json` held `"executable": "<runtime>/paperland"`, `omarchy plugin enable` had
+  reported it enabled in time, and the widget loaded.
+- The widget runs that launcher: with no `paperland` on omarchy-shell's `PATH`, a click
+  on its toggle button showed the minimap of a running Paperland, and a second click hid it.
+- `omarchy plugin remove` took 189 ms, and its item was already gone from `shell.json`
+  when it returned, well inside the uninstaller's 2-second wait. Uninstall removed the
+  item, the plugin, the launcher and the include.
+- `--edit-dotfiles` on a relative symlink into `~/dotfiles` exited 0: one include in the
+  target, the link and the target's `-rw-r-----` mode kept, nothing else written there.
+  After `hyprctl reload`, Hyprland reported no config errors, loaded exactly the setup
+  revision in `paperland.lua`, and bound SUPER + M.
+
+Not covered: a fresh Omarchy install with a real login (autostart at login), and the
+Omarchy bar on a physical display rather than a headless output.
+
+## Owner decisions (2026-10-02)
+
+- Development Omarchy builds: read the real version from `$OMARCHY_PATH/version`;
+  4.x and newer install, older or unreadable versions are refused.
+- Backups are kept and never pruned; every path is printed with its `rm` command.
+- Symlinked configs: detected and named. The default never writes into dotfiles;
+  `--edit-dotfiles` adds the include to a symlinked `hyprland.lua`'s target. A
+  symlinked `~/.config/hypr` stays refused until Paperland moves its generated files
+  out of it; the uninstall recipe for that case removes the runtime with `rm -rf`,
+  where Paperland's own uninstall would keep it.
+- An interrupted first install is not enabled by the rerun; the rerun prints the
+  enable command.

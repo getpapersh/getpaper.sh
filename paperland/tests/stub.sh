@@ -8,12 +8,15 @@ case "$0" in "$HOME"/*) shown="~${0#"$HOME"}" ;; *) shown=$name ;; esac
 if [ "$name" = git ]; then
   # The installers must run git isolated; record any call that is not.
   case " $* " in
-    *" core.hooksPath=/dev/null "*" protocol.allow=never "*" protocol.https.allow=always "*) ;;
+    *" core.hooksPath=/dev/null "*" core.attributesFile=/dev/null "*" http.sslVerify=true "*" protocol.allow=never "*" protocol.https.allow=always "*) ;;
     *) echo "UNSAFE GIT (flags): $*" >> "$LOG" ;;
   esac
+  # Only the installers' own GIT_* settings may reach git.
+  extra=$(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p' |
+    grep -Evx 'GIT_CONFIG_NOSYSTEM|GIT_CONFIG_GLOBAL|GIT_ATTR_NOSYSTEM|GIT_NO_REPLACE_OBJECTS|GIT_TERMINAL_PROMPT')
   if [ "${GIT_CONFIG_GLOBAL:-}" != /dev/null ] || [ "${GIT_CONFIG_NOSYSTEM:-}" != 1 ] ||
-     [ "${GIT_NO_REPLACE_OBJECTS:-}" != 1 ] || [ -n "${GIT_DIR+set}" ] || [ -n "${GIT_WORK_TREE+set}" ]; then
-    echo "UNSAFE GIT (environment): $*" >> "$LOG"
+     [ "${GIT_NO_REPLACE_OBJECTS:-}" != 1 ] || [ -n "$extra" ]; then
+    echo "UNSAFE GIT (environment): $extra $*" >> "$LOG"
   fi
   while [ "${1:-}" = -c ]; do shift 2; done
 fi
@@ -53,17 +56,22 @@ case "$name" in
         [ -z "${STUB_CLONE_FAILS:-}" ] || exit 128
         mkdir -p "$last/.git" "$last/paperland"
         printf '{"id": "%s"}\n' "${STUB_MANIFEST_ID:-json.paperland}" > "$last/manifest.json"
+        echo "Widget" > "$last/Widget.qml"
         cp "$STUB" "$last/paperland/paperland"
+        # The committed tree: cksum stands in for blob ids.
+        for f in manifest.json Widget.qml paperland/paperland; do
+          printf '100644 blob %s\t%s\n' "$(cksum < "$last/$f" | sed 's/ .*//')" "$f"
+        done > "$last/.git/stub-tree"
         if [ -n "${STUB_SYMLINK:-}" ]; then ln -s /etc/passwd "$last/paperland/link"; fi ;;
       checkout)
         [ -z "${STUB_PIN_MISSING:-}" ] || exit 1
+        # A checkout that writes other bytes (a smudge filter) or an extra file.
+        if [ -n "${STUB_SMUDGE:-}" ]; then echo "smudged" >> "$dir/Widget.qml"; fi
+        if [ -n "${STUB_STAGE_DIRTY:-}" ]; then touch "$dir/extra.qml"; fi
         echo "${STUB_CHECKOUT_HEAD:-$last}" > "$dir/.git/stub-head" ;;
       rev-parse) if [ -f "$dir/.git/stub-head" ]; then cat "$dir/.git/stub-head"; else echo "${STUB_HEAD:-}"; fi ;;
-      status)
-        case "$dir" in
-          */.paperland-stage.*) if [ -n "${STUB_STAGE_DIRTY:-}" ]; then echo '?? extra.qml'; fi ;;
-          *) cat "$dir/.git/stub-status" 2>/dev/null ;;
-        esac ;;
+      ls-tree) cat "$dir/.git/stub-tree" ;;
+      hash-object) while read -r f; do cksum < "$dir/$f" | sed 's/ .*//'; done ;;
       merge-base) [ -n "${STUB_OLD_NEWER:-}" ] || exit 1 ;;
     esac ;;
   omarchy-plugin-validate) exit "${STUB_VALIDATE_STATUS:-0}" ;;
@@ -99,20 +107,65 @@ case "$name" in
     mkdir -p "$last/Contents"
     [ -z "${STUB_DITTO_FAILS:-}" ] || exit 1 ;;
   omarchy)
+    # Like omarchy-shell: the widget's bar item, with its settings, lives in shell.json.
+    shell_json=$HOME/.config/omarchy/shell.json
     case "$1 $2" in
-      "plugin enable") touch "$enabled" ;;
-      "plugin remove") rm -rf "$plugin" "$enabled" ;;
+      "plugin enable")
+        touch "$enabled"
+        echo '{"bar":{"layout":{"left":[{"id":"json.paperland"}],"center":[],"right":[]}}}' > "$shell_json" ;;
+      "bar set")
+        jq -e --arg id "$3" 'any(.bar.layout[][]; .id == $id)' "$shell_json" >/dev/null 2>&1 || {
+          echo "omarchy-bar: could not find widget $3" >&2; exit 1; }
+        jq --arg id "$3" --arg key "$4" --arg value "$5" \
+          '.bar.layout[] |= map(if .id == $id then .[$key] = $value else . end)' "$shell_json" > "$shell_json.tmp"
+        mv "$shell_json.tmp" "$shell_json" ;;
+      "plugin remove")
+        rm -rf "$plugin" "$enabled"
+        # STUB_REMOVE_KEEPS_ITEM: omarchy-shell never splices the item (a rejected manifest,
+        # a duplicate entry). STUB_REMOVE_DELAY: it writes shell.json after returning.
+        if [ -f "$shell_json" ] && [ -z "${STUB_REMOVE_KEEPS_ITEM:-}" ]; then
+          (
+            sleep "${STUB_REMOVE_DELAY:-0}"
+            jq '.bar.layout[] |= map(select(.id != "json.paperland"))' "$shell_json" > "$shell_json.tmp"
+            mv "$shell_json.tmp" "$shell_json"
+          ) > /dev/null 2>&1 &
+          if [ -z "${STUB_REMOVE_DELAY:-}" ]; then wait; fi
+        fi ;;
     esac ;;
   paperland)
     case "$1" in
       install)
         [ -z "${STUB_RUNTIME_FAILS:-}" ] || exit 1
+        # A signal to the installer while Paperland's install rolls itself back.
+        if [ -n "${STUB_INSTALL_TERM:-}" ]; then kill -TERM "$PPID"; exit 1; fi
         mkdir -p "$runtime" "$HOME/.local/bin"
         ln -sf "$STUB" "$runtime/paperland"
         echo "Paperland CLI installation v1" > "$runtime/.installed-by-paperland"
         ln -sf "$runtime/paperland" "$HOME/.local/bin/paperland" ;;
-      setup) exit "${STUB_SETUP_STATUS:-0}" ;;
+      setup)
+        main=$HOME/.config/hypr/hyprland.lua
+        case " $* " in *" --dry-run "*) exit "${STUB_SETUP_STATUS:-0}" ;; esac
+        if [ -n "${STUB_SETUP_OTHER_ERROR:-}" ]; then echo "paperland: Hyprland reported config errors" >&2; exit 1; fi
+        # Like setup.py when the installer applies setup: a symlinked hyprland.lua without
+        # the include gets paperland.lua staged and the block to paste printed, exit 1.
+        case " $* " in *" --replace-bindings "*)
+          if [ -L "$main" ] && ! grep -qF -- '-- BEGIN Paperland setup' "$main"; then
+            echo "-- generated" > "$HOME/.config/hypr/paperland.lua"
+            printf '%s\n' "paperland: Symlinked main config needs a manual include." \
+              "Add these exact lines to its tracked target:" "-- BEGIN Paperland setup" \
+              "dofile(\"$HOME/.config/hypr/paperland.lua\")" "-- END Paperland setup" "Then rerun setup to validate it." >&2
+            exit 1
+          fi ;;
+        esac
+        exit "${STUB_SETUP_STATUS:-0}" ;;
       uninstall)
+        # As setup.py's uninstall: refuse while the bar names this plugin with the launcher.
+        shell_json=$HOME/.config/omarchy/shell.json
+        if grep -qF json.paperland "$shell_json" 2>/dev/null &&
+           { grep -qF "$runtime/paperland" "$shell_json" || grep -qF "$HOME/.local/bin/paperland" "$shell_json"; }; then
+          echo "paperland: Omarchy bar still references this installation; review $shell_json before uninstall" >&2
+          exit 1
+        fi
         rm -f "$HOME/.local/bin/paperland"
         rm -rf "$runtime" "$HOME/.config/hypr/paperland.lua"
         main=$HOME/.config/hypr/hyprland.lua
