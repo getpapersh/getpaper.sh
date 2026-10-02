@@ -26,6 +26,8 @@ publish() { # REF RELEASE_REPO: prints the kept release work directory
 new_case e2e-publish
 cp "$root/release.env" "$e2e/release.env"
 git init --quiet --bare "$e2e/empty.git"
+# HEAD~1 and HEAD must package differently: an identical second package is pinned,
+# not committed, and prints no work directory.
 first=$(publish HEAD~1 "$e2e/empty.git")
 check "first publish creates a release work dir" [ -d "$first/.git" ]
 second=$(publish HEAD "$first")
