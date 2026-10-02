@@ -75,7 +75,9 @@ check "real upgrade refreshed the runtime" [ -n "$(find "$home/.local/share" -ma
 check "real upgrade kept autostart off" lacks_file 'hl.on("hyprland.start"' "$home/.config/hypr/paperland.lua"
 check "real upgrade kept the shortcut" grep -qF 'hl.bind("SUPER + M"' "$home/.config/hypr/paperland.lua"
 check "real upgrade asks for a restart" says "Restart Paperland to finish"
-check "real upgrade replaced a clean checkout without leftovers" no_leftovers
+check "real upgrade leaves no staging folder" no_stage_left
+check "real upgrade keeps the replaced checkout" [ "$(git -C "$(find "$home/.config/omarchy" -maxdepth 2 -path '*/.paperland-previous-*/json.paperland')" rev-parse HEAD)" = "$first_sha" ]
+check "real upgrade names the kept checkout" says "The replaced plugin is kept at"
 
 run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
 check "real uninstall succeeds" status 0
@@ -84,4 +86,29 @@ check "user config was kept" grep -qF -- '-- user config' "$home/.config/hypr/hy
 check "generated config was removed" [ ! -e "$home/.config/hypr/paperland.lua" ]
 check "launcher was removed" [ ! -e "$home/.local/bin/paperland" ]
 check "plugin was removed" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+check "uninstall kept a copy of the plugin" [ -n "$(find "$home/.config/omarchy" -maxdepth 2 -path '*/.paperland-removed-*/json.paperland')" ]
 check "Paperland kept its backups" [ -d "$home/.local/state/paperland" ]
+
+# Symlinked hyprland.lua: install stops after Paperland prints the include to paste,
+# a rerun after pasting finishes, and uninstall gives the manual recipe.
+mkdir -p "$home/dotfiles"
+mv "$home/.config/hypr/hyprland.lua" "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked install stops for the paste" status 1
+check "symlinked install shows Paperland's include" says "Symlinked main config needs a manual include"
+check "symlinked install says where to paste" says "Paste the lines Paperland printed above into $home/dotfiles/hyprland.lua"
+check "symlinked install keeps the plugin" [ "$(git -C "$home/.config/omarchy/plugins/json.paperland" rev-parse HEAD)" = "$pinned" ]
+sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$case_dir/out" >> "$home/dotfiles/hyprland.lua"
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked install finishes after the paste" status 0
+check "symlinked install never replaced the link" [ -L "$home/.config/hypr/hyprland.lua" ]
+run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked uninstall stops with the recipe" says "Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $home/dotfiles/hyprland.lua"
+sed '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/d' "$home/dotfiles/hyprland.lua" > "$e2e/main.lua"
+cat "$e2e/main.lua" > "$home/dotfiles/hyprland.lua"
+rm "$home/.config/hypr/paperland.lua"
+run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "symlinked uninstall finishes after the recipe" status 0
+check "symlinked uninstall removed the launcher" [ ! -e "$home/.local/bin/paperland" ]
+check "symlinked uninstall removed the plugin" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]

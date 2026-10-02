@@ -8,12 +8,15 @@ case "$0" in "$HOME"/*) shown="~${0#"$HOME"}" ;; *) shown=$name ;; esac
 if [ "$name" = git ]; then
   # The installers must run git isolated; record any call that is not.
   case " $* " in
-    *" core.hooksPath=/dev/null "*" protocol.allow=never "*" protocol.https.allow=always "*) ;;
+    *" core.hooksPath=/dev/null "*" core.attributesFile=/dev/null "*" http.sslVerify=true "*" protocol.allow=never "*" protocol.https.allow=always "*) ;;
     *) echo "UNSAFE GIT (flags): $*" >> "$LOG" ;;
   esac
+  # Only the installers' own GIT_* settings may reach git.
+  extra=$(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p' |
+    grep -Evx 'GIT_CONFIG_NOSYSTEM|GIT_CONFIG_GLOBAL|GIT_NO_REPLACE_OBJECTS|GIT_TERMINAL_PROMPT')
   if [ "${GIT_CONFIG_GLOBAL:-}" != /dev/null ] || [ "${GIT_CONFIG_NOSYSTEM:-}" != 1 ] ||
-     [ "${GIT_NO_REPLACE_OBJECTS:-}" != 1 ] || [ -n "${GIT_DIR+set}" ] || [ -n "${GIT_WORK_TREE+set}" ]; then
-    echo "UNSAFE GIT (environment): $*" >> "$LOG"
+     [ "${GIT_NO_REPLACE_OBJECTS:-}" != 1 ] || [ -n "$extra" ]; then
+    echo "UNSAFE GIT (environment): $extra $*" >> "$LOG"
   fi
   while [ "${1:-}" = -c ]; do shift 2; done
 fi
@@ -53,17 +56,22 @@ case "$name" in
         [ -z "${STUB_CLONE_FAILS:-}" ] || exit 128
         mkdir -p "$last/.git" "$last/paperland"
         printf '{"id": "%s"}\n' "${STUB_MANIFEST_ID:-json.paperland}" > "$last/manifest.json"
+        echo "Widget" > "$last/Widget.qml"
         cp "$STUB" "$last/paperland/paperland"
+        # The committed tree: cksum stands in for blob ids.
+        for f in manifest.json Widget.qml paperland/paperland; do
+          printf '100644 blob %s\t%s\n' "$(cksum < "$last/$f" | sed 's/ .*//')" "$f"
+        done > "$last/.git/stub-tree"
         if [ -n "${STUB_SYMLINK:-}" ]; then ln -s /etc/passwd "$last/paperland/link"; fi ;;
       checkout)
         [ -z "${STUB_PIN_MISSING:-}" ] || exit 1
+        # A checkout that writes other bytes (a smudge filter) or an extra file.
+        if [ -n "${STUB_SMUDGE:-}" ]; then echo "smudged" >> "$dir/Widget.qml"; fi
+        if [ -n "${STUB_STAGE_DIRTY:-}" ]; then touch "$dir/extra.qml"; fi
         echo "${STUB_CHECKOUT_HEAD:-$last}" > "$dir/.git/stub-head" ;;
       rev-parse) if [ -f "$dir/.git/stub-head" ]; then cat "$dir/.git/stub-head"; else echo "${STUB_HEAD:-}"; fi ;;
-      status)
-        case "$dir" in
-          */.paperland-stage.*) if [ -n "${STUB_STAGE_DIRTY:-}" ]; then echo '?? extra.qml'; fi ;;
-          *) cat "$dir/.git/stub-status" 2>/dev/null ;;
-        esac ;;
+      ls-tree) cat "$dir/.git/stub-tree" ;;
+      hash-object) while read -r f; do cksum < "$dir/$f" | sed 's/ .*//'; done ;;
       merge-base) [ -n "${STUB_OLD_NEWER:-}" ] || exit 1 ;;
     esac ;;
   omarchy-plugin-validate) exit "${STUB_VALIDATE_STATUS:-0}" ;;
