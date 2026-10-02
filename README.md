@@ -9,23 +9,27 @@ curl -fsSL https://getpaper.sh/install | sh
 
 - **macOS:** installs PaperMac. Run it again to reinstall or upgrade; Sparkle handles
   updates after that.
-- **Linux:** prints "Paperland is coming soon" and exits 1, for install and
-  uninstall alike.
+- **Linux (Omarchy 4 with Hyprland 0.56 or newer):** installs Paperland as the Omarchy
+  plugin `json.paperland`, with its runtime, shortcut and autostart. Run it again to
+  update.
 
-Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
+Uninstall with `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall` (PaperMac
+on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is Linux only
+(see "What the Linux install does").
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
-| `install` | The served script (`/install`). POSIX sh, runs as is. |
+| `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
+| `scripts/assemble-install.sh` | Replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
 | `index.html` | The landing page source. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
-| `scripts/build-site.sh` | Copies `install`, `index.html` and `_headers` into `site/`; refuses uncommitted sources and a `wrangler.jsonc` that does not deploy `./site`. |
-| `site/` | Built, committed output to deploy. |
-| `tests/run.sh`, `tests/stub.sh` | Stubbed tests of the served script and the site build. |
-| `paperland/` | The disabled Omarchy-plugin installer for Paperland; not served. See its README. |
+| `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html` and `_headers`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
+| `site/` | Built, committed output to deploy; `site/install` is the served `/install`. |
+| `tests/run.sh`, `tests/stub.sh` | Stubbed tests of the served (built) script and the site build. |
+| `paperland/` | The Paperland installer and uninstaller inlined into `site/install`, its pinned release, and its own tests. See its README. |
 
 ## What the macOS install does
 
@@ -99,6 +103,27 @@ them.
 The whole script is one `{ ... }` block ending in `main "$@"; }`, so a truncated
 download is a syntax error and runs nothing.
 
+## What the Linux install does
+
+`main` reads every option first (`--uninstall`, `--edit-dotfiles`, `--help`; anything else
+stops before any change), then dispatches on `uname -s`: macOS runs the PaperMac half
+above, Linux runs the Paperland installer (or its uninstaller for `--uninstall`), and any
+other system is refused. `--edit-dotfiles` is refused on macOS and with `--uninstall`.
+
+The Paperland half is `paperland/install` and `paperland/uninstall`, built with the
+pinned `paperland/release.env` and inlined verbatim at build time, each as the body of a
+function that runs in its own subshell (`paperland_install() ( … )`). Its functions,
+variables, `set -eu`, traps and exits stay inside that subshell, as when it was a script
+of its own, so neither half changes the other's reviewed behavior; the only name they
+share, `SITE`, has the same value in both. On Linux the outer shell sets a no-op trap
+(not an ignore, which children would inherit) and waits, so Paperland's own cleanup
+always finishes first. Nothing is fetched at runtime except the pinned plugin release.
+
+What the Paperland installer does, step by step (Omarchy and Hyprland checks, the
+verified clone of the pinned `https://github.com/getpapersh/paperland.git` release, the
+one-rename publish, the runtime refresh, setup, symlinked dotfiles and `--edit-dotfiles`,
+backups, rollback, and the uninstaller's order) is in `paperland/README.md`.
+
 ## The manifest
 
 From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/latest.json`:
@@ -121,8 +146,10 @@ stub on Macs without the Command Line Tools.
 ## Build and test
 
 ```sh
-sh tests/run.sh                 # stubbed: every case pipes the script into sh, like curl | sh
+sh tests/run.sh                 # stubbed: every case pipes the built script into sh, like curl | sh
 TEST_SH=dash sh tests/run.sh    # the same with dash
+sh paperland/tests/run.sh       # the Paperland half; COMBINED=1 runs every case against the
+                                # served /install, PAPERLAND_SRC=/path adds real setup.py runs
 sh scripts/build-site.sh        # after committing the sources; then commit site/
 ```
 
@@ -130,9 +157,10 @@ The tests point the script's `SYSTEM_APPLICATIONS` line at a folder inside the t
 so no case can write to the real `/Applications`, and stub every macOS command.
 Running PaperMac copies are stand-in `sleep` processes, so quitting and SIGTERM act on
 real processes. They cover the call order, every failure before and during the swap,
-the manifest's failure modes, uninstall, Linux, every truncation (each line boundary
-and the last 20 bytes, with and without `--uninstall`), and that the committed `site/`
-equals a fresh build.
+the manifest's failure modes, uninstall, the options and the Linux and other-system
+dispatch, every truncation of the built file (each line boundary and the last 20
+bytes, on macOS and Linux, with and without `--uninstall`), and that the committed
+`site/` equals a fresh build.
 
 Only the macOS 27 VM acceptance run proves the real behavior: no quarantine mark,
 launch to Welcome without a Gatekeeper prompt, in-place upgrade while running, the

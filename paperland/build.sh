@@ -1,5 +1,6 @@
 #!/bin/sh
-# Builds the disabled Paperland installer: install and uninstall with release.env inlined.
+# Builds the Paperland installer: install and uninstall with release.env inlined.
+# scripts/build-site.sh calls it and inlines the result into the served /install.
 # Usage: build.sh RELEASE_ENV OUT_DIR
 set -eu
 

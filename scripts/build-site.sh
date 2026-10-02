@@ -1,5 +1,6 @@
 #!/bin/sh
-# Builds the deployable site/ from its committed sources: install (served at /install),
+# Builds the deployable site/ from its committed sources: install (served at /install,
+# with the Paperland installer from paperland/ inlined by scripts/assemble-install.sh),
 # index.html and _headers (Cloudflare's response headers). site/ is committed too, so a
 # deployed file always maps to a commit. wrangler.jsonc deploys site/; the build checks
 # that it still points there.
@@ -10,7 +11,7 @@ die() { printf 'build-site: %s\n' "$*" >&2; exit 1; }
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/site}
-sources="install index.html _headers wrangler.jsonc"
+sources="install index.html _headers wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
 
 if [ "$out" = "$root/site" ]; then
   for source in $sources; do
@@ -25,8 +26,12 @@ sh -n "$root/install" || die "install has a syntax error"
 grep -qF '"directory": "./site"' "$root/wrangler.jsonc" || die "wrangler.jsonc must deploy ./site"
 
 mkdir -p "$out"
+paperland=$(mktemp -d "${TMPDIR:-/tmp}/build-site.XXXXXX")
+trap 'rm -rf "$paperland"' EXIT
+sh "$root/paperland/build.sh" "$root/paperland/release.env" "$paperland" >/dev/null
+sh "$root/scripts/assemble-install.sh" "$root/install" "$paperland" "$paperland/served-install"
 for file in install index.html _headers; do
-  cp "$root/$file" "$out/$file.tmp"
+  if [ "$file" = install ]; then cp "$paperland/served-install" "$out/$file.tmp"; else cp "$root/$file" "$out/$file.tmp"; fi
   chmod 644 "$out/$file.tmp"
   mv "$out/$file.tmp" "$out/$file"
 done

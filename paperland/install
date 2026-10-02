@@ -1,5 +1,6 @@
 #!/bin/sh
-# DISABLED Paperland installer (not served; see README.md in this folder).
+# Paperland installer. scripts/build-site.sh inlines it, built with release.env, into
+# the served /install, which runs it on Linux; see README.md in this folder.
 #
 # Linux (Omarchy): installs or upgrades Paperland as the Omarchy plugin json.paperland.
 # The pinned release is cloned and verified outside Omarchy's watched plugin folder,
@@ -13,7 +14,7 @@ set -eu
 
 PLUGIN_ID=json.paperland
 SITE=https://getpaper.sh
-UNINSTALL_CMD="curl --proto '=https' --tlsv1.2 -fsSL $SITE/uninstall | sh"
+UNINSTALL_CMD="curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- --uninstall"
 MARKER="Paperland CLI installation v1"
 
 say() { printf '%s\n' "$*"; }
@@ -486,7 +487,7 @@ main() {
     Linux) install_linux ;;
     Darwin)
       [ -z "$EDIT_DOTFILES" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
-      die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
+      die "This Paperland installer does not handle macOS; the served /install installs PaperMac there." ;;
     *) die "Unsupported system: $(uname -s). Paperland needs Linux with Omarchy; PaperMac needs macOS." ;;
   esac
 }

@@ -7,6 +7,8 @@
 #   PAPERLAND_SRC=/path tests/run.sh    also: publish releases from that Paperland
 #                                       checkout, then install, upgrade and uninstall
 #                                       with real git, Python and setup.py
+#   COMBINED=1 tests/run.sh             every case against the served /install, with
+#                                       these scripts inlined (uninstall as --uninstall)
 set -u
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -40,6 +42,13 @@ build() { # NAME SED_SCRIPT: build site files from release.env edited by SED_SCR
   mkdir -p "$work/build/$1"
   sed "$2" "$root/release.env" > "$work/build/$1/release.env"
   sh "$root/build.sh" "$work/build/$1/release.env" "$work/build/$1" >/dev/null
+  combine "$work/build/$1"
+}
+combine() { # DIR: with COMBINED=1, replace DIR's install and uninstall by the served /install built from them
+  [ -n "${COMBINED:-}" ] || return 0
+  sh "$root/../scripts/assemble-install.sh" "$root/../install" "$1" "$1/combined" || exit 1
+  cp "$1/combined" "$1/install"
+  mv "$1/combined" "$1/uninstall"
 }
 build pinned "s/^PLUGIN_SHA=.*/PLUGIN_SHA=$SHA/"
 build pending "s/^PLUGIN_SHA=.*/PLUGIN_SHA=PENDING/"
@@ -78,9 +87,11 @@ ARGS=
 run() { # SCRIPT [VAR=value...]: pipe SCRIPT into sh the way `curl | sh` does, with $ARGS as `sh -s -- $ARGS`
   script=$1
   shift
-  # shellcheck disable=SC2086 # ARGS is a word list
+  args=$ARGS
+  if [ -n "${COMBINED:-}" ] && [ "${script##*/}" = uninstall ]; then args="--uninstall $ARGS"; fi
+  # shellcheck disable=SC2086 # args is a word list
   env -i HOME="$home" PATH="$bin:$tools" TMPDIR="$case_dir/tmp" LOG="$case_dir/log" \
-    STUB="$root/tests/stub.sh" PAPER_YES=1 STUB_ORIGIN="$PLUGIN_URL" "$@" sh -s -- $ARGS < "$script" > "$case_dir/out" 2>&1
+    STUB="$root/tests/stub.sh" PAPER_YES=1 STUB_ORIGIN="$PLUGIN_URL" "$@" sh -s -- $args < "$script" > "$case_dir/out" 2>&1
   echo $? > "$case_dir/status"
 }
 # shellcheck disable=SC2012 # one known test file; ls -l is the portable way to read its mode
@@ -294,7 +305,7 @@ check "install leaves no staging folder" no_leftovers
 check "install never uses omarchy plugin add or update" not_called "[plugin] [add]"
 check "install reports success" says "Paperland is installed at $SHA."
 check "install warns when ~/.local/bin is not on PATH" says ".local/bin is not on PATH; add it to run 'paperland' in a terminal."
-check "install documents the HTTPS uninstall" says "Uninstall: curl --proto '=https' --tlsv1.2 -fsSL https://getpaper.sh/uninstall | sh"
+check "install documents the HTTPS uninstall" says "Uninstall: curl --proto '=https' --tlsv1.2 -fsSL https://getpaper.sh/install | sh -s -- --uninstall"
 
 new_case fresh-git-isolated
 run "$PINNED" "$HIS" GIT_DIR=/nonexistent GIT_WORK_TREE=/nonexistent GIT_CONFIG_GLOBAL="$home/evil" \
@@ -892,7 +903,7 @@ publish_push
 pushed=$(pgit --git-dir="$plugin_repo" rev-parse refs/heads/release)
 check "publish stops when the default branch is not release" status 1
 check "publish names the pushed release it could not pin" says "then rerun to pin the pushed release $pushed."
-check "publish leaves release.env unpinned" grep -qx 'PLUGIN_SHA=PENDING' "$case_dir/release.env"
+check "publish leaves release.env unchanged" cmp -s "$root/release.env" "$case_dir/release.env"
 pgit --git-dir="$plugin_repo" symbolic-ref HEAD refs/heads/release
 publish_push
 check "publish rerun succeeds" status 0
