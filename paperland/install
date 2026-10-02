@@ -143,11 +143,19 @@ print_plan() {
   fi
   if [ -z "$NEEDS_SETUP" ]; then
     setup_line="Keep your Paperland shortcut and autostart setup unchanged."
+  elif [ -n "$MAIN_LINK" ] && [ -n "$EDIT_DOTFILES" ]; then
+    setup_desc
+    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+     $MAIN_LINK. With --edit-dotfiles, add Paperland's marked include to
+     that file in place (the link stays a link, and nothing else is written
+     there), then have Paperland check it.
+     $SETUP_DESC"
   elif [ -n "$MAIN_LINK" ]; then
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua
-     is a symlink, which Paperland never edits: setup prints the lines to paste
-     into $MAIN_LINK, and this run stops there. Paste them, then run it again.
+    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+     $MAIN_LINK, which this installer does not edit by default: Paperland
+     prints the lines to paste there, and this run stops. Paste them and run it
+     again, or rerun with --edit-dotfiles to have them added for you.
      $SETUP_DESC"
   else
     setup_desc
@@ -257,12 +265,15 @@ on_exit() {
   elif [ -n "$RUNTIME_STARTED" ]; then
     if [ -z "$RUNTIME_DONE" ]; then
       warn "The Paperland runtime may not have finished installing. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
-    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ]; then
+    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ]; then
       warn "If Paperland printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
     else
       warn "Paperland's plugin and runtime were installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
     fi
-    if [ -n "$prev" ] && [ -e "$prev" ]; then warn "The replaced plugin is kept at $prev"; fi
+    if [ -n "$prev" ] && [ -e "$prev" ]; then
+      warn "The replaced plugin is kept at $prev"
+      warn "Delete it when you no longer need it: rm -rf '$BACKUP'"
+    fi
   elif [ -n "$prev" ] && [ -e "$prev" ]; then
     # Never mv into an occupied path: that nests one plugin inside the other. Only the
     # copy this run published (its staged tree is gone) is taken out again.
@@ -328,6 +339,37 @@ report_previous() {
   fi
 }
 
+# Paperland's preview checks an include that was added by hand or by --edit-dotfiles,
+# without writing anything.
+check_symlinked_include() {
+  "$LAUNCHER" setup --dry-run >/dev/null ||
+    die "Paperland did not accept the Paperland lines in $MAIN_LINK; fix them as reported above."
+}
+
+# --edit-dotfiles: appends the block Paperland's setup printed to the file hyprland.lua
+# links to. Only for a plain "add these lines" request: anything else (a block to
+# replace, lines to remove, another error) stops with the file untouched.
+add_include_to_dotfiles() {
+  out=$STAGE_ROOT/setup.out
+  main=$HYPR_DIR/hyprland.lua
+  if ! grep -qF 'Symlinked main config needs a manual include.' "$out" ||
+     ! grep -qF 'Add these exact lines to its tracked target:' "$out" || grep -q '^Remove ' "$out" ||
+     grep -qF -- '-- BEGIN Paperland setup' "$main"; then
+    die "Paperland's setup stopped for another reason (above), so $MAIN_LINK was not edited."
+  fi
+  block=$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$out")
+  [ "$(printf '%s\n' "$block" | grep -c '^-- BEGIN Paperland setup$')" = 1 ] &&
+    [ "$(printf '%s\n' "$block" | tail -n 1)" = '-- END Paperland setup' ] ||
+    die "Paperland's setup did not print one complete include, so $MAIN_LINK was not edited."
+  [ -f "$main" ] && [ -w "$main" ] || die "$MAIN_LINK is not a writable file, so it was not edited."
+  # Appending through the link edits the real file in place: same file, mode and owner,
+  # and the link stays a link. The layout matches what Paperland's setup appends.
+  if [ -s "$main" ] && [ -n "$(tail -c 1 "$main")" ]; then printf '\n' >> "$main"; fi
+  printf '\n%s\n' "$block" >> "$main"
+  INCLUDE_ADDED=1
+  say "Added Paperland's include to $MAIN_LINK."
+}
+
 install_linux() {
   check_release_values
   OMARCHY_DIR=$HOME/.config/omarchy
@@ -335,7 +377,7 @@ install_linux() {
   RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   LAUNCHER=$HOME/.local/bin/paperland
   HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
-  STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED=''
+  STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED='' INCLUDE_ADDED=''
   WIDGET_OFF='' MAIN_LINK=''
   check_linux
   # Checked before the runtime refresh, which always recreates the launcher.
@@ -348,8 +390,11 @@ install_linux() {
     # Paperland's setup refuses a symlinked folder anywhere above paperland.lua, and
     # for a symlinked hyprland.lua only prints an include to paste.
     folder_link=$(first_symlink "$HYPR_DIR")
-    [ -z "$folder_link" ] ||
-      die "Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink, and Paperland never writes through one. Nothing was changed."
+    if [ -n "$folder_link" ]; then
+      refusal="Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink to $(readlink "$folder_link"). Paperland's setup writes its generated files into $HYPR_DIR and never writes through a symlink. This is lifted once Paperland keeps its generated files outside $HYPR_DIR."
+      if [ -n "$EDIT_DOTFILES" ]; then refusal="$refusal --edit-dotfiles does not lift this yet."; fi
+      die "$refusal Nothing was changed."
+    fi
   fi
   if [ -L "$HYPR_DIR/hyprland.lua" ]; then
     MAIN_LINK=$(readlink "$HYPR_DIR/hyprland.lua")
@@ -373,11 +418,17 @@ install_linux() {
   set_widget_launcher
   if [ -n "$NEEDS_SETUP" ]; then
     SETUP_STARTED=1
-    run_setup
+    if [ -n "$EDIT_DOTFILES" ] && [ -n "$MAIN_LINK" ]; then
+      setup_status=0
+      run_setup > "$STAGE_ROOT/setup.out" 2>&1 || setup_status=$?
+      cat "$STAGE_ROOT/setup.out"
+      if [ "$setup_status" -ne 0 ]; then add_include_to_dotfiles; fi
+      check_symlinked_include
+    else
+      run_setup
+    fi
   elif [ -n "$MAIN_LINK" ]; then
-    # The include was pasted by hand; Paperland's preview checks it without writing.
-    "$LAUNCHER" setup --dry-run >/dev/null ||
-      die "Paperland did not accept the Paperland lines in $MAIN_LINK; fix them as reported above."
+    check_symlinked_include
   fi
   report_previous
 
@@ -389,6 +440,9 @@ install_linux() {
   else
     say "Paperland is installed at $PLUGIN_SHA. Open the minimap with your Paperland shortcut (SUPER + M by default)."
   fi
+  if [ -n "$INCLUDE_ADDED" ]; then
+    say "Hyprland loads the new include on its next config reload (hyprctl reload)."
+  fi
   if [ -n "$WIDGET_OFF" ]; then
     say "The Paperland bar widget is off. To add it to your bar: omarchy plugin enable $PLUGIN_ID && omarchy bar set $PLUGIN_ID executable $RUNTIME/paperland"
   fi
@@ -399,11 +453,33 @@ install_linux() {
   say "To update, run the same command again. Uninstall: $UNINSTALL_CMD"
 }
 
+usage() {
+  cat <<EOF
+Usage: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- [--edit-dotfiles]
+
+  --edit-dotfiles  When ~/.config/hypr/hyprland.lua is a symlink (into a dotfiles
+                   repository, say), add Paperland's marked include to the file it
+                   points to instead of printing the lines for you to paste. The link
+                   stays a link, and Paperland's generated files never go there.
+                   A symlinked ~/.config/hypr folder is still refused.
+EOF
+}
+
 main() {
+  EDIT_DOTFILES=
+  for arg do
+    case "$arg" in
+      --edit-dotfiles) EDIT_DOTFILES=1 ;;
+      -h|--help) usage; exit 0 ;;
+      *) usage >&2; die "Unknown option: $arg" ;;
+    esac
+  done
   [ "$(id -u)" -ne 0 ] || die "Do not run this installer as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Linux) install_linux ;;
-    Darwin) die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
+    Darwin)
+      [ -z "$EDIT_DOTFILES" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+      die "This disabled Paperland installer does not handle macOS; the served installer is ../install." ;;
     *) die "Unsupported system: $(uname -s). Paperland needs Linux with Omarchy; PaperMac needs macOS." ;;
   esac
 }

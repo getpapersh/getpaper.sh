@@ -136,7 +136,22 @@ case "$name" in
         ln -sf "$STUB" "$runtime/paperland"
         echo "Paperland CLI installation v1" > "$runtime/.installed-by-paperland"
         ln -sf "$runtime/paperland" "$HOME/.local/bin/paperland" ;;
-      setup) exit "${STUB_SETUP_STATUS:-0}" ;;
+      setup)
+        main=$HOME/.config/hypr/hyprland.lua
+        case " $* " in *" --dry-run "*) exit "${STUB_SETUP_STATUS:-0}" ;; esac
+        if [ -n "${STUB_SETUP_OTHER_ERROR:-}" ]; then echo "paperland: Hyprland reported config errors" >&2; exit 1; fi
+        # Like setup.py when the installer applies setup: a symlinked hyprland.lua without
+        # the include gets paperland.lua staged and the block to paste printed, exit 1.
+        case " $* " in *" --replace-bindings "*)
+          if [ -L "$main" ] && ! grep -qF -- '-- BEGIN Paperland setup' "$main"; then
+            echo "-- generated" > "$HOME/.config/hypr/paperland.lua"
+            printf '%s\n' "paperland: Symlinked main config needs a manual include." \
+              "Add these exact lines to its tracked target:" "-- BEGIN Paperland setup" \
+              "dofile(\"$HOME/.config/hypr/paperland.lua\")" "-- END Paperland setup" "Then rerun setup to validate it." >&2
+            exit 1
+          fi ;;
+        esac
+        exit "${STUB_SETUP_STATUS:-0}" ;;
       uninstall)
         # As setup.py's uninstall: refuse while the bar names this plugin with the launcher.
         shell_json=$HOME/.config/omarchy/shell.json

@@ -1,4 +1,4 @@
-# shellcheck shell=sh disable=SC2154 # work, root, bin, home and helpers come from tests/run.sh
+# shellcheck shell=sh disable=SC2154,SC2034 # work, root, bin, home, ARGS and helpers belong to tests/run.sh
 # Sourced by tests/run.sh when PAPERLAND_SRC names a Paperland checkout.
 # Publishes two releases from it (first run creates the orphan `release` branch,
 # second run commits on top), then installs the first, upgrades to the second and
@@ -119,3 +119,17 @@ run "$e2e/site/uninstall" "$real_git_env" "$HIS" PYTHONDONTWRITEBYTECODE=1
 check "symlinked uninstall finishes after the recipe" status 0
 check "symlinked uninstall removed the launcher" [ ! -e "$home/.local/bin/paperland" ]
 check "symlinked uninstall removed the plugin" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+
+# --edit-dotfiles with real Paperland: the block goes into the link's target, the link
+# and the target's mode stay, and Paperland's own check passes.
+chmod 640 "$home/dotfiles/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+ARGS=
+check "--edit-dotfiles install succeeds with real Paperland" status 0
+check "--edit-dotfiles added the include to the target" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
+check "--edit-dotfiles kept the link" [ -L "$home/.config/hypr/hyprland.lua" ]
+check "--edit-dotfiles kept the target's mode" [ "$(mode_of "$home/dotfiles/hyprland.lua")" = "-rw-r-----" ]
+check "--edit-dotfiles left paperland.lua out of the dotfiles" [ ! -e "$home/dotfiles/paperland.lua" ]
+run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
+check "a rerun after --edit-dotfiles passes Paperland's check" status 0

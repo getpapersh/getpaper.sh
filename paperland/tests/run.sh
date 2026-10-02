@@ -30,7 +30,7 @@ PREV="~/.config/omarchy/.paperland-previous-X/json.paperland"
 # Real tools the scripts may use; nothing else is reachable.
 tools=$work/tools
 mkdir -p "$tools"
-for tool in bash env sed grep awk find head date mkdir mv readlink rm rmdir sleep mktemp cat cp ln touch chmod dirname sort cksum; do
+for tool in bash env sed grep awk find head tail date mkdir mv readlink rm rmdir sleep mktemp cat cp ln touch chmod dirname sort cksum; do
   ln -s "$(command -v "$tool")" "$tools/$tool"
 done
 # TEST_SH=dash runs the installers (and stubs) under another /bin/sh.
@@ -74,13 +74,17 @@ new_case() { # NAME: fresh HOME, stub bin and log
   ln -s "$(command -v jq)" "$bin/jq"
 }
 
-run() { # SCRIPT [VAR=value...]: pipe SCRIPT into sh the way `curl | sh` does
+ARGS=
+run() { # SCRIPT [VAR=value...]: pipe SCRIPT into sh the way `curl | sh` does, with $ARGS as `sh -s -- $ARGS`
   script=$1
   shift
+  # shellcheck disable=SC2086 # ARGS is a word list
   env -i HOME="$home" PATH="$bin:$tools" TMPDIR="$case_dir/tmp" LOG="$case_dir/log" \
-    STUB="$root/tests/stub.sh" PAPER_YES=1 STUB_ORIGIN="$PLUGIN_URL" "$@" sh < "$script" > "$case_dir/out" 2>&1
+    STUB="$root/tests/stub.sh" PAPER_YES=1 STUB_ORIGIN="$PLUGIN_URL" "$@" sh -s -- $ARGS < "$script" > "$case_dir/out" 2>&1
   echo $? > "$case_dir/status"
 }
+# shellcheck disable=SC2012 # one known test file; ls -l is the portable way to read its mode
+mode_of() { ls -l "$1" | cut -c1-10; }
 
 check() { # DESCRIPTION COMMAND...
   desc=$1
@@ -436,6 +440,7 @@ check "setup failure after the refresh fails" status 1
 check "setup failure after the refresh keeps the new plugin with the new runtime" head_is "$SHA"
 check "setup failure after the refresh keeps the previous plugin" previous_kept "$OLD"
 check "setup failure after the refresh names the previous plugin" says "The replaced plugin is kept at"
+check "setup failure after the refresh gives its rm command" says "Delete it when you no longer need it: rm -rf '$home/.config/omarchy/.paperland-previous-"
 check "setup failure after the refresh says how to finish" says "Run the same command again to finish"
 check "setup failure after the refresh restores nothing" lacks "was restored"
 
@@ -511,9 +516,13 @@ mkdir -p "$home/dotfiles" "$home/.config/hypr"
 echo "-- user" > "$home/dotfiles/hyprland.lua"
 ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 # Paperland's setup stages paperland.lua, prints the include to paste, and exits 1.
-run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
-check "a symlinked hyprland.lua plan says to paste and rerun" says "is a symlink, which Paperland never edits"
+run "$PINNED" "$HIS"
+check "a symlinked hyprland.lua plan names the link's target" says "hyprland.lua is a symlink to"
+check "a symlinked hyprland.lua plan says it is not edited by default" says "which this installer does not edit by default"
+check "a symlinked hyprland.lua plan offers --edit-dotfiles" says "or rerun with --edit-dotfiles"
 check "a symlinked hyprland.lua stops after setup" status 1
+check "a symlinked hyprland.lua is not written by default" [ "$(cat "$home/dotfiles/hyprland.lua")" = "-- user" ]
+check "a symlinked hyprland.lua stays a link by default" [ -L "$home/.config/hypr/hyprland.lua" ]
 check "a symlinked hyprland.lua keeps the installed plugin" head_is "$SHA"
 check "a symlinked hyprland.lua says what to paste where" says "If Paperland printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
 check "a symlinked hyprland.lua does not claim a restore" lacks "was restored"
@@ -545,14 +554,83 @@ run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 check "a pasted include Paperland rejects fails the run" status 1
 check "a pasted include Paperland rejects says where to fix it" says "Paperland did not accept the Paperland lines in $home/hyprland.lua"
 
+# --edit-dotfiles: the block Paperland prints goes into the link's target, in place.
+new_case symlinked-main-edit
+mkdir -p "$home/dotfiles" "$home/.config/hypr"
+printf '%s' "-- user" > "$home/dotfiles/hyprland.lua"
+chmod 640 "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" "$HIS"
+ARGS=
+check "--edit-dotfiles installs" status 0
+check "--edit-dotfiles plan says what it edits" says "With --edit-dotfiles, add Paperland's marked include to"
+check "--edit-dotfiles says what it edited" says "Added Paperland's include to $home/dotfiles/hyprland.lua"
+check "--edit-dotfiles keeps the link" [ -L "$home/.config/hypr/hyprland.lua" ]
+check "--edit-dotfiles keeps the target's mode" [ "$(mode_of "$home/dotfiles/hyprland.lua")" = "-rw-r-----" ]
+check "--edit-dotfiles keeps the user's lines" [ "$(head -n 1 "$home/dotfiles/hyprland.lua")" = "-- user" ]
+check "--edit-dotfiles writes the exact block once" [ "$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$home/dotfiles/hyprland.lua")" = "$(printf '%s\n' "-- BEGIN Paperland setup" "dofile(\"$home/.config/hypr/paperland.lua\")" "-- END Paperland setup")" ]
+check "--edit-dotfiles writes nothing else into the dotfiles" [ "$(find "$home/dotfiles" -type f | wc -l | tr -d ' ')" = 1 ]
+# shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
+check "--edit-dotfiles has Paperland check the result" called "~/.local/bin/paperland [setup] [--dry-run]"
+
+new_case symlinked-main-edit-invalid
+mkdir -p "$home/dotfiles" "$home/.config/hypr"
+echo "-- user" > "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
+ARGS=
+check "--edit-dotfiles fails when Paperland rejects the result" status 1
+check "--edit-dotfiles says Paperland rejected it" says "Paperland did not accept the Paperland lines in $home/dotfiles/hyprland.lua"
+
+new_case symlinked-main-edit-other-error
+mkdir -p "$home/dotfiles" "$home/.config/hypr"
+echo "-- user" > "$home/dotfiles/hyprland.lua"
+ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+ARGS=--edit-dotfiles
+run "$PINNED" STUB_SETUP_OTHER_ERROR=1 "$HIS"
+ARGS=
+check "--edit-dotfiles stops when setup fails for another reason" status 1
+check "--edit-dotfiles says the file was not edited" says "so $home/dotfiles/hyprland.lua was not edited"
+check "--edit-dotfiles leaves the target alone on another failure" [ "$(cat "$home/dotfiles/hyprland.lua")" = "-- user" ]
+
 new_case symlinked-config-folder
 mkdir -p "$home/dotfiles/hypr" "$home/.config"
 echo "-- user" > "$home/dotfiles/hypr/hyprland.lua"
 ln -s "$home/dotfiles/hypr" "$home/.config/hypr"
 run "$PINNED" "$HIS"
 check "a symlinked Hyprland folder is refused" status 1
-check "a symlinked Hyprland folder says why" says "Paperland's setup cannot manage $home/.config/hypr: $home/.config/hypr is a symlink"
+check "a symlinked Hyprland folder names the link and its target" says "$home/.config/hypr is a symlink to $home/dotfiles/hypr"
+check "a symlinked Hyprland folder says why" says "Paperland's setup writes its generated files into $home/.config/hypr"
+check "a symlinked Hyprland folder says it will be lifted" says "This is lifted once Paperland keeps its generated files outside $home/.config/hypr."
 check "a symlinked Hyprland folder changes nothing" not_called "git [clone]"
+ARGS=--edit-dotfiles
+run "$PINNED" "$HIS"
+ARGS=
+check "--edit-dotfiles does not lift the folder refusal" status 1
+check "--edit-dotfiles says it does not apply to a folder" says "--edit-dotfiles does not lift this yet."
+check "--edit-dotfiles with a symlinked folder changes nothing" not_called "git [clone]"
+
+new_case options
+ARGS=--help
+run "$PINNED" "$HIS"
+check "--help succeeds" status 0
+check "--help lists --edit-dotfiles" says "--edit-dotfiles"
+check "--help changes nothing" not_called "omarchy"
+ARGS=--bogus
+run "$PINNED" "$HIS"
+check "an unknown option is refused" status 1
+check "an unknown option is named" says "Unknown option: --bogus"
+ARGS=--edit-dotfiles
+run "$PINNED" STUB_OS=Darwin
+check "--edit-dotfiles is refused on macOS" says "--edit-dotfiles applies only to Paperland on Linux"
+installed "$SHA"
+run "$UNINSTALL"
+ARGS=
+check "the uninstaller refuses --edit-dotfiles" status 1
+check "the uninstaller says why" says "--edit-dotfiles applies only to the installer"
+check "the uninstaller runs nothing with --edit-dotfiles" not_called "[setup]"
 
 new_case repair-keeps-choices
 installed "$OLD"
@@ -587,6 +665,14 @@ check "uninstall removes the widget's bar item" fails bar_names_plugin
 check "uninstall reports success" says "Paperland is uninstalled."
 check "uninstall keeps a copy of the checkout" [ -f "$(find "$home/.config/omarchy" -maxdepth 4 -path '*/.paperland-removed-*/json.paperland/paperland/paperland')" ]
 check "uninstall names the copy" says "A copy of the plugin is kept at $home/.config/omarchy/.paperland-removed-"
+check "uninstall gives the copy's rm command" says "Delete it when you no longer need it: rm -rf '$home/.config/omarchy/.paperland-removed-"
+
+new_case uninstall-lists-backups
+installed "$SHA"
+mkdir -p "$home/.config/omarchy/.paperland-previous-20261001-000000.abc123/json.paperland"
+run "$UNINSTALL"
+check "uninstall lists the installer's kept plugins" says "Kept by earlier installs: $home/.config/omarchy/.paperland-previous-20261001-000000.abc123 (delete with: rm -rf '$home/.config/omarchy/.paperland-previous-20261001-000000.abc123')"
+check "uninstall keeps the installer's kept plugins" [ -d "$home/.config/omarchy/.paperland-previous-20261001-000000.abc123/json.paperland" ]
 
 new_case uninstall-linked-plugin
 installed "$SHA"

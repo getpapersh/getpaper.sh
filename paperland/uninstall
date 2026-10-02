@@ -130,6 +130,7 @@ uninstall_linux() {
       kept=$(mktemp -d "$omarchy_dir/.paperland-removed-$(date +%Y%m%d-%H%M%S).XXXXXX")
       cp -RP "$plugin_dir" "$kept/" || die "Could not copy $plugin_dir to $kept, so the plugin was not removed."
       say "A copy of the plugin is kept at $kept/$PLUGIN_ID"
+      say "Delete it when you no longer need it: rm -rf '$kept'"
       remove_plugin
     fi
   elif [ -e "$plugin_dir" ]; then
@@ -152,6 +153,11 @@ uninstall_linux() {
   if grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; then LEFT="$LEFT
   the marked Paperland include in $hypr/hyprland.lua"; fi
 
+  # The installer never prunes the plugins it replaced; list them, never delete them.
+  for previous in "$omarchy_dir"/.paperland-previous-*; do
+    if [ -d "$previous" ]; then say "Kept by earlier installs: $previous (delete with: rm -rf '$previous')"; fi
+  done
+
   if [ -n "$LEFT" ]; then
     printf 'paper: Paperland was not fully uninstalled. Left in place:%s\n' "$LEFT" >&2
     die "To repair, install again and then rerun this uninstaller, or remove these by hand."
@@ -163,6 +169,12 @@ uninstall_linux() {
 }
 
 main() {
+  for arg do
+    case "$arg" in
+      --edit-dotfiles) die "--edit-dotfiles applies only to the installer. For a symlinked Hyprland config, this uninstaller prints the lines to remove by hand." ;;
+      *) die "Unknown option: $arg. The uninstaller takes no options." ;;
+    esac
+  done
   [ "$(id -u)" -ne 0 ] || die "Do not run this uninstaller as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Linux) uninstall_linux ;;

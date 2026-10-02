@@ -3,7 +3,7 @@
 This folder holds the Omarchy-plugin installer and uninstaller for Paperland. **It is
 not served and must not be inlined into `../install`**, which prints "Paperland
 install is coming soon" on Linux. It is parked here until "Hyprland next" (PAPER-7),
-and needs the checks under "Not yet proven" and the owner decisions below before it ships.
+and needs the checks under "Not yet proven" before it ships.
 
 ## Files
 
@@ -42,13 +42,36 @@ Only a first install enables the widget; a rerun leaves a disabled widget off an
 prints the command to turn it on. A development Omarchy (`omarchy-version` prints
 `dev...`) is accepted when `$OMARCHY_PATH/version` says 4 or newer.
 
-Symlinked Hyprland config: Paperland never writes through a symlink. For a symlinked
-`hyprland.lua`, the plan says so, Paperland's setup prints the include to paste, and
-the run stops, asking you to paste it into the link's target and rerun. The rerun
-has Paperland check the pasted lines with `paperland setup --dry-run`. A symlinked
-`hypr/` folder (or any parent) is refused before anything changes, because
-Paperland's setup refuses it outright. The uninstaller prints the manual steps for
-both cases instead of running Paperland's setup or uninstall.
+Symlinked Hyprland config (dotfiles): the installer detects a symlinked
+`hyprland.lua`, `~/.config/hypr` or any parent, and names where it points. It never
+reads stdin, so there is no prompt; the choice is a flag:
+
+- **Default, symlinked `hyprland.lua`:** the installer never writes into the
+  dotfiles. Paperland's setup stages `paperland.lua` and prints the marked include
+  block; the run stops and asks you to paste it into the link's target and rerun.
+  The rerun has Paperland check the pasted lines with `paperland setup --dry-run`.
+- **`--edit-dotfiles`** (`curl … | sh -s -- --edit-dotfiles`, listed in `--help`):
+  the installer appends exactly the block Paperland printed to the file
+  `hyprland.lua` links to, in place, so the link stays a link and the file keeps its
+  mode and owner. Then Paperland checks it with `setup --dry-run`, and the run fails
+  if that does not pass. It edits only for a plain "add these exact lines" request;
+  a block to replace, lines to remove, or any other setup error stops with the file
+  untouched. Paperland's generated files never go into the dotfiles. Hyprland loads
+  the include on its next config reload.
+- **Symlinked `~/.config/hypr` (or a parent):** refused before any change, with or
+  without the flag, because Paperland's setup writes its generated files into
+  `~/.config/hypr` and refuses any symlinked folder above them. The message names
+  the link's target and says this is lifted once Paperland keeps its generated
+  files outside `~/.config/hypr`.
+- `--edit-dotfiles` is refused on macOS and by the uninstaller, which takes no
+  options. For a symlinked config the uninstaller prints the manual steps instead
+  of running Paperland's setup or uninstall.
+
+Backups: every upgrade keeps the replaced plugin in
+`~/.config/omarchy/.paperland-previous-*`, and every uninstall keeps a copy in
+`~/.config/omarchy/.paperland-removed-*`. Nothing prunes them. Each is printed with
+its `rm -rf` command when it is made, and the uninstaller lists the installer's
+kept copies with theirs.
 
 Uninstall order: Paperland's setup removes the shortcuts; a copy of the plugin folder
 is kept in `~/.config/omarchy/.paperland-removed-*`; `omarchy plugin remove` takes the
@@ -103,15 +126,15 @@ install, rerun and uninstall once on a real Omarchy desktop and check:
 - `omarchy plugin remove` drops the widget's item from `shell.json` before Paperland's
   uninstall reads it (the uninstaller waits up to 2 seconds for that write).
 
-## Owner decisions before this ships
+## Owner decisions (2026-10-02)
 
-- Accepting development Omarchy builds by `$OMARCHY_PATH/version` (the alternative is
-  refusing them).
-- Refusing a symlinked `hypr/` folder rather than installing without setup; lifting
-  it needs Paperland's setup to support symlinked folders (its `regular()` refuses
-  every symlinked parent, even for `--print-config`). The uninstall recipe for that
-  case removes the runtime with `rm -rf`, where Paperland's own uninstall would keep it.
-- Every upgrade keeps another `.paperland-previous-*` copy, and every uninstall a
-  `.paperland-removed-*` copy, until the user deletes them; the paths are printed.
+- Development Omarchy builds: read the real version from `$OMARCHY_PATH/version`;
+  4.x and newer install, older or unreadable versions are refused.
+- Backups are kept and never pruned; every path is printed with its `rm` command.
+- Symlinked configs: detected and named. The default never writes into dotfiles;
+  `--edit-dotfiles` adds the include to a symlinked `hyprland.lua`'s target. A
+  symlinked `~/.config/hypr` stays refused until Paperland moves its generated files
+  out of it; the uninstall recipe for that case removes the runtime with `rm -rf`,
+  where Paperland's own uninstall would keep it.
 - An interrupted first install is not enabled by the rerun; the rerun prints the
   enable command.
