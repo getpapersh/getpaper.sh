@@ -15,7 +15,7 @@ set -eu
 # https://dl.getpaper.sh/papermac/latest.json to read the release from PaperMac's
 # manifest instead; then any manifest problem stops the install, never falling back to
 # the pin.
-PAPERMAC_MANIFEST_URL=
+PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json
 PAPERMAC_VERSION=27.0.0-alpha.3
 PAPERMAC_DMG_URL=https://mjcscmicvgmdk1ey.public.blob.vercel-storage.com/papermac/PaperMac-27.0.0-alpha.3.dmg
 PAPERMAC_DMG_SHA256=84eb7a5ff6c0319476b6249f6060470437fd9c5b00d4fc5b6360ef342d585e03

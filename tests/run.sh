@@ -43,7 +43,9 @@ new_case() { # NAME [EXTRA_STUB...]: fresh HOME, system Applications folder, stu
   mkdir -p "$home" "$apps" "$bin" "$case_dir/tmp"
   : > "$case_dir/log"
   for stub in $STUBS "$@"; do ln -s "$root/tests/stub.sh" "$bin/$stub"; done
-  sed "s|^SYSTEM_APPLICATIONS=/Applications\$|SYSTEM_APPLICATIONS=$apps|" "$root/install" > "$case_dir/install"
+  # Every case starts in pin mode, whatever the shipped default; manifest_mode switches it.
+  sed -e "s|^SYSTEM_APPLICATIONS=/Applications\$|SYSTEM_APPLICATIONS=$apps|" \
+    -e 's|^PAPERMAC_MANIFEST_URL=.*$|PAPERMAC_MANIFEST_URL=|' "$root/install" > "$case_dir/install"
 }
 
 manifest_mode() { # [KEY JSON_VALUE]...: switch the case's script to the manifest, and write one

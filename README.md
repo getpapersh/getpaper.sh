@@ -30,9 +30,10 @@ Uninstall PaperMac with `curl -fsSL https://getpaper.sh/install | sh -s -- --uni
 ## What the macOS install does
 
 1. Refuses root and unknown options.
-2. Picks the release. With `PAPERMAC_MANIFEST_URL` empty (today), it uses the pinned
-   `PAPERMAC_VERSION`, `PAPERMAC_DMG_URL`, `PAPERMAC_DMG_SHA256` and
-   `PAPERMAC_MIN_MACOS` at the top of `install`. See "Switching to the manifest".
+2. Picks the release from PaperMac's manifest, `PAPERMAC_MANIFEST_URL` (see "The
+   manifest"). With that variable empty it would use the pinned `PAPERMAC_VERSION`,
+   `PAPERMAC_DMG_URL`, `PAPERMAC_DMG_SHA256` and `PAPERMAC_MIN_MACOS` at the top of
+   `install` instead; the tests run every case in pin mode unless it switches.
 3. Refuses macOS older than the release's minimum (`sw_vers -productVersion`).
 4. Chooses the destination: the existing install's folder, else `/Applications`, or
    `~/Applications` when `/Applications` is not writable. No `sudo`, ever.
@@ -98,7 +99,7 @@ them.
 The whole script is one `{ ... }` block ending in `main "$@"; }`, so a truncated
 download is a syntax error and runs nothing.
 
-## Switching to the manifest
+## The manifest
 
 From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/latest.json`:
 
@@ -107,8 +108,7 @@ From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/late
  "sha256": "<64 hex>", "min_macos": "27", "notarized": false}
 ```
 
-Once that file is verified live, set `PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json`
-in `install` (one line), run the tests, rebuild `site/` and deploy. In manifest mode the
+`install` sets `PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json`. In manifest mode the
 script fails closed: a fetch error, a file `plutil` cannot read, or any missing or
 malformed field stops the install, and it never falls back to the pin. It requires
 `dmg_url` to start with `https://dl.getpaper.sh/papermac/` and end in a plain `.dmg`
