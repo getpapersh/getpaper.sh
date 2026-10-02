@@ -19,9 +19,11 @@ awk -v install="$built/install" -v uninstall="$built/uninstall" '
     print "# paperland/uninstall with paperland/release.env inlined; edit those, not this."
     print "# Each runs in its own subshell, so its functions, variables, set -eu, traps and"
     print "# exits stay inside it, exactly as when it ran as a script of its own."
+    print "# shellcheck disable=SC2030,SC2031,SC2329 # isolated on purpose: its settings stay in its subshell; traps call its handlers"
     print "paperland_install() ("
     while ((getline line < install) > 0) print line
     print ")"
+    print "# shellcheck disable=SC2030,SC2031,SC2120,SC2329 # isolated on purpose, as above; it takes no options"
     print "paperland_uninstall() ("
     while ((getline line < uninstall) > 0) print line
     print ")"

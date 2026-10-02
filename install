@@ -431,6 +431,7 @@ paperland_install() { die "This installer was not built: run scripts/build-site.
 paperland_uninstall() { die "This installer was not built: run scripts/build-site.sh and use site/install."; }
 # END PAPERLAND
 
+# shellcheck disable=SC2031 # the Paperland subshells set SITE too, to the same value
 usage() {
   cat <<EOF
 Usage:
@@ -478,6 +479,7 @@ main() {
       # cleanup always finishes before the exit status is returned.
       trap : INT TERM HUP
       if [ "$action" = uninstall ]; then
+        # shellcheck disable=SC2119 # the uninstaller takes no options; main checked them
         paperland_uninstall
       elif [ -n "$edit_dotfiles" ]; then
         paperland_install --edit-dotfiles
