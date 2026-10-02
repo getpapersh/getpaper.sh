@@ -27,7 +27,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 # TLS, and HTTPS as the only transport.
 cgit() (
   for var in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$var"; done
-  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0
+  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_ATTR_NOSYSTEM=1 GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0
   exec git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c core.attributesFile=/dev/null \
     -c http.sslVerify=true -c protocol.allow=never -c protocol.https.allow=always "$@"
 )
@@ -233,8 +233,14 @@ publish() {
     BACKUP=$(mktemp -d "$OMARCHY_DIR/.paperland-previous-$(date +%Y%m%d-%H%M%S).XXXXXX")
     mv "$PLUGIN_DIR" "$BACKUP/$PLUGIN_ID"
   fi
-  absent "$PLUGIN_DIR" || die "Something created $PLUGIN_DIR during the install."
+  absent "$PLUGIN_DIR" || die "Something else created $PLUGIN_DIR during the install."
   mv "$tree" "$PLUGIN_DIR"
+  # A folder created between the check and the rename gets the tree nested inside it;
+  # take the tree back out so on_exit never mistakes that folder for this release.
+  if [ ! -f "$PLUGIN_DIR/manifest.json" ] || ! absent "$PLUGIN_DIR/$PLUGIN_ID"; then
+    if absent "$tree"; then mv "$PLUGIN_DIR/$PLUGIN_ID" "$tree" || true; fi
+    die "Something else created $PLUGIN_DIR during the install."
+  fi
 }
 
 absent() { [ ! -e "$1" ] && [ ! -L "$1" ]; }
@@ -243,12 +249,16 @@ absent() { [ ! -e "$1" ] && [ ! -L "$1" ]; }
 # is put back; after it, the new plugin stays with the new runtime and a rerun finishes.
 on_exit() {
   status=$?
+  # A second signal must not cut the rollback short.
+  trap '' INT TERM HUP
   prev=${BACKUP:+$BACKUP/$PLUGIN_ID}
   if [ "$status" -eq 0 ]; then
     :
   elif [ -n "$RUNTIME_STARTED" ]; then
-    if [ -n "$MAIN_LINK" ]; then
-      warn "Paste the lines Paperland printed above into $MAIN_LINK, then run the same command again to finish."
+    if [ -z "$RUNTIME_DONE" ]; then
+      warn "The Paperland runtime may not have finished installing. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+    elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ]; then
+      warn "If Paperland printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
     else
       warn "Paperland's plugin and runtime were installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
     fi
@@ -260,7 +270,11 @@ on_exit() {
     if absent "$PLUGIN_DIR" && mv "$prev" "$PLUGIN_DIR"; then
       warn "The previous plugin was restored to $PLUGIN_DIR."
     else
-      warn "Could not restore the previous plugin to $PLUGIN_DIR; it is at $prev. Once $PLUGIN_DIR is moved away, restore it with: mv '$prev' '$PLUGIN_DIR'"
+      if absent "$PLUGIN_DIR"; then
+        warn "Could not restore the previous plugin to $PLUGIN_DIR. Restore it with: mv '$prev' '$PLUGIN_DIR'"
+      else
+        warn "Could not restore the previous plugin to $PLUGIN_DIR, which is occupied; it is at $prev. Once $PLUGIN_DIR is moved away, restore it with: mv '$prev' '$PLUGIN_DIR'"
+      fi
     fi
   elif [ -z "$EXISTING" ] && [ -n "$tree" ] && absent "$tree" && [ -d "$PLUGIN_DIR" ]; then
     warn "Paperland's plugin was installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
@@ -306,7 +320,8 @@ report_previous() {
   old=$BACKUP/$PLUGIN_ID
   say "The replaced plugin is kept at $old"
   say "Delete it when you no longer need it: rm -rf '$BACKUP'"
-  # The only git run in the user's old checkout; the -c settings override its local config.
+  # Git in the user's old checkout only reads (rev-parse in publish, merge-base here),
+  # and the -c settings override its local hooks and fsmonitor.
   if [ -n "$OLD_HEAD" ] && [ "$OLD_HEAD" != "$PLUGIN_SHA" ] &&
      cgit -C "$old" merge-base --is-ancestor "$PLUGIN_SHA" "$OLD_HEAD" 2>/dev/null; then
     say "Note: the replaced plugin was at $OLD_HEAD, newer than this release; it now runs the pinned release."
@@ -320,7 +335,8 @@ install_linux() {
   RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   LAUNCHER=$HOME/.local/bin/paperland
   HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
-  STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' WIDGET_OFF='' MAIN_LINK=''
+  STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED=''
+  WIDGET_OFF='' MAIN_LINK=''
   check_linux
   # Checked before the runtime refresh, which always recreates the launcher.
   NEEDS_SETUP=
@@ -334,10 +350,10 @@ install_linux() {
     folder_link=$(first_symlink "$HYPR_DIR")
     [ -z "$folder_link" ] ||
       die "Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink, and Paperland never writes through one. Nothing was changed."
-    if [ -L "$HYPR_DIR/hyprland.lua" ]; then
-      MAIN_LINK=$(readlink "$HYPR_DIR/hyprland.lua")
-      case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
-    fi
+  fi
+  if [ -L "$HYPR_DIR/hyprland.lua" ]; then
+    MAIN_LINK=$(readlink "$HYPR_DIR/hyprland.lua")
+    case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
   fi
   print_plan
   confirm
@@ -353,8 +369,16 @@ install_linux() {
   # keeps the new plugin. A failed refresh has rolled itself back.
   RUNTIME_STARTED=1
   "$PLUGIN_DIR/paperland/paperland" install --no-setup || { RUNTIME_STARTED=; exit 1; }
+  RUNTIME_DONE=1
   set_widget_launcher
-  if [ -n "$NEEDS_SETUP" ]; then run_setup; fi
+  if [ -n "$NEEDS_SETUP" ]; then
+    SETUP_STARTED=1
+    run_setup
+  elif [ -n "$MAIN_LINK" ]; then
+    # The include was pasted by hand; Paperland's preview checks it without writing.
+    "$LAUNCHER" setup --dry-run >/dev/null ||
+      die "Paperland did not accept the Paperland lines in $MAIN_LINK; fix them as reported above."
+  fi
   report_previous
 
   say ""

@@ -13,7 +13,7 @@ if [ "$name" = git ]; then
   esac
   # Only the installers' own GIT_* settings may reach git.
   extra=$(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p' |
-    grep -Evx 'GIT_CONFIG_NOSYSTEM|GIT_CONFIG_GLOBAL|GIT_NO_REPLACE_OBJECTS|GIT_TERMINAL_PROMPT')
+    grep -Evx 'GIT_CONFIG_NOSYSTEM|GIT_CONFIG_GLOBAL|GIT_ATTR_NOSYSTEM|GIT_NO_REPLACE_OBJECTS|GIT_TERMINAL_PROMPT')
   if [ "${GIT_CONFIG_GLOBAL:-}" != /dev/null ] || [ "${GIT_CONFIG_NOSYSTEM:-}" != 1 ] ||
      [ "${GIT_NO_REPLACE_OBJECTS:-}" != 1 ] || [ -n "$extra" ]; then
     echo "UNSAFE GIT (environment): $extra $*" >> "$LOG"
@@ -107,20 +107,44 @@ case "$name" in
     mkdir -p "$last/Contents"
     [ -z "${STUB_DITTO_FAILS:-}" ] || exit 1 ;;
   omarchy)
+    # Like omarchy-shell: the widget's bar item, with its settings, lives in shell.json.
+    shell_json=$HOME/.config/omarchy/shell.json
     case "$1 $2" in
-      "plugin enable") touch "$enabled" ;;
-      "plugin remove") rm -rf "$plugin" "$enabled" ;;
+      "plugin enable")
+        touch "$enabled"
+        echo '{"bar":{"layout":{"left":[{"id":"json.paperland"}],"center":[],"right":[]}}}' > "$shell_json" ;;
+      "bar set")
+        jq -e --arg id "$3" 'any(.bar.layout[][]; .id == $id)' "$shell_json" >/dev/null 2>&1 || {
+          echo "omarchy-bar: could not find widget $3" >&2; exit 1; }
+        jq --arg id "$3" --arg key "$4" --arg value "$5" \
+          '.bar.layout[] |= map(if .id == $id then .[$key] = $value else . end)' "$shell_json" > "$shell_json.tmp"
+        mv "$shell_json.tmp" "$shell_json" ;;
+      "plugin remove")
+        rm -rf "$plugin" "$enabled"
+        if [ -f "$shell_json" ]; then
+          jq '.bar.layout[] |= map(select(.id != "json.paperland"))' "$shell_json" > "$shell_json.tmp"
+          mv "$shell_json.tmp" "$shell_json"
+        fi ;;
     esac ;;
   paperland)
     case "$1" in
       install)
         [ -z "${STUB_RUNTIME_FAILS:-}" ] || exit 1
+        # A signal to the installer while Paperland's install rolls itself back.
+        if [ -n "${STUB_INSTALL_TERM:-}" ]; then kill -TERM "$PPID"; exit 1; fi
         mkdir -p "$runtime" "$HOME/.local/bin"
         ln -sf "$STUB" "$runtime/paperland"
         echo "Paperland CLI installation v1" > "$runtime/.installed-by-paperland"
         ln -sf "$runtime/paperland" "$HOME/.local/bin/paperland" ;;
       setup) exit "${STUB_SETUP_STATUS:-0}" ;;
       uninstall)
+        # As setup.py's uninstall: refuse while the bar names this plugin with the launcher.
+        shell_json=$HOME/.config/omarchy/shell.json
+        if grep -qF json.paperland "$shell_json" 2>/dev/null &&
+           { grep -qF "$runtime/paperland" "$shell_json" || grep -qF "$HOME/.local/bin/paperland" "$shell_json"; }; then
+          echo "paperland: Omarchy bar still references this installation; review $shell_json before uninstall" >&2
+          exit 1
+        fi
         rm -f "$HOME/.local/bin/paperland"
         rm -rf "$runtime" "$HOME/.config/hypr/paperland.lua"
         main=$HOME/.config/hypr/hyprland.lua

@@ -57,6 +57,12 @@ cp "$root/tests/stub.sh" "$fixture/paperland/paperland"
 fgit add -A
 fgit commit --quiet -m fixture
 build realgit "s/^PLUGIN_SHA=.*/PLUGIN_SHA=$(fgit rev-parse HEAD)/"
+# A later release whose own .gitattributes rewrites bytes on checkout: the raw-bytes
+# check must refuse it even with git fully isolated.
+echo 'Widget.qml ident' > "$fixture/.gitattributes"
+fgit add -A
+fgit commit --quiet -m "attributes"
+build realgit-attr "s/^PLUGIN_SHA=.*/PLUGIN_SHA=$(fgit rev-parse HEAD)/"
 
 new_case() { # NAME: fresh HOME, stub bin and log
   case_dir=$work/cases/$1
@@ -125,8 +131,14 @@ installed() { # HEAD [disabled]: the state a completed install of HEAD leaves
   ln -s "$home/.local/share/paperland/paperland" "$home/.local/bin/paperland"
   echo "-- generated" > "$home/.config/hypr/paperland.lua"
   printf '%s\n' "-- user" "-- BEGIN Paperland setup" "-- END Paperland setup" > "$home/.config/hypr/hyprland.lua"
-  if [ "${2:-}" != disabled ]; then touch "$home/.stub-enabled"; fi
+  if [ "${2:-}" != disabled ]; then
+    touch "$home/.stub-enabled"
+    # What enable plus `omarchy bar set ... executable` leave in shell.json.
+    printf '{"bar":{"layout":{"left":[{"id":"json.paperland","executable":"%s"}],"center":[],"right":[]}}}\n' \
+      "$home/.local/share/paperland/paperland" > "$home/.config/omarchy/shell.json"
+  fi
 }
+bar_names_plugin() { grep -qF json.paperland "$home/.config/omarchy/shell.json" 2>/dev/null; }
 
 PINNED=$work/build/pinned/install
 UNINSTALL=$work/build/pinned/uninstall
@@ -299,10 +311,21 @@ echo '* filter=evil' > "$home/template/info/attributes"
 echo '* ident' > "$home/attrs"
 run "$work/build/realgit/install" "$HIS" REAL_GIT="$real_git" E2E_RELEASE_REPO="$fixture" \
   GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=filter.evil.smudge GIT_CONFIG_VALUE_0='sed s/PINNED_BYTES/TAMPERED/' \
-  GIT_CONFIG_KEY_1=core.attributesFile GIT_CONFIG_VALUE_1="$home/attrs" GIT_TEMPLATE_DIR="$home/template"
+  GIT_CONFIG_KEY_1=core.attributesFile GIT_CONFIG_VALUE_1="$home/attrs" GIT_TEMPLATE_DIR="$home/template" \
+  GIT_CONFIG_PARAMETERS="'filter.evil.smudge'='sed s/PINNED_BYTES/TAMPERED/'" \
+  GIT_DIR=/nonexistent GIT_WORK_TREE=/nonexistent
 check "real git install with a hostile git setup succeeds" status 0
 # shellcheck disable=SC2016 # the literal, unexpanded $Id$ keyword
 check "real git publishes the pinned bytes" grep -qxF 'PINNED_BYTES $Id$' "$home/.config/omarchy/plugins/json.paperland/Widget.qml"
+
+new_case real-git-rewritten-bytes
+rm "$bin/git"
+ln -s "$root/tests/git-double.sh" "$bin/git"
+run "$work/build/realgit-attr/install" "$HIS" REAL_GIT="$real_git" E2E_RELEASE_REPO="$fixture"
+check "real git refuses a checkout whose bytes differ from the pin" status 1
+check "real git names the mismatch" says "does not match commit"
+check "real git publishes nothing on a mismatch" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+check "real git leaves no staging folder on a mismatch" no_leftovers
 
 new_case fresh-wrong-pin
 run "$PINNED" STUB_CHECKOUT_HEAD=ffffffffffffffffffffffffffffffffffffffff "$HIS"
@@ -444,8 +467,44 @@ mv_wrapper 'case "$1" in */.paperland-previous-*) exit 1 ;; esac; exec "$real" "
 run "$PINNED" STUB_RUNTIME_FAILS=1 "$HIS"
 check "a failed restore fails" status 1
 check "a failed restore keeps the previous plugin" previous_kept "$OLD"
-check "a failed restore names it and the command" says "Could not restore the previous plugin to $home/.config/omarchy/plugins/json.paperland; it is at $home/.config/omarchy/.paperland-previous-"
+check "a failed restore names it and the command" says "Could not restore the previous plugin to $home/.config/omarchy/plugins/json.paperland. Restore it with: mv '$home/.config/omarchy/.paperland-previous-"
+check "a failed restore with an empty plugin path gives only the mv" lacks "Once"
 check "a failed restore claims nothing" lacks "was restored"
+
+# A second signal while cleanup runs must not abort the restore.
+new_case second-signal-in-cleanup
+installed "$OLD"
+# shellcheck disable=SC2016 # expands in the wrapper
+mv_wrapper 'case "$2" in */failed-json.paperland) "$real" "$@" || exit; kill -TERM "$PPID"; exit 0 ;; esac; exec "$real" "$@"'
+run "$PINNED" STUB_RUNTIME_FAILS=1 "$HIS"
+check "a signal during cleanup still restores the previous plugin" head_is "$OLD"
+check "a signal during cleanup still says so" says "The previous plugin was restored to"
+check "a signal during cleanup leaves no staging or backup" no_leftovers
+
+new_case signal-during-refresh
+installed "$OLD"
+mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
+grep -v "Paperland setup" "$home/hyprland.lua" > "$home/hyprland.lua.tmp" && mv "$home/hyprland.lua.tmp" "$home/hyprland.lua"
+ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+run "$PINNED" STUB_INSTALL_TERM=1 "$HIS"
+check "a signal during the refresh exits on the signal" status 130
+check "a signal during the refresh keeps the new plugin" head_is "$SHA"
+check "a signal during the refresh keeps the previous plugin" previous_kept "$OLD"
+check "a signal during the refresh says the runtime may be unfinished" says "The Paperland runtime may not have finished installing. Run the same command again to finish"
+check "a signal before setup asks for no paste" lacks "Paste the lines"
+check "a signal before setup runs no setup" not_called "[setup]"
+
+# Something creates the plugin folder between the check and the rename.
+new_case publish-race
+installed "$OLD"
+# shellcheck disable=SC2016 # expands in the wrapper
+mv_wrapper 'case "$1" in */.paperland-stage.*) mkdir "$2"; touch "$2/foreign" ;; esac; exec "$real" "$@"'
+run "$PINNED" "$HIS"
+check "a folder appearing at publish fails" status 1
+check "a folder appearing at publish says so" says "Something else created"
+check "a folder appearing at publish keeps that folder whole" [ -f "$home/.config/omarchy/plugins/json.paperland/foreign" ]
+check "a folder appearing at publish nests nothing in it" [ ! -e "$home/.config/omarchy/plugins/json.paperland/json.paperland" ]
+check "a folder appearing at publish keeps the previous plugin" previous_kept "$OLD"
 
 new_case symlinked-main-config
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
@@ -456,7 +515,7 @@ run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 check "a symlinked hyprland.lua plan says to paste and rerun" says "is a symlink, which Paperland never edits"
 check "a symlinked hyprland.lua stops after setup" status 1
 check "a symlinked hyprland.lua keeps the installed plugin" head_is "$SHA"
-check "a symlinked hyprland.lua says what to paste where" says "Paste the lines Paperland printed above into $home/dotfiles/hyprland.lua"
+check "a symlinked hyprland.lua says what to paste where" says "If Paperland printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
 check "a symlinked hyprland.lua does not claim a restore" lacks "was restored"
 
 new_case symlinked-main-config-upgrade
@@ -467,7 +526,24 @@ ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 check "a symlinked upgrade keeps the new plugin" head_is "$SHA"
 check "a symlinked upgrade keeps the previous plugin" previous_kept "$OLD"
-check "a symlinked upgrade says what to paste where" says "Paste the lines Paperland printed above into $home/hyprland.lua"
+check "a symlinked upgrade says what to paste where" says "If Paperland printed lines to paste above, paste them into $home/hyprland.lua."
+
+new_case symlinked-main-validated
+installed "$OLD"
+mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
+ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+run "$PINNED" "$HIS"
+check "a pasted include behind a symlink installs" status 0
+# shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
+check "a pasted include behind a symlink is validated by Paperland" called "~/.local/bin/paperland [setup] [--dry-run]"
+
+new_case symlinked-main-invalid
+installed "$OLD"
+mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
+ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
+check "a pasted include Paperland rejects fails the run" status 1
+check "a pasted include Paperland rejects says where to fix it" says "Paperland did not accept the Paperland lines in $home/hyprland.lua"
 
 new_case symlinked-config-folder
 mkdir -p "$home/dotfiles/hypr" "$home/.config"
@@ -504,9 +580,10 @@ check "uninstall succeeds" status 0
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
 check "uninstall order" calls "omarchy-shell [shell] [listPlugins]
 ~/.local/bin/paperland [setup] [--shortcut] [none] [--resize] [system] [--autostart] [off] [--strip-chord] [none] [--apply]
-~/.local/bin/paperland [uninstall]
 git [config] [--file] [$P/.git/config] [--get] [remote.origin.url]
-omarchy [plugin] [remove] [json.paperland] [--yes]"
+omarchy [plugin] [remove] [json.paperland] [--yes]
+~/.local/bin/paperland [uninstall]"
+check "uninstall removes the widget's bar item" fails bar_names_plugin
 check "uninstall reports success" says "Paperland is uninstalled."
 check "uninstall keeps a copy of the checkout" [ -f "$(find "$home/.config/omarchy" -maxdepth 4 -path '*/.paperland-removed-*/json.paperland/paperland/paperland')" ]
 check "uninstall names the copy" says "A copy of the plugin is kept at $home/.config/omarchy/.paperland-removed-"
@@ -586,6 +663,38 @@ run "$UNINSTALL"
 check "uninstall with a symlinked Hyprland folder stops" status 1
 check "uninstall with a symlinked Hyprland folder runs nothing" not_called "[setup]"
 check "uninstall with a symlinked Hyprland folder removes the runtime by hand" says "rm '$home/.local/bin/paperland' && rm -rf '$home/.local/share/paperland'"
+# The recipe, then the second pass.
+printf '%s\n' "-- user" > "$home/hypr/hyprland.lua"
+rm "$home/hypr/paperland.lua" "$home/.local/bin/paperland"
+rm -rf "$home/.local/share/paperland"
+run "$UNINSTALL"
+check "uninstall after the folder recipe succeeds" status 0
+check "uninstall after the folder recipe removes the plugin" called "omarchy [plugin] [remove] [json.paperland] [--yes]"
+
+new_case uninstall-worktree-plugin
+installed "$SHA"
+# A plugin folder whose .git is a file (a linked worktree) is not this installer's checkout.
+rm -rf "$home/.config/omarchy/plugins/json.paperland/.git"
+echo "gitdir: /elsewhere" > "$home/.config/omarchy/plugins/json.paperland/.git"
+echo "local work" > "$home/.config/omarchy/plugins/json.paperland/notes.txt"
+run "$UNINSTALL"
+check "uninstall keeps a copy of any real plugin folder" [ -f "$(find "$home/.config/omarchy" -maxdepth 3 -path '*/.paperland-removed-*/json.paperland/notes.txt')" ]
+
+# Install, rerun and uninstall in one HOME: the rerun keeps the bar item, and the
+# uninstall gets past Paperland's check on shell.json.
+new_case lifecycle
+mkdir -p "$home/.config/hypr"
+echo "-- user" > "$home/.config/hypr/hyprland.lua"
+run "$PINNED" "$HIS"
+check "lifecycle install succeeds" status 0
+check "lifecycle install points the bar item at the runtime launcher" \
+  grep -qF "$home/.local/share/paperland/paperland" "$home/.config/omarchy/shell.json"
+run "$PINNED" "$HIS"
+check "lifecycle rerun succeeds" status 0
+run "$UNINSTALL"
+check "lifecycle uninstall succeeds" status 0
+check "lifecycle uninstall removes the bar item" fails bar_names_plugin
+check "lifecycle uninstall removes the runtime" [ ! -e "$home/.local/share/paperland" ]
 
 new_case uninstall-foreign-plugin
 installed "$SHA"

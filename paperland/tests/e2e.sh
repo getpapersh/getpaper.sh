@@ -26,11 +26,14 @@ publish() { # REF RELEASE_REPO: prints the kept release work directory
 new_case e2e-publish
 cp "$root/release.env" "$e2e/release.env"
 git init --quiet --bare "$e2e/empty.git"
-# HEAD~1 and HEAD must package differently: an identical second package is pinned,
-# not committed, and prints no work directory.
 first=$(publish HEAD~1 "$e2e/empty.git")
 check "first publish creates a release work dir" [ -d "$first/.git" ]
 second=$(publish HEAD "$first")
+if [ -z "$second" ]; then
+  # An identical second package is pinned, not committed, so there is no second release.
+  check "PAPERLAND_SRC's HEAD~1 and HEAD package differently (use a checkout whose last commit changes the package)" false
+  return 0
+fi
 check "second publish builds on the first" [ "$(git -C "$second" rev-parse HEAD~1)" = "$(git -C "$first" rev-parse HEAD)" ]
 pinned=$(sed -n 's/^PLUGIN_SHA=//p' "$e2e/release.env")
 check "publish pins the new release commit" [ "$pinned" = "$(git -C "$second" rev-parse HEAD)" ]
@@ -63,6 +66,7 @@ check "binding targets the runtime launcher" grep -qF "$home/.local/share/paperl
 check "binding is SUPER + M" grep -qF 'hl.bind("SUPER + M"' "$home/.config/hypr/paperland.lua"
 check "autostart is on" grep -qF 'hl.on("hyprland.start"' "$home/.config/hypr/paperland.lua"
 check "include was added" grep -qF -- '-- BEGIN Paperland setup' "$home/.config/hypr/hyprland.lua"
+check "the bar item runs the runtime launcher" grep -qF "$home/.local/share/paperland/paperland" "$home/.config/omarchy/shell.json"
 
 # The user turns autostart off; an upgrade must keep that choice.
 # shellcheck disable=SC2016 # $HOME expands inside the test HOME, not here
@@ -88,6 +92,7 @@ check "user config was kept" grep -qF -- '-- user config' "$home/.config/hypr/hy
 check "generated config was removed" [ ! -e "$home/.config/hypr/paperland.lua" ]
 check "launcher was removed" [ ! -e "$home/.local/bin/paperland" ]
 check "plugin was removed" [ ! -e "$home/.config/omarchy/plugins/json.paperland" ]
+check "the bar item was removed" lacks_file json.paperland "$home/.config/omarchy/shell.json"
 check "uninstall kept a copy of the plugin" [ -n "$(find "$home/.config/omarchy" -maxdepth 2 -path '*/.paperland-removed-*/json.paperland')" ]
 check "Paperland kept its backups" [ -d "$home/.local/state/paperland" ]
 
@@ -99,7 +104,7 @@ ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
 check "symlinked install stops for the paste" status 1
 check "symlinked install shows Paperland's include" says "Symlinked main config needs a manual include"
-check "symlinked install says where to paste" says "Paste the lines Paperland printed above into $home/dotfiles/hyprland.lua"
+check "symlinked install says where to paste" says "If Paperland printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
 check "symlinked install keeps the plugin" [ "$(git -C "$home/.config/omarchy/plugins/json.paperland" rev-parse HEAD)" = "$pinned" ]
 sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$case_dir/out" >> "$home/dotfiles/hyprland.lua"
 run "$e2e/site/install" "$real_git_env" E2E_RELEASE_REPO="$second" "$HIS" PYTHONDONTWRITEBYTECODE=1
