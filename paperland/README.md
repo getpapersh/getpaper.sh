@@ -1,19 +1,20 @@
-# Paperland installer (disabled)
+# Paperland installer
 
-This folder holds the Omarchy-plugin installer and uninstaller for Paperland. **It is
-not served and must not be inlined into `../install`**, which prints "Paperland
-install is coming soon" on Linux. It is parked here until "Hyprland next" (PAPER-7),
-and is ready to wire in once the owner approves serving it; see "Live check" for what has and has not been proven.
+This folder holds the Omarchy-plugin installer and uninstaller for Paperland.
+`../scripts/build-site.sh` builds them with `release.env` and inlines them into the
+served `/install` (`../site/install`), which runs them on Linux: the installer for
+`curl -fsSL https://getpaper.sh/install | sh`, the uninstaller for `… | sh -s -- --uninstall`.
+See "Live check" for what has and has not been proven on a real Omarchy shell.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
 | `install`, `uninstall` | Sources; `build.sh` inlines `release.env` into them. |
-| `release.env` | Plugin URL, pinned release commit (`PENDING`), minimum Hyprland. |
+| `release.env` | Plugin URL, pinned release commit, minimum Hyprland. |
 | `build.sh` | `build.sh RELEASE_ENV OUT_DIR` builds runnable copies. |
 | `publish-plugin-release.sh` | Packages a Paperland ref onto the plugin repo's `release` branch and pins it. |
-| `tests/` | `sh tests/run.sh` (stubbed), and `PAPERLAND_SRC=/path/to/paperland sh tests/run.sh` for a real-`setup.py` run. |
+| `tests/` | `sh tests/run.sh` (stubbed), `PAPERLAND_SRC=/path/to/paperland sh tests/run.sh` for a real-`setup.py` run, and `COMBINED=1` with either to run every case against the served `/install`. |
 
 ## Design, in short
 

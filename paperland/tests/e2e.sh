@@ -42,9 +42,11 @@ check "release tree has Widget.qml at its root" [ -f "$second/Widget.qml" ]
 check "release tree has the launcher" [ -x "$second/paperland/paperland" ]
 check "publish keeps the default PLUGIN_URL" grep -qx 'PLUGIN_URL=https://github.com/getpapersh/paperland.git' "$e2e/release.env"
 sh "$root/build.sh" "$e2e/release.env" "$e2e/site" >/dev/null
+combine "$e2e/site"
 first_sha=$(git -C "$first" rev-parse HEAD)
 sed "s/^PLUGIN_SHA=.*/PLUGIN_SHA=$first_sha/" "$e2e/release.env" > "$e2e/release-first.env"
 sh "$root/build.sh" "$e2e/release-first.env" "$e2e/site-first" >/dev/null
+combine "$e2e/site-first"
 
 new_case e2e-install
 rm "$bin/git" "$bin/python3"

@@ -3,7 +3,9 @@
 #   Install or update:  curl -fsSL https://getpaper.sh/install | sh
 #   Uninstall:          curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall
 #
-# macOS: installs PaperMac. Hyprland (Paperland): coming soon.
+# macOS: installs PaperMac. Linux (Omarchy with Hyprland): installs Paperland, with the
+# Paperland installer that scripts/build-site.sh inlines from paperland/ (the served
+# site/install is the built file; this source refuses Linux until it is built).
 #
 # The whole script is one { ... } block ending in `main "$@"; }` on the last line, so
 # the shell reads all of it before running any of it: a download cut short anywhere is
@@ -30,7 +32,6 @@ SITE=https://getpaper.sh
 QUIT_TIMEOUT_SECONDS=20
 # PaperMac's SIGTERM handler exits within 5 seconds.
 TERM_TIMEOUT_SECONDS=10
-COMING_SOON="Paperland is coming soon. Follow along at $SITE"
 UNINSTALL_WARNING="If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows."
 NOT_CHANGED="The installed PaperMac was not changed."
 NOT_REMOVED="Nothing was removed."
@@ -424,23 +425,68 @@ uninstall_macos() {
   [ -z "$LEFTOVER" ] || exit 1
 }
 
+# BEGIN PAPERLAND: scripts/build-site.sh replaces this block with paperland/install and
+# paperland/uninstall, built with paperland/release.env.
+paperland_install() { die "This installer was not built: run scripts/build-site.sh and use site/install."; }
+paperland_uninstall() { die "This installer was not built: run scripts/build-site.sh and use site/install."; }
+# END PAPERLAND
+
+# shellcheck disable=SC2031 # the Paperland subshells set SITE too, to the same value
+usage() {
+  cat <<EOF
+Usage:
+  curl -fsSL $SITE/install | sh                            install or update
+  curl -fsSL $SITE/install | sh -s -- --uninstall          uninstall
+  curl -fsSL $SITE/install | sh -s -- --edit-dotfiles      Linux: see below
+
+macOS installs PaperMac. Linux (Omarchy with Hyprland) installs Paperland.
+
+  --uninstall      Remove PaperMac (macOS) or Paperland (Linux). Settings are kept.
+  --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua is a symlink (into a
+                   dotfiles repository, say), add Paperland's marked include to the file
+                   it points to instead of printing the lines for you to paste. The link
+                   stays a link, and Paperland's generated files never go there.
+  --help           Show this help.
+EOF
+}
+
 main() {
-  case "${1:-}" in
-    '') action=install ;;
-    --uninstall) action=uninstall ;;
-    *) die "Unknown option: $1 (use --uninstall to remove PaperMac)" ;;
-  esac
-  ME=$(id -u)
-  [ "$ME" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
+  # Every option is checked before anything runs, on every system.
+  action=install edit_dotfiles=
+  for arg do
+    case $arg in
+      --uninstall) action=uninstall ;;
+      --edit-dotfiles) edit_dotfiles=1 ;;
+      -h|--help) usage; exit 0 ;;
+      *) die "Unknown option: $arg (run with --help to see the options)" ;;
+    esac
+  done
   case "$(uname -s)" in
     Darwin)
+      [ -z "$edit_dotfiles" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+      ME=$(id -u)
+      [ "$ME" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
       WORK='' MOUNTED='' APP_STAGE='' DEST='' LOCKS='' PIDS='' QUIT_REQUEST=''
       trap 'cleanup || :; release_locks' EXIT
       trap 'exit 130' INT TERM HUP
       WORK=$(mktemp -d "${TMPDIR:-/tmp}/papermac.XXXXXX") || die "Could not create a temporary folder. Nothing was changed."
       if [ "$action" = install ]; then install_macos; else uninstall_macos; fi ;;
-    Linux) say "$COMING_SOON"; exit 1 ;;
-    *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and, soon, Hyprland (Paperland)." ;;
+    Linux)
+      [ "$action" = install ] || [ -z "$edit_dotfiles" ] ||
+        die "--edit-dotfiles applies only to the installer, not to --uninstall."
+      # Paperland's half runs in a subshell with its own traps; this shell only waits
+      # for it (a no-op trap, not an ignore, which its children would inherit), so its
+      # cleanup always finishes before the exit status is returned.
+      trap : INT TERM HUP
+      if [ "$action" = uninstall ]; then
+        # shellcheck disable=SC2119 # the uninstaller takes no options; main checked them
+        paperland_uninstall
+      elif [ -n "$edit_dotfiles" ]; then
+        paperland_install --edit-dotfiles
+      else
+        paperland_install
+      fi ;;
+    *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (Paperland)." ;;
   esac
 }
 

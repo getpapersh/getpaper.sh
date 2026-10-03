@@ -2,7 +2,9 @@
 # Tests for the served installer: each case pipes it into sh, the way `curl | sh`
 # does, with a throwaway HOME and stub commands on a PATH that holds nothing else
 # but basic tools. The script's SYSTEM_APPLICATIONS line is pointed at a folder
-# inside the test, so no case can touch the real /Applications.
+# inside the test, so no case can touch the real /Applications. Cases run the built
+# installer (install with the Paperland installer inlined), as served; the Paperland
+# half has its own suite in paperland/tests.
 #
 #   sh tests/run.sh               all cases
 #   TEST_SH=dash sh tests/run.sh  the same, with dash running the installer
@@ -33,6 +35,8 @@ for tool in env sed grep awk mkdir mv rm rmdir mktemp cat cp ln touch chmod head
   ln -s "$(command -v "$tool")" "$tools/$tool"
 done
 ln -s "$(command -v "${TEST_SH:-sh}")" "$tools/sh"
+# The served file: a preview build of the working tree.
+sh "$root/scripts/build-site.sh" "$work/built" > /dev/null || { echo "build-site.sh failed"; exit 1; }
 
 new_case() { # NAME [EXTRA_STUB...]: fresh HOME, system Applications folder, stubs, log
   case_dir=$work/cases/$1
@@ -45,7 +49,7 @@ new_case() { # NAME [EXTRA_STUB...]: fresh HOME, system Applications folder, stu
   for stub in $STUBS "$@"; do ln -s "$root/tests/stub.sh" "$bin/$stub"; done
   # Every case starts in pin mode, whatever the shipped default; manifest_mode switches it.
   sed -e "s|^SYSTEM_APPLICATIONS=/Applications\$|SYSTEM_APPLICATIONS=$apps|" \
-    -e 's|^PAPERMAC_MANIFEST_URL=.*$|PAPERMAC_MANIFEST_URL=|' "$root/install" > "$case_dir/install"
+    -e 's|^PAPERMAC_MANIFEST_URL=.*$|PAPERMAC_MANIFEST_URL=|' "$work/built/install" > "$case_dir/install"
 }
 
 manifest_mode() { # [KEY JSON_VALUE]...: switch the case's script to the manifest, and write one
@@ -738,13 +742,68 @@ run --uninstall
 check "uninstall without PaperMac" says "PaperMac is not installed"
 check "uninstall without PaperMac still warns first" [ "$(head -n 1 "$case_dir/out")" = "$warning" ]
 
-for args in "" "--uninstall"; do
-  new_case "linux${args:+-uninstall}"
-  run $args -- STUB_OS=Linux
-  check "Linux${args:+ $args} exits 1" status 1
-  check "Linux${args:+ $args} says coming soon" says "Paperland is coming soon. Follow along at https://getpaper.sh"
-  check "Linux${args:+ $args} does nothing else" [ "$(grep -Ecv '^(id|uname)( |$)' "$case_dir/log")" = 0 ]
-done
+# --- options, Linux and other systems ----------------------------------------------
+
+# Linux runs the inlined Paperland installer; paperland/tests covers it in full, also
+# against this combined file. These cases check that each option reaches it. The
+# PaperMac stubs include no Omarchy, so Paperland's own first check stops it.
+paperland_needs_omarchy="Paperland installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
+only_os_checks() { [ "$(grep -Ecv '^(id|uname)( |$)' "$case_dir/log")" = 0 ]; }
+
+new_case linux
+run -- STUB_OS=Linux
+check "Linux runs the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux without Omarchy fails" status 1
+check "Linux runs nothing of PaperMac's" only_os_checks
+
+new_case linux-edit-dotfiles
+run --edit-dotfiles -- STUB_OS=Linux
+check "Linux passes --edit-dotfiles to the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux accepts --edit-dotfiles" silent "Unknown option"
+
+new_case linux-uninstall
+run --uninstall -- STUB_OS=Linux
+check "Linux --uninstall runs the Paperland uninstaller" says "Paperland is not installed; nothing to do."
+check "Linux --uninstall with nothing installed succeeds" status 0
+check "Linux --uninstall runs nothing of PaperMac's" only_os_checks
+
+new_case linux-uninstall-edit-dotfiles
+run --uninstall --edit-dotfiles -- STUB_OS=Linux
+check "--edit-dotfiles with --uninstall is refused" status 1
+check "--edit-dotfiles with --uninstall says why" says "--edit-dotfiles applies only to the installer, not to --uninstall."
+check "--edit-dotfiles with --uninstall runs nothing" only_os_checks
+
+new_case linux-root
+run -- STUB_OS=Linux STUB_UID=0
+check "Linux refuses root" says "Do not run this installer as root or with sudo"
+
+new_case macos-edit-dotfiles
+run --edit-dotfiles
+check "--edit-dotfiles is refused on macOS" status 1
+check "--edit-dotfiles on macOS says why" says "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+check "--edit-dotfiles on macOS changes nothing" not_called curl
+
+new_case other-os
+run -- STUB_OS=FreeBSD
+check "another system is refused" status 1
+check "another system is named" says "Unsupported system: FreeBSD. Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (Paperland)."
+check "another system runs nothing" only_os_checks
+
+new_case help
+run --help
+check "--help succeeds" status 0
+check "--help lists --uninstall" says "--uninstall      Remove PaperMac (macOS) or Paperland (Linux)."
+check "--help lists --edit-dotfiles" says "--edit-dotfiles  Linux only."
+check "--help runs nothing" [ ! -s "$case_dir/log" ]
+
+new_case unknown-option-first
+run --force --uninstall -- STUB_OS=Linux
+check "an unknown option stops before anything runs" [ ! -s "$case_dir/log" ]
+
+new_case unbuilt
+cp "$root/install" "$case_dir/install"
+run -- STUB_OS=Linux
+check "the unbuilt source refuses Linux" says "This installer was not built: run scripts/build-site.sh and use site/install."
 
 # --- truncation -----------------------------------------------------------------
 
@@ -766,13 +825,14 @@ for cut in $cuts; do
     L*) head -n "${cut#L}" "$case_dir/install" > "$case_dir/prefix" ;;
     B*) head -c $((size - ${cut#B})) "$case_dir/install" > "$case_dir/prefix" ;;
   esac
-  for args in "" --uninstall; do
+  for run in Darwin: Darwin:--uninstall Linux: Linux:--uninstall; do
+    os=${run%%:*} args=${run#*:}
     : > "$case_dir/log"
     # shellcheck disable=SC2086 # args is one simple word or nothing
     env -i HOME="$home" PATH="$bin:$tools" TMPDIR="$case_dir/tmp" LOG="$case_dir/log" APPS="$apps" \
-      STUB_DMG_SHA="$SHA" sh -s -- $args < "$case_dir/prefix" >/dev/null 2>&1
+      STUB_DMG_SHA="$SHA" STUB_OS="$os" sh -s -- $args < "$case_dir/prefix" >/dev/null 2>&1
     if [ "$args" = --uninstall ] && called curl; then installed="$installed $cut"; fi
-    if [ -s "$case_dir/log" ] && [ "$cut" != B1 ]; then ran="$ran $cut${args:+ $args}"; fi
+    if [ -s "$case_dir/log" ] && [ "$cut" != B1 ]; then ran="$ran $cut:$run"; fi
     existing "$apps"
   done
 done
@@ -800,6 +860,10 @@ check "the page shows the universal one-liner" grep -qF 'curl -fsSL https://getp
 check "the page offers no DMG link" fails grep -qiE 'href="[^"]*\.dmg' "$root/site/index.html"
 check "the page shows no brew command" fails grep -qF 'brew install' "$root/site/index.html"
 check "both platform panels have the uninstall command" [ "$(grep -c 'sh -s -- --uninstall</code>' "$root/site/index.html")" = 2 ]
+check "the Hyprland panel has the install command" grep -qF '<code id="install-hyprland">curl -fsSL https://getpaper.sh/install | sh</code>' "$root/site/index.html"
+check "the page no longer calls Paperland coming soon" fails grep -qiE 'Paperland[^<]*coming soon' "$root/site/index.html"
+check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
+check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
 check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"
 check "the page announces copying to screen readers" grep -qF 'aria-live="polite"' "$root/site/index.html"
 check "no tracker IDs in served files" fails grep -Eq '(PAP|PAPER)-[0-9]' "$root/site/install" "$root/site/index.html"

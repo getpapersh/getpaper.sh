@@ -1,5 +1,6 @@
 #!/bin/sh
-# DISABLED Paperland uninstaller (not served; see README.md in this folder).
+# Paperland uninstaller. scripts/build-site.sh inlines it, built with release.env, into
+# the served /install, which runs it on Linux for --uninstall; see README.md in this folder.
 #
 # Linux: removes Paperland's shortcuts and autostart with Paperland's own setup,
 # detaches its include, then removes the Omarchy plugin. It never edits or deletes
@@ -65,7 +66,7 @@ remove_plugin() {
 }
 
 uninstall_linux() {
-  [ -n "${PLUGIN_URL:-}" ] || die "This uninstaller was not built: run scripts/build-site.sh and use site/uninstall."
+  [ -n "${PLUGIN_URL:-}" ] || die "This uninstaller was not built: run scripts/build-site.sh and use site/install."
   omarchy_dir=$HOME/.config/omarchy
   plugin_dir=$omarchy_dir/plugins/$PLUGIN_ID
   runtime=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
@@ -186,7 +187,7 @@ main() {
   [ "$(id -u)" -ne 0 ] || die "Do not run this uninstaller as root or with sudo; run it as your normal user."
   case "$(uname -s)" in
     Linux) uninstall_linux ;;
-    Darwin) die "This disabled Paperland uninstaller does not handle macOS." ;;
+    Darwin) die "This Paperland uninstaller does not handle macOS." ;;
     *) die "Unsupported system: $(uname -s)." ;;
   esac
 }
