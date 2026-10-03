@@ -1,0 +1,11 @@
+The page embeds subsets of two fonts licensed under the SIL Open Font License 1.1, cut down
+to the characters the page uses with fontTools' pyftsubset (scripts/bundle-page.py in
+https://github.com/getpapersh/getpaper.sh). The subsets are still under the OFL.
+
+Mona Sans (https://github.com/github/mona-sans): "Mona" is a Reserved Font Name, and a
+subset is a Modified Version, so the embedded subset is named "Paper Sans". Its copyright,
+Reserved Font Name declaration and licence are unchanged; see OFL-monasans.txt.
+
+JetBrains Mono (https://github.com/JetBrains/JetBrainsMono): no Reserved Font Name, so the
+subset keeps its name. JetBrains Mono is a trademark of JetBrains s.r.o.; see
+OFL-jetbrainsmono.txt.

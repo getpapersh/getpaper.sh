@@ -758,7 +758,7 @@ check "Linux runs nothing of PaperMac's" only_os_checks
 
 new_case linux-edit-dotfiles
 run --edit-dotfiles -- STUB_OS=Linux
-check "Linux passes --edit-dotfiles to the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux with --edit-dotfiles reaches the Paperland installer" says "$paperland_needs_omarchy"
 check "Linux accepts --edit-dotfiles" silent "Unknown option"
 
 new_case linux-uninstall
@@ -799,6 +799,7 @@ check "--help runs nothing" [ ! -s "$case_dir/log" ]
 new_case unknown-option-first
 run --force --uninstall -- STUB_OS=Linux
 check "an unknown option stops before anything runs" [ ! -s "$case_dir/log" ]
+check "an unknown option exits 1" status 1
 
 new_case unbuilt
 cp "$root/install" "$case_dir/install"
@@ -807,12 +808,16 @@ check "the unbuilt source refuses Linux" says "This installer was not built: run
 
 # --- truncation -----------------------------------------------------------------
 
-# A download cut short must run nothing. The one exception is losing only the final
-# newline: that is the complete script, and it must still do what was asked.
+# A download cut short must run nothing, and from the line that opens the { ... } block on
+# it must fail too: an empty stub log alone would miss a cut that ran only real tools
+# (mkdir, mv, rm). Cuts before that line hold only the header comments and exit 0. The one
+# exception is losing only the final newline: that is the complete script, and it must
+# still do what was asked.
 new_case truncated
 existing "$apps"
 size=$(wc -c < "$case_dir/install")
 lines=$(wc -l < "$case_dir/install")
+block=$(grep -nx '{' "$case_dir/install" | head -n 1 | cut -d: -f1)
 ran=
 installed=
 cuts=
@@ -831,13 +836,15 @@ for cut in $cuts; do
     # shellcheck disable=SC2086 # args is one simple word or nothing
     env -i HOME="$home" PATH="$bin:$tools" TMPDIR="$case_dir/tmp" LOG="$case_dir/log" APPS="$apps" \
       STUB_DMG_SHA="$SHA" STUB_OS="$os" sh -s -- $args < "$case_dir/prefix" >/dev/null 2>&1
+    code=$?
+    case $cut in L*) [ "${cut#L}" -lt "$block" ] && code=comments ;; esac
     if [ "$args" = --uninstall ] && called curl; then installed="$installed $cut"; fi
-    if [ -s "$case_dir/log" ] && [ "$cut" != B1 ]; then ran="$ran $cut:$run"; fi
+    if { [ -s "$case_dir/log" ] || [ "$code" = 0 ]; } && [ "$cut" != B1 ]; then ran="$ran $cut:$run:$code"; fi
     existing "$apps"
   done
 done
 : > "$case_dir/out"
-check "no truncated script runs anything (ran:${ran:- none})" [ -z "$ran" ]
+check "no truncated script runs anything or exits 0 (ran:${ran:- none})" [ -z "$ran" ]
 check "no truncated uninstall installs (installed:${installed:- none})" [ -z "$installed" ]
 
 # --- site -----------------------------------------------------------------------
@@ -848,11 +855,11 @@ mkdir -p "$case_dir"
 : > "$case_dir/log"
 sh "$root/scripts/build-site.sh" "$case_dir/site" > /dev/null
 check "committed site/ equals a fresh build" diff -r "$root/site" "$case_dir/site"
-for file in _headers index.html install; do check "site/ has $file" [ -f "$root/site/$file" ]; done
-for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt; do
+for file in _headers index.html install og.png; do check "site/ has $file" [ -f "$root/site/$file" ]; done
+for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 7 ]
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 9 ]
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"
@@ -879,6 +886,11 @@ check "the page no longer calls Paperland coming soon" fails grep -qiE 'Paperlan
 check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
 check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
 check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"
+check "the page's link preview is the served og.png" grep -qF '<meta property="og:image" content="https://getpaper.sh/og.png">' "$root/site/index.html"
+check "the page gives the link preview's size" \
+  sh -c "grep -qF '<meta property=\"og:image:width\" content=\"1200\">' '$root/site/index.html' && grep -qF '<meta property=\"og:image:height\" content=\"630\">' '$root/site/index.html'"
+check "the page asks for a large preview card" grep -qF '<meta name="twitter:card" content="summary_large_image">' "$root/site/index.html"
+check "og.png is a 1200x630 PNG" sh -c "file '$root/site/og.png' | grep -qF 'PNG image data, 1200 x 630'"
 check "the page announces copying to screen readers" grep -qF 'aria-live="polite"' "$root/site/index.html"
 check "no tracker IDs in served files" fails grep -Eq '(PAP|PAPER)-[0-9]' "$root/site/install" "$root/site/index.html"
 
