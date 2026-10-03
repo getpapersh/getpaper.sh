@@ -115,10 +115,16 @@ The Paperland half is `paperland/install` and `paperland/uninstall`, built with 
 pinned `paperland/release.env` and inlined verbatim at build time, each as the body of a
 function that runs in its own subshell (`paperland_install() ( … )`). Its functions,
 variables, `set -eu`, traps and exits stay inside that subshell, as when it was a script
-of its own, so neither half changes the other's reviewed behavior; the only name they
-share, `SITE`, has the same value in both. On Linux the outer shell sets a no-op trap
-(not an ignore, which children would inherit) and waits, so Paperland's own cleanup
-always finishes first. Nothing is fetched at runtime except the pinned plugin release.
+of its own, so neither half changes the other's reviewed behavior. The only variable both
+halves set is `SITE`, to the same value; the Paperland half redefines `say`, `warn`, `die`,
+`usage`, `main`, `have`, `first_symlink` and `cgit` inside its subshell, where they shadow
+the outer ones and nowhere else. On Linux the outer shell sets a no-op trap (not an
+ignore, which children would inherit) and waits, so Paperland's own cleanup always
+finishes first. Interrupt it with Ctrl-C, by closing the terminal, or with a signal to
+the whole process group: each reaches the Paperland half, which cleans up and exits 130.
+A signal sent only to the outer `sh` (`kill <pid>`, `timeout --foreground`, a supervisor
+that signals just its child) is absorbed by that trap, and the Paperland half runs to
+completion. Nothing is fetched at runtime except the pinned plugin release.
 
 What the Paperland installer does, step by step (Omarchy and Hyprland checks, the
 verified clone of the pinned `https://github.com/getpapersh/paperland.git` release, the
@@ -147,12 +153,19 @@ stub on Macs without the Command Line Tools.
 ## Build and test
 
 ```sh
-sh tests/run.sh                 # stubbed: every case pipes the built script into sh, like curl | sh
-TEST_SH=dash sh tests/run.sh    # the same with dash
-sh paperland/tests/run.sh       # the Paperland half; COMBINED=1 runs every case against the
-                                # served /install, PAPERLAND_SRC=/path adds real setup.py runs
-sh scripts/build-site.sh        # after committing the sources; then commit site/
+sh tests/run.sh                            # stubbed: every case pipes the built script into sh, like curl | sh
+TEST_SH=dash sh tests/run.sh               # the same with dash
+sh paperland/tests/run.sh                  # the Paperland half on its own
+COMBINED=1 sh paperland/tests/run.sh       # every Paperland case against the served /install
+TEST_SH=dash sh paperland/tests/run.sh     # the Paperland half with dash
+TEST_SH=dash COMBINED=1 sh paperland/tests/run.sh   # and against the served /install
+sh scripts/build-site.sh                   # after committing the sources; then commit site/
 ```
+
+All six runs are required before a change to `install`, `paperland/` or the build ships.
+The `COMBINED=1` runs are the only ones that prove the options take effect in the served
+file (the root suite checks only that Linux dispatches each option to the Paperland
+half). `PAPERLAND_SRC=/path/to/paperland` adds real-`setup.py` runs to the Paperland suite.
 
 The tests point the script's `SYSTEM_APPLICATIONS` line at a folder inside the test,
 so no case can write to the real `/Applications`, and stub every macOS command.

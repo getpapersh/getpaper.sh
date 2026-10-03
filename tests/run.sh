@@ -758,7 +758,7 @@ check "Linux runs nothing of PaperMac's" only_os_checks
 
 new_case linux-edit-dotfiles
 run --edit-dotfiles -- STUB_OS=Linux
-check "Linux passes --edit-dotfiles to the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux with --edit-dotfiles reaches the Paperland installer" says "$paperland_needs_omarchy"
 check "Linux accepts --edit-dotfiles" silent "Unknown option"
 
 new_case linux-uninstall
@@ -799,6 +799,7 @@ check "--help runs nothing" [ ! -s "$case_dir/log" ]
 new_case unknown-option-first
 run --force --uninstall -- STUB_OS=Linux
 check "an unknown option stops before anything runs" [ ! -s "$case_dir/log" ]
+check "an unknown option exits 1" status 1
 
 new_case unbuilt
 cp "$root/install" "$case_dir/install"
@@ -807,12 +808,16 @@ check "the unbuilt source refuses Linux" says "This installer was not built: run
 
 # --- truncation -----------------------------------------------------------------
 
-# A download cut short must run nothing. The one exception is losing only the final
-# newline: that is the complete script, and it must still do what was asked.
+# A download cut short must run nothing, and from the line that opens the { ... } block on
+# it must fail too: an empty stub log alone would miss a cut that ran only real tools
+# (mkdir, mv, rm). Cuts before that line hold only the header comments and exit 0. The one
+# exception is losing only the final newline: that is the complete script, and it must
+# still do what was asked.
 new_case truncated
 existing "$apps"
 size=$(wc -c < "$case_dir/install")
 lines=$(wc -l < "$case_dir/install")
+block=$(grep -nx '{' "$case_dir/install" | head -n 1 | cut -d: -f1)
 ran=
 installed=
 cuts=
@@ -831,13 +836,15 @@ for cut in $cuts; do
     # shellcheck disable=SC2086 # args is one simple word or nothing
     env -i HOME="$home" PATH="$bin:$tools" TMPDIR="$case_dir/tmp" LOG="$case_dir/log" APPS="$apps" \
       STUB_DMG_SHA="$SHA" STUB_OS="$os" sh -s -- $args < "$case_dir/prefix" >/dev/null 2>&1
+    code=$?
+    case $cut in L*) [ "${cut#L}" -lt "$block" ] && code=comments ;; esac
     if [ "$args" = --uninstall ] && called curl; then installed="$installed $cut"; fi
-    if [ -s "$case_dir/log" ] && [ "$cut" != B1 ]; then ran="$ran $cut:$run"; fi
+    if { [ -s "$case_dir/log" ] || [ "$code" = 0 ]; } && [ "$cut" != B1 ]; then ran="$ran $cut:$run:$code"; fi
     existing "$apps"
   done
 done
 : > "$case_dir/out"
-check "no truncated script runs anything (ran:${ran:- none})" [ -z "$ran" ]
+check "no truncated script runs anything or exits 0 (ran:${ran:- none})" [ -z "$ran" ]
 check "no truncated uninstall installs (installed:${installed:- none})" [ -z "$installed" ]
 
 # --- site -----------------------------------------------------------------------

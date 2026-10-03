@@ -138,6 +138,13 @@ the installed Omarchy 4.0.4-1 shell inside it. The release was published from Pa
 Not covered: a fresh Omarchy install with a real login (autostart at login), and the
 Omarchy bar on a physical display rather than a headless output.
 
+### After the re-pin to `f444cc5`
+
+The pin then moved to release `f444cc5` (published from Paperland `0225e7b`, which adds
+`LICENSE`). In the same sandboxed nested Hyprland, the committed `site/install`, with
+a real clone of that release from GitHub, passed install, rerun and `--uninstall`, and
+the installed plugin folder held `LICENSE`.
+
 ## Owner decisions (2026-10-02)
 
 - Development Omarchy builds: read the real version from `$OMARCHY_PATH/version`;
