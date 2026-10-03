@@ -202,3 +202,7 @@ On the day the domain is ready:
    curl -fsSL https://getpaper.sh/install | cmp - site/install
    curl -fsSI https://getpaper.sh/install    # content-type: text/plain; charset=utf-8
    ```
+
+## License
+
+GPL-3.0-or-later, the same as Paperland. See [LICENSE](LICENSE). The fonts and logos the page embeds keep their own licences, in `licenses/`.
