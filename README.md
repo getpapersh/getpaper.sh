@@ -23,7 +23,8 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | --- | --- |
 | `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
 | `scripts/assemble-install.sh` | Replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
-| `index.html` | The landing page source. |
+| `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source lives outside this repo, in `paper-landing-concepts/v7-1-viewfinder` with `_kit/` and `fonts/`; rebuild the bundle by inlining them. |
+| `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0); served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
 | `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html` and `_headers`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |

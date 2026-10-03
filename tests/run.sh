@@ -849,7 +849,10 @@ mkdir -p "$case_dir"
 sh "$root/scripts/build-site.sh" "$case_dir/site" > /dev/null
 check "committed site/ equals a fresh build" diff -r "$root/site" "$case_dir/site"
 for file in _headers index.html install; do check "site/ has $file" [ -f "$root/site/$file" ]; done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 3 ]
+for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt; do
+  check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
+done
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 7 ]
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"
@@ -857,10 +860,21 @@ check "wrangler.jsonc serves site/" grep -qF '"directory": "./site"' "$root/wran
 check "wrangler.jsonc has no Worker script" fails grep -qF '"main"' "$root/wrangler.jsonc"
 check "the page has no external scripts" fails grep -Eq '<script[^>]+src=' "$root/site/index.html"
 check "the page shows the universal one-liner" grep -qF 'curl -fsSL https://getpaper.sh/install | sh</code>' "$root/site/index.html"
-check "the page offers no DMG link" fails grep -qiE 'href="[^"]*\.dmg' "$root/site/index.html"
+# PaperMac is notarized from Alpha 5, so a browser-downloaded DMG opens; the page may link
+# one, but only a release on PaperMac's own download host.
+page_dmg_links() { grep -oiE 'href="[^"]*\.dmg"' "$root/site/index.html"; }
+check "the page links a DMG" page_dmg_links
+check "every DMG link is a PaperMac release on dl.getpaper.sh" \
+  fails sh -c "grep -oiE 'href=\"[^\"]*\\.dmg\"' '$root/site/index.html' | grep -vxE 'href=\"https://dl\\.getpaper\\.sh/papermac/PaperMac-[0-9][0-9a-z.-]*\\.dmg\"'"
 check "the page shows no brew command" fails grep -qF 'brew install' "$root/site/index.html"
-check "both platform panels have the uninstall command" [ "$(grep -c 'sh -s -- --uninstall</code>' "$root/site/index.html")" = 2 ]
-check "the Hyprland panel has the install command" grep -qF '<code id="install-hyprland">curl -fsSL https://getpaper.sh/install | sh</code>' "$root/site/index.html"
+# The page builds its command boxes in script, with <wbr> break hints inside the commands.
+page_text() { sed 's/<wbr>//g' "$root/site/index.html"; }
+page_text_has() { page_text | grep -qF "$1"; }
+check "both platform panels have the uninstall command" \
+  [ "$(page_text | grep -oF 'curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall' | wc -l | tr -d ' ')" = 2 ]
+check "the page's install command is the universal one-liner" page_text_has 'const CURL = "curl -fsSL https://getpaper.sh/install | sh";'
+check "the Linux panel shows the install command" \
+  sh -c "sed -n '/data-os=\"lin\"/,/class=\"rejoin\"/p' '$root/site/index.html' | grep -qF '\${F.cmd(CURL)}'"
 check "the page no longer calls Paperland coming soon" fails grep -qiE 'Paperland[^<]*coming soon' "$root/site/index.html"
 check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
 check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
