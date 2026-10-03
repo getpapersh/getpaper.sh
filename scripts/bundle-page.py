@@ -2,7 +2,7 @@
 
 Usage (fontTools is the only dependency; uvx runs it without a global install):
   uvx --from fonttools python scripts/bundle-page.py \
-    /path/to/paper-landing-concepts/v7-1-viewfinder/index.html > index.html
+    src/v7-1-viewfinder/index.html > index.html
 
 Inlines the page's _kit stylesheets and scripts and its fonts, each font subset with
 pyftsubset to printable ASCII, Latin-1, common punctuation and every other character the

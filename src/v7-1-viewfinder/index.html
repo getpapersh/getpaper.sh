@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en" class="no-js" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper: a scrolling window manager for macOS and Linux</title>
+<meta property="og:title" content="Paper: a scrolling window manager for macOS and Linux">
+<meta property="og:description" content="Your desktop is wider than your screen.">
+<meta property="og:image" content="https://getpaper.sh/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Paper: Your desktop is wider than your screen. curl -fsSL https://getpaper.sh/install | sh">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="Paper is a scrolling window manager for macOS and Linux. Your desktop is wider than your screen.">
+<link rel="stylesheet" href="../_kit/kit.css">
+<link rel="stylesheet" href="../_kit/v5.css">
+<link rel="stylesheet" href="../_kit/fork5.css">
+<link rel="stylesheet" href="../_kit/desks6.css">
+<link rel="stylesheet" href="../_kit/paper7.css">
+<style>
+/* Viewfinder (round 7): windows land, a window is dragged wider and sent full width, the page's own edges
+   shrink into a "Your screen" frame, a key walks the strip back and a swipe carries it forward, the frame
+   becomes a Mac beside a Linux (Omarchy) screen with their minimaps, and the two screens become the install fork. */
+.lay { position: absolute; inset: 0; will-change: transform; }
+.lay.mac { z-index: 1; } .lay.om { z-index: 3; opacity: 0; }
+.lay.mac .d6 > .cb, .lay.mac .d6 > .cf { opacity: 0; }
+.vf { position: absolute; z-index: 2; left: 0; top: 0; border: 3px solid var(--on); border-radius: 12px; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--field) calc(var(--dim, 0) * 100%), transparent); }
+.vf span { position: absolute; left: -3px; bottom: calc(100% + 10px); font: 800 18px/1 "Mona Sans"; letter-spacing: -.01em; white-space: nowrap; color: var(--on); }
+.bz { position: absolute; z-index: 4; left: 0; top: 0; border: 9px solid #0c0d12; border-radius: 20px; opacity: 0; pointer-events: none; box-shadow: 0 30px 60px -30px rgba(0,0,0,.6); }
+.nm { position: absolute; z-index: 5; left: 0; top: 0; display: flex; align-items: center; gap: 14px; font: 850 22px/1 "Mona Sans"; font-stretch: 118%; letter-spacing: -.02em; opacity: 0; white-space: nowrap; }
+.nm svg { width: 22px; height: 22px; }
+/* the mouse, the trackpad and the minimaps */
+.cur { position: absolute; z-index: 6; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px; opacity: 0; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.swipe { position: absolute; z-index: 5; left: 0; top: 0; display: flex; align-items: center; gap: 12px; opacity: 0; translate: -50% 0; }
+.swipe .plus { font: 700 20px/1 "Mona Sans"; color: var(--on); opacity: .7; }
+.pad { position: relative; width: 112px; height: 72px; border-radius: 12px; background: linear-gradient(#ffffff, #eceef6); box-shadow: 0 6px 0 #b9bdd0, 0 12px 18px -6px rgba(0,0,0,.45); }
+.pad i { position: absolute; top: 26px; width: 16px; height: 16px; border-radius: 50%; background: #1b1d27; opacity: .8; }
+.map { position: absolute; z-index: 5; left: 0; top: 0; height: 26px; opacity: 0; translate: -50% 0; padding: 5px; border-radius: 9px; background: rgba(255,255,255,.9); box-shadow: 0 8px 20px -10px rgba(0,0,0,.5); }
+.map.om { border-radius: 0; background: #1a1b26; }
+.map b { position: absolute; top: 5px; bottom: 5px; border-radius: 4px; background: #d6d9e8; }
+.map b.f { background: #1b1fe0; }
+.map.om b { border-radius: 0; background: #2b2f45; } .map.om b.f { background: #7aa2f7; }
+.map u { position: absolute; top: 1px; bottom: 1px; border: 2.5px solid #ffb020; border-radius: 6px; }
+.map.om u { border-radius: 0; }
+.kb { position: absolute; z-index: 5; left: 0; top: 0; opacity: 0; translate: -50% 0; }
+.trunk6 { position: absolute; z-index: 5; left: 50%; top: 40px; width: min(620px, calc(100% - 40px)); translate: -50% 0; text-align: center; opacity: 0; pointer-events: none; }
+.trunk6 p { margin: 10px 0 0; color: var(--on-dim); font-weight: 600; }
+.trunk6.on { pointer-events: auto; }
+.rails6 { position: absolute; z-index: 4; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.rails6 path, .fork .rails6b path { fill: none; stroke: var(--on); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.pair6 { display: none; }
+.h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(64px, 8.6vw, 136px); line-height: .82; letter-spacing: -.04em; }
+.pin { transition: opacity .25s; }
+/* the Copy install pin gets the same after-copy line as every other copy button */
+.pin-after { position: absolute; z-index: 8; right: 20px; top: 50px; width: min(330px, calc(100% - 40px)); padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--field); text-align: left; pointer-events: none; }
+
+/* the install section, docked under the story's two screens */
+.dock6 .fork > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.dock6 .fork .trunk, .dock6 .fork .dev, .dock6 .fork > .rails { display: none; }
+.dock6 .fork { padding-top: 0; }
+.dock6 .fork .cols { grid-template-columns: repeat(2, var(--cw, 440px)); column-gap: var(--cg, 40px); margin-top: 0; padding-top: 64px; }
+.fork .rails6b { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; display: none; }
+.dock6 .fork .rails6b { display: block; }
+
+@media (max-width: 700px) {
+  .pair6 { position: absolute; z-index: 6; left: 16px; right: 16px; top: 64px; display: grid; gap: 10px; opacity: 0; }
+  .pair6 .keys6 { justify-self: center; transform: scale(.8); }
+  .nm, .bz, .lay.om { display: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#install">Skip to install</a>
+<p id="live" class="sr-only" aria-live="polite"></p>
+
+<header class="story" aria-labelledby="title">
+  <div class="stage" tabindex="-1">
+    <div class="lay mac" id="lm"></div>
+    <div class="vf" aria-hidden="true"><span>Your screen</span></div>
+    <div class="lay om" id="lo" aria-hidden="true"></div>
+    <div class="bz" aria-hidden="true"></div><div class="bz" aria-hidden="true"></div>
+    <p class="nm" aria-hidden="true" data-os="mac"></p><p class="nm" aria-hidden="true" data-os="om"></p>
+    <div class="kb" aria-hidden="true" data-os="mac"></div><div class="kb" aria-hidden="true" data-os="om"></div>
+    <div class="pair6" aria-hidden="true"></div>
+    <svg class="cur" viewBox="0 0 34 34" aria-hidden="true"><path d="M6 17h22M6 17l5-5M6 17l5 5M28 17l-5-5M28 17l-5 5" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 17h22M6 17l5-5M6 17l5 5M28 17l-5-5M28 17l-5 5" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="swipe" aria-hidden="true"></div>
+    <div class="map mac" aria-hidden="true"></div><div class="map om" aria-hidden="true"></div>
+    <svg class="rails6" aria-hidden="true"><path class="r-in"/><path class="r-out"/></svg>
+    <div class="trunk6" id="trunk6"></div>
+    <p class="cap out" aria-hidden="true"></p>
+    <p class="k-after pin-after" id="after-pin" data-mac-extra aria-hidden="true"></p>
+    <button class="pin" type="button" data-copy data-after="after-pin" aria-label="Copy the install command"><code class="sr-only">curl -fsSL https://getpaper.sh/install | sh</code><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg><span class="lbl"><span class="txt">Copy install</span></span></button>
+  </div>
+  <ol class="k-beats"></ol>
+</header>
+<main id="main"></main>
+
+<script src="../_kit/kit.js"></script>
+<script src="../_kit/logos.js"></script>
+<script src="../_kit/fork5.js"></script>
+<script src="../_kit/v5.js"></script>
+<script src="../_kit/desks6.js"></script>
+<script>
+// captions; the reduced-motion list below is built from the same lines
+const C = { land: V5.CAPS[0], none: V5.CAPS[1], drag: "Drag an edge to any width.", full: "Take the whole screen when you need it.", rest: "The rest waits just off screen.",
+  walk: "Step window to window from the keyboard.", swipe: "Swipe and the whole strip scrolls.", pair: V5.CAPS[3], mini: "The minimap shows where you are." };
+document.querySelector(".k-beats").innerHTML = [C.land, C.none, C.drag, C.full, C.rest, C.walk + " (⌘⌥← on macOS, Super+← on Omarchy)", C.swipe + " (hold ⌘⌥ on macOS)", C.pair, C.mini].map((x) => `<li>${x}</li>`).join("");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches, phone0 = innerWidth <= 700;
+// desktop with motion: the install section hangs off the story's two screens
+if (!reduced && !phone0) document.documentElement.classList.add("dock6");
+
+const hero = '<article class="app hero" data-id="hero"><div class="tb" aria-hidden="true"><span class="dots"></span><b>Paper</b><span class="n">1</span></div><div class="bd" id="hero-bd"></div><div class="ring"></div></article>';
+const apps = V5.APPS([["ph", "ph", 2], ["mu", "mu", 3], ["ch", "ch", 4]]);
+document.getElementById("lm").innerHTML = D6.mac(`<div class="strip s1">${hero}${apps}</div>`, "Paper");
+document.getElementById("hero-bd").innerHTML = V5.heroHTML();
+const s1 = document.querySelector(".s1");
+const picture = (html) => html.replace(/<h1 id="title">/, '<p class="h1">').replace("</h1>", "</p>").replace(/ id="[^"]*"/g, "").replace(/ data-copy/g, "");
+document.getElementById("lo").innerHTML = D6.om(`<div class="strip s2" inert>${picture(s1.innerHTML)}</div>`, 1);
+const s2 = document.querySelector(".s2");
+document.getElementById("after-pin").textContent = V5.COPIED;
+document.getElementById("trunk6").innerHTML = `${Fork5.cmd(Fork5.CURL, "after-trunk")}<p class="k-after" id="after-trunk" data-mac-extra style="color:var(--hi-text)">${V5.COPIED}</p><p>This command detects your system.</p>`;
+for (const n of document.querySelectorAll(".nm")) n.innerHTML = n.dataset.os === "mac" ? LOGOS.apple + "macOS" : LOGOS.linux + "Linux";
+document.querySelector(".swipe").innerHTML = D6.kc(["⌘", "⌥"]) + '<span class="plus">+</span><span class="pad"><i style="left:38px"></i><i style="left:60px"></i></span>';
+const stills = { mac: D6.still("mac", [["mu", .34], ["ph", .5], ["ch", .5]]), lin: D6.still("om", [["mu", .34], ["ph", .5], ["ch", .5]]) };
+document.querySelector(".pair6").innerHTML = stills.mac + D6.keys("mac", "left") + stills.lin + D6.keys("om", "left");
+document.getElementById("main").innerHTML = V5.forkHTML(stills) + V5.moreHTML() + V5.closeHTML();
+document.querySelector(".fork").insertAdjacentHTML("afterbegin", '<svg class="rails6b" aria-hidden="true"><path/></svg>');
+V5.wire(); D6.fit();
+
+const stage = document.querySelector(".stage"), lm = document.getElementById("lm"), lo = document.getElementById("lo"), vf = document.querySelector(".vf");
+const bz = [...document.querySelectorAll(".bz")], nm = [...document.querySelectorAll(".nm")], kb = [...document.querySelectorAll(".kb")];
+const pair = document.querySelector(".pair6"), trunk = document.getElementById("trunk6"), pin = document.querySelector(".pin");
+const rIn = document.querySelector(".rails6 .r-in"), rOut = document.querySelector(".rails6 .r-out");
+const macChrome = [...lm.querySelectorAll(".d6 > .cb, .d6 > .cf")], omChrome = [...lo.querySelectorAll(".d6 > .cb, .d6 > .cf")];
+const GAP = 48, VS = .45, R = 28;
+const keyDir = ["", ""];
+function keys(i, os, dir) { if (keyDir[i] !== dir) { keyDir[i] = dir; kb[i].innerHTML = D6.keys(os, dir); } }
+// a key goes down at the start of its beat, holds while the strip moves, then comes back up
+const pressAt = (u) => (u < 0 ? 0 : u < .1 ? u / .1 : u < .42 ? 1 : Math.max(0, 1 - (u - .42) / .12));
+const box = (el, r, pad = 0) => Object.assign(el.style, { transform: `translate(${r.x - pad}px,${r.y - pad}px)`, width: r.w + 2 * pad + "px", height: r.h + 2 * pad + "px" });
+const fork = document.getElementById("install"), rb = fork.querySelector(".rails6b path");
+const capEl = document.querySelector(".cap"), cur = document.querySelector(".cur"), swipe = document.querySelector(".swipe"), maps = [...document.querySelectorAll(".map")];
+// a window's place on the strip, read from the engine's own styles (strip units)
+const slot = (el) => ({ x: parseFloat(el.style.transform.slice(12)) || 0, w: parseFloat(el.style.width) || 0, o: +el.style.opacity });
+function drawMap(m, i, focus) {
+  const wins = [...s1.querySelectorAll(".app")].map((el) => ({ id: el.dataset.id, ...slot(el) })).filter((w) => w.o > .5);
+  const tot = Math.max(...wins.map((w) => w.x + w.w)), MW = 300, k = MW / tot;
+  m.style.width = MW + 10 + "px";
+  m.innerHTML = wins.map((w) => `<b class="${w.id === focus ? "f" : ""}" style="left:${5 + w.x * k}px;width:${Math.max(4, w.w * k - 3)}px"></b>`).join("")
+    + `<u style="left:${Math.max(0, 5 + (i.fc - i.vw / 2) * k - 2)}px;width:${Math.min(MW + 6, i.vw * k + 4)}px"></u>`;
+}
+
+Paper.story({
+  root: document.querySelector(".story"), stage, strips: [s1, s2],
+  start: { order: ["hero", "ph"], w: { hero: "hero", ph: .5 }, focus: "hero" },
+  steps: [
+    { open: "mu", end: true, w: .34, say: C.land },
+    { open: "ch", end: true, w: .5, say: C.none },
+    { resize: "ch", w: .67, focus: "ch", say: C.drag },
+    { resize: "ch", w: 1, focus: "ch", say: C.full },
+    { zoom: "view", focus: "ch", say: C.rest },
+    { zoom: "view", focus: "mu", say: C.walk },
+    { zoom: "view", focus: "ph", say: C.walk },
+    { zoom: "view", focus: "hero", say: C.walk },
+    { zoom: "view", focus: "ch", say: C.swipe },
+    { zoom: "view", focus: "ch", say: C.pair },
+    { zoom: "view", focus: "mu", say: C.mini },
+    { zoom: "view", focus: "mu", say: "" },
+  ],
+  viewScale: VS, stillAt: 0,
+  heroW: (W) => Math.min(W * .84, Math.max(620, W * .5), 860),
+  geom: (W, H) => { const top = W < 700 ? 60 : 72, bottom = W < 700 ? 150 : 126, h = H - top - bottom; return { cy: top + h / 2, h, zoomH: h * .8 }; },
+  phoneScale: .8, gap: 18, hold: .38,
+  cap: document.querySelector(".cap"),
+  onRender: (t, i) => {
+    const W = i.W, H = i.H, phone = W < 700, u = t - i.k;
+    // the screen: where the view sits, at the strip's current scale
+    const fw = i.vw * i.sc, fh = i.H * i.sc / i.S0, fx = i.tx + (i.fc - i.vw / 2) * i.sc, fy = i.cy - i.cy * i.sc / i.S0;
+    // beats: 0-1 land, 2 drag, 3 full width, 4 zoom, 5-7 key walk, 8 swipe, 9 split, 10 minimaps + both keys, 11 dock
+    const zoom = V5.ease(V5.clamp01((t - 4) / .62)), split = phone ? 0 : V5.ease(V5.clamp01((t - 9) / .62)), dock = phone ? 0 : V5.ease(V5.clamp01((t - 11) / .62));
+    const half = (fw + GAP) / 2, dy = Math.max(0, 250 - fy) * dock;
+    const mac = { x: fx - half * split, y: fy + dy, w: fw, h: fh }, om = { x: fx + half, y: fy + dy, w: fw, h: fh };
+    // the frame is born at the page's edges and shrinks with the zoom; the strip outside it dims
+    box(vf, { ...mac });
+    vf.style.opacity = t < 4 ? 0 : (1 - split);
+    vf.style.setProperty("--dim", (.62 * zoom + .38 * split).toFixed(3));
+    vf.querySelector("span").style.opacity = V5.clamp01((t - 4.4) / .4) * (1 - split);
+    // the Mac: chrome fades in around the frame; the layer slides left with it
+    lm.style.transform = `translate(${-half * split}px,${dy}px)`;
+    lm.style.clipPath = split > 0 ? `inset(${fy}px ${W - fx - fw}px ${H - fy - fh}px ${fx}px round 12px)` : "";
+    if (s2.firstElementChild.style.top !== "40px") omHeights();
+    // the desktop chrome is drawn at page size; put it on the screen frame at the frame's scale
+    const onFrame = `translate(${fx}px,${fy}px) scale(${fw / W})`;
+    for (const c of macChrome) { c.style.opacity = split; c.style.transform = onFrame; }
+    for (const c of omChrome) c.style.transform = onFrame;
+    // Omarchy: the same strip, slid in from the right, clipped to its own screen
+    lo.style.opacity = split > 0 ? 1 : 0;
+    lo.style.transform = `translate(${half + (1 - split) * W * .6}px,${dy}px)`;
+    lo.style.clipPath = `inset(${fy}px ${W - fx - fw}px ${H - fy - fh}px ${fx}px)`;
+    box(bz[0], mac, 9); box(bz[1], { ...om, x: om.x + (1 - split) * W * .6 }, 9);
+    bz.forEach((b) => (b.style.opacity = split));
+    nm[0].style.transform = `translate(${mac.x}px,${mac.y - 58}px)`; nm[1].style.transform = `translate(${om.x}px,${om.y - 58}px)`;
+    nm.forEach((n) => (n.style.opacity = split * (1 - dock)));
+    // keys: full width on the bare strip, the walk under the frame, then both systems together
+    const fullK = t >= 2.85 && t < 4.1, walking = t >= 4.85 && t < 8.05, both = t >= 9.6 && t < 11.2;
+    keys(0, "mac", fullK ? "full" : "left"); keys(1, "om", "left");
+    const kx = phone ? W / 2 : fullK ? W - 180 : walking ? fx + fw / 2 : mac.x + fw / 2;
+    const ky = phone ? H - 230 : fullK ? H - 114 : both ? mac.y + fh + 74 : mac.y + fh + 26;
+    kb[0].style.transform = `translate(${kx}px,${ky}px)`;
+    kb[1].style.transform = `translate(${om.x + fw / 2}px,${om.y + fh + 74}px)`;
+    kb[0].style.opacity = fullK || walking || both ? 1 : 0; kb[1].style.opacity = both && !phone ? 1 : 0;
+    const keyBeat = [3, 5, 6, 7, 10].includes(i.k) ? pressAt(u) : 0;
+    D6.press(kb[0], keyBeat); D6.press(kb[1], i.k === 10 ? keyBeat : 0);
+    // the mouse: grabs the focused window's right edge and drags it wider
+    const ch = s1.querySelector('[data-id="ch"]').getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const curOn = t >= 1.75 && t < 2.95;
+    cur.style.opacity = curOn ? Math.min(1, (t - 1.75) / .15, (2.95 - t) / .12) : 0;
+    cur.style.transform = `translate(${ch.right - sr.left}px,${ch.top - sr.top + ch.height * .55}px)`;
+    // the swipe: hold ⌘⌥ and two fingers slide while the strip pans forward
+    const swOn = t >= 7.9 && t < 9.05;
+    swipe.style.opacity = swOn ? Math.min(1, (t - 7.9) / .15, (9.05 - t) / .12) : 0;
+    swipe.style.transform = `translate(${phone ? W / 2 : fx + fw / 2}px,${phone ? H - 236 : mac.y + fh + 18}px)`;
+    const fing = i.k === 8 ? V5.clamp01(u / .62) : 0;
+    swipe.querySelectorAll(".pad i").forEach((d, n) => (d.style.transform = `translateX(${(1 - fing) * 30 - fing * 26}px)`));
+    D6.press(swipe, swOn ? 1 : 0);
+    // the minimaps under both screens: the whole strip, the focused window, and the part each screen shows
+    const mapOn = phone ? 0 : V5.clamp01((t - 9.45) / .3) * (1 - V5.clamp01((t - 11) / .2));
+    maps.forEach((m) => (m.style.opacity = mapOn));
+    if (mapOn > 0) { const f = i.k >= 10 && u > .3 ? "mu" : "ch"; drawMap(maps[0], i, f); drawMap(maps[1], i, f);
+      maps[0].style.transform = `translate(${mac.x + fw / 2}px,${mac.y + fh + 24}px)`; maps[1].style.transform = `translate(${om.x + fw / 2}px,${om.y + fh + 24}px)`; }
+    // phone: no room for two screens side by side; the two still pictures take over
+    if (phone) { const po = V5.clamp01((t - 9) / .4); pair.style.opacity = po; lm.style.opacity = 1 - po; vf.style.opacity = (t < 4 ? 0 : 1) * (1 - po); D6.press(pair, i.k === 10 ? keyBeat : 0); kb[0].style.opacity = fullK || walking ? 1 : 0; }
+    // the install trunk drops in above the two screens, and rails run into them and on down the page
+    trunk.style.opacity = dock; trunk.classList.toggle("on", dock > .9);
+    // the last caption gives way to the install trunk and its rails
+    capEl.style.opacity = dock > 0 ? 1 - dock : "";
+    pin.style.opacity = t > .5 && dock < .5 ? 1 : 0; pin.style.pointerEvents = t > .5 && dock < .5 ? "" : "none";
+    if (dock > 0) {
+      const tb = 40 + trunk.offsetHeight + 12, x0 = W / 2, x1 = mac.x + fw / 2, x2 = om.x + fw / 2, ys = (tb + mac.y - 9) / 2;
+      const br = (x) => `M${x0},${ys - R} Q${x0},${ys} ${x0 + Math.sign(x - x0) * R},${ys} H${x - Math.sign(x - x0) * R} Q${x},${ys} ${x},${ys + R} V${mac.y - 12}`;
+      rIn.setAttribute("d", `M${x0},${tb} V${ys - R} ${br(x1)} ${br(x2)}`);
+      rOut.setAttribute("d", `M${x1},${mac.y + fh + 12} V${H} M${x2},${mac.y + fh + 12} V${H}`);
+    }
+    rIn.style.opacity = rOut.style.opacity = dock;
+  },
+});
+
+// the install section: columns under the two screens, rails continuing from the stage
+// Omarchy windows run nearly full height (30px bar, 10px outer gaps); the engine sizes every strip the same, so redo this one after it
+function omHeights() { const H = stage.clientHeight; for (const a of s2.querySelectorAll(".app")) Object.assign(a.style, { top: "40px", height: H - 50 + "px" }); }
+omHeights(); addEventListener("resize", omHeights);
+function drawDockRails() {
+  if (!document.documentElement.classList.contains("dock6")) return;
+  // the docked layout, not the current frame: two screens of W x VS with GAP between, centred
+  const W = stage.clientWidth, fw = W * VS, x1 = W / 2 - (fw + GAP) / 2, x2 = W / 2 + (fw + GAP) / 2, x0 = W / 2;
+  fork.style.setProperty("--cw", fw + "px"); fork.style.setProperty("--cg", GAP + "px");
+  const o = fork.getBoundingClientRect(), rel = (el) => { const r = el.getBoundingClientRect(); return { y: r.top - o.top, b: r.bottom - o.top }; };
+  const cols = [...fork.querySelectorAll(".col")], who = rel(cols[0].querySelector(".who")), rejoin = rel(fork.querySelector(".rejoin"));
+  const yEnd = Math.max(...cols.map((c) => rel(c).b)) + 20, ym = (yEnd + rejoin.y) / 2;
+  const back = (x) => `M${x},${yEnd} V${ym - R} Q${x},${ym} ${x + Math.sign(x0 - x) * R},${ym} H${x0 - Math.sign(x0 - x) * R} Q${x0},${ym} ${x0},${ym + R}`;
+  rb.setAttribute("d", `M${x1},0 V${who.y - 16} M${x2},0 V${who.y - 16} ${back(x1)} ${back(x2)} M${x0},${ym + R} V${rejoin.y - 6}`);
+}
+drawDockRails(); addEventListener("resize", drawDockRails); document.fonts?.ready.then(drawDockRails);
+</script>
+</body>
+</html>
