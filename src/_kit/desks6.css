@@ -1,0 +1,89 @@
+/* Round 6: realistic macOS and Omarchy desktops around a strip, plus keycaps.
+   Omarchy values come from basecamp/omarchy (quattro): Tokyo Night theme colors.toml,
+   looknfeel.lua (border_size 2, rounding 0, inactive rgba(595959aa), active = theme accent),
+   config/omarchy/shell.json (bar on top, menu + workspaces left, clock "dddd HH:mm" centre, status right). */
+
+/* a desk is a full-stage-size layer; pages place, clip or scale it */
+.d6 { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
+/* chrome sits in two full-layer boxes, behind (.cb) and in front of (.cf) the strip, so a page can move it onto a zoomed screen */
+.d6 > .cb, .d6 > .cf { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; pointer-events: none; }
+.d6 > .cb { z-index: 0; } .d6 > .cf { z-index: 3; }
+.d6 .wp, .d6 .bar6, .d6 .dock { position: absolute; pointer-events: none; }
+.d6 .wp { inset: 0; }
+.d6 > .strip { z-index: 1; }
+.d6 .bar6 { left: 0; right: 0; top: 0; display: flex; align-items: center; white-space: nowrap; }
+.bar6 svg { flex: none; }
+
+/* ---------- macOS ---------- */
+.d6.mac .wp { background:
+  radial-gradient(70% 90% at 12% 108%, #ff9a62 0%, rgba(255,154,98,0) 60%),
+  radial-gradient(60% 70% at 92% -6%, #8b7dff 0%, rgba(139,125,255,0) 62%),
+  radial-gradient(80% 60% at 60% 70%, rgba(38,104,255,.85) 0%, rgba(38,104,255,0) 70%),
+  linear-gradient(165deg, #2546d8 0%, #16237e 55%, #0b0f3d 100%); }
+.d6.mac .bar6 { height: 34px; padding: 0 16px; gap: 22px; color: #fff; font: 600 14px/1 "Mona Sans", system-ui; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.d6.mac .bar6 .app-name { font-weight: 800; }
+.d6.mac .bar6 .menus { display: flex; gap: 20px; font-weight: 550; }
+.d6.mac .bar6 .sp { flex: 1; }
+.d6.mac .bar6 .st { display: flex; align-items: center; gap: 16px; font-weight: 550; }
+.d6.mac .bar6 svg { width: 17px; height: 17px; }
+.d6.mac .bar6 .apple svg { width: 15px; height: 17px; margin-top: -2px; }
+.d6.mac .dock { left: 50%; bottom: 10px; translate: -50% 0; display: flex; gap: 10px; padding: 9px 12px; border-radius: 26px;
+  background: rgba(255,255,255,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 30px -10px rgba(0,0,0,.4); }
+.d6.mac .dock i { width: 52px; height: 52px; border-radius: 13px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+.d6.mac .dock i:nth-child(1) { background: linear-gradient(160deg, #6ec6ff, #1f6fff); }
+.d6.mac .dock i:nth-child(2) { background: linear-gradient(160deg, #fdfdfd, #d9dce6); }
+.d6.mac .dock i:nth-child(3) { background: linear-gradient(160deg, #ff6a8b, #f2304f); }
+.d6.mac .dock i:nth-child(4) { background: linear-gradient(160deg, #3a3d4a, #15161c); }
+.d6.mac .dock i:nth-child(5) { background: linear-gradient(160deg, #7ef0a6, #20b86a); }
+.d6.mac .dock i:nth-child(6) { background: linear-gradient(160deg, #ffd36a, #ff9b2e); }
+.d6.mac .dock i:nth-child(7) { background: linear-gradient(160deg, #b9a5ff, #6d4dff); }
+/* macOS windows: big radius, traffic lights, centred title, no Paper badge */
+.d6.mac .app { border-radius: 16px; box-shadow: 0 0 0 .5px rgba(0,0,0,.25), 0 22px 50px -20px rgba(0,0,0,.55); }
+.d6.mac .app > .tb { justify-content: center; position: relative; background: var(--k-bar); }
+.d6.mac .app > .tb .dots { display: none; }
+.d6.mac .app > .tb::before { content: ""; position: absolute; left: 14px; top: 50%; translate: 0 -50%; width: 12px; height: 12px; border-radius: 50%;
+  background: #ff5f57; box-shadow: 20px 0 0 #febc2e, 40px 0 0 #28c840; }
+.d6.mac .app > .tb .n { display: none; }
+.d6.mac .app .ring { inset: -6px; border-radius: 21px; border-width: 4px; border-color: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+
+/* ---------- Omarchy (Tokyo Night) ---------- */
+.d6.om { --k-win: #1a1b26; --k-bar: #16161e; --k-ink: #c0caf5; --k-dim: #565f89; --k-line: #292e42; --k-soft: #24283b;
+  --k-accent: #7aa2f7; --k-accent-ink: #1a1b26; --k-term: #13141c; --k-term-ink: #a9b1d6;
+  --k-code-1: #f7768e; --k-code-2: #7aa2f7; --k-code-3: #9ece6a; }
+.d6.om .wp { background:
+  radial-gradient(60% 80% at 80% 110%, rgba(187,154,247,.28) 0%, rgba(187,154,247,0) 65%),
+  radial-gradient(50% 60% at 10% 0%, rgba(122,162,247,.22) 0%, rgba(122,162,247,0) 70%),
+  linear-gradient(180deg, #1a1b26, #13141c); }
+.d6.om .bar6 { height: 30px; padding: 0 12px; background: #1a1b26; color: #a9b1d6; font: 500 13px/1 "JetBrains Mono", monospace; }
+.d6.om .bar6 .ws { display: flex; align-items: center; gap: 12px; margin-left: 12px; }
+.d6.om .bar6 .ws b { width: 9px; height: 9px; background: #c0caf5; }
+.d6.om .bar6 .ws span { opacity: .75; }
+.d6.om .bar6 .om-logo svg { width: 15px; height: 15px; }
+.d6.om .bar6 .clock { position: absolute; left: 50%; translate: -50% 0; }
+.d6.om .bar6 .st { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.d6.om .bar6 svg { width: 15px; height: 15px; }
+/* Omarchy windows: square, no title bar, 2px inactive border, theme-accent active border */
+.d6.om .app { border-radius: 0; box-shadow: none; outline: 2px solid rgba(89,89,89,.67); outline-offset: -2px; }
+.d6.om .app > .tb { display: none; }
+.d6.om .app .ring { inset: 0; border-radius: 0; border: 2px solid #7aa2f7; box-shadow: none; }
+.d6.om .sil.ph .photo { filter: saturate(.85) brightness(.9); }
+
+/* ---------- keycaps ---------- */
+.keys6 { display: inline-flex; align-items: flex-end; gap: 8px; font: 700 20px/1 "Mona Sans", system-ui; color: #1b1d27; }
+.keys6 kbd { --press: 0; display: inline-grid; place-items: center; min-width: 54px; height: 54px; padding: 0 14px; border-radius: 12px; font: inherit;
+  background: linear-gradient(#ffffff, #eceef6); box-shadow: 0 calc(6px - 5px * var(--press)) 0 #b9bdd0, 0 calc(12px - 9px * var(--press)) 18px -6px rgba(0,0,0,.45);
+  transform: translateY(calc(5px * var(--press))); }
+.keys6 kbd.wide { min-width: 86px; font-size: 17px; }
+.keys6 kbd.mod { font-size: 24px; }
+.keys6 .plus { align-self: center; color: var(--on, #fff); opacity: .7; font-size: 18px; }
+
+/* still desktop pictures (phone, reduced motion, fork heads) */
+.still6 { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 10px; }
+.still6 > .in6 { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform-origin: 0 0; }
+.still6 .app { position: absolute; }
+.still6 .app.f6 .ring { opacity: 1; }
+
+/* kit .app clips its children, which hides the Mac focus border drawn outside the window; round the parts instead */
+.d6.mac .app { overflow: visible; }
+.d6.mac .app > .tb { border-radius: 16px 16px 0 0; }
+.d6.mac .app > .bd { border-radius: 0 0 16px 16px; }

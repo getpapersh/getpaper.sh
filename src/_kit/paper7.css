@@ -1,0 +1,17 @@
+/* The "Paper" colour theme as the page's only theme. Load after fork5.css and desks6.css.
+   The page also sets data-theme="light" on <html>, which keeps v5.css's dark-scheme token block
+   (:root:not([data-theme="light"])) from matching, so Paper holds in a dark system scheme too. */
+:root { color-scheme: light;
+  --field: #f2efe7; --on: #14151a; --on-dim: rgba(20,21,26,.72); --hi: #e2470f; --hi-text: #b53a0a;
+  --slab: #ffffff; --ink: #14151a; --dim: #5c5f6b; --rail-off: rgba(20,21,26,.4); }
+
+/* the parts drawn light-on-dark turn dark-on-light */
+.trunk, .trunk6, .way, .way .alt, .close, .fork .trunk { --k-cmd-bg: var(--ink); --k-cmd-ink: var(--field); --k-cmd-lbl: rgba(255,255,255,.14); }
+.pin { color: var(--field); }
+/* white on --hi is 4.08:1; one step darker in the same hue reaches AA (4.53:1) */
+.pin.done { background: #d5430e; color: #fff; }
+.keys6 kbd { box-shadow: 0 0 0 1px rgba(0,0,0,.14), 0 calc(6px - 5px * var(--press)) 0 #b9bdd0, 0 calc(12px - 9px * var(--press)) 18px -6px rgba(0,0,0,.3); }
+.undo { --k-cmd-bg: rgba(0,0,0,.06); --k-cmd-ink: var(--ink); --k-cmd-lbl: rgba(0,0,0,.08); }
+
+/* orange as text on the cream field needs a darker step to reach AA */
+.trunk6 .k-after, .fork .trunk .k-after, .close .k-after { color: var(--hi-text); }
