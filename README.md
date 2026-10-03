@@ -23,11 +23,13 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | --- | --- |
 | `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
 | `scripts/assemble-install.sh` | Replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
-| `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source lives outside this repo, in `paper-landing-concepts/v7-1-viewfinder` with `_kit/` and `fonts/`; rebuild the bundle by inlining them. |
-| `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0); served at `/licenses/`. |
+| `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source lives outside this repo, in `paper-landing-concepts/v7-1-viewfinder` with `_kit/` and `fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py <path>/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
+| `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. After a change to the hero, capture it again with `bun <path>/paper-landing-concepts/_tools/og.ts "$PWD/index.html" og.png`. |
+| `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
+| `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0), and `FONTS.txt` on the subsets; served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
-| `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html` and `_headers`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
+| `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html`, `og.png`, `_headers` and `licenses/`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
 | `site/` | Built, committed output to deploy; `site/install` is the served `/install`. |
 | `tests/run.sh`, `tests/stub.sh` | Stubbed tests of the served (built) script and the site build. |
 | `paperland/` | The Paperland installer and uninstaller inlined into `site/install`, its pinned release, and its own tests. See its README. |

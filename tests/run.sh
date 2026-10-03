@@ -855,11 +855,11 @@ mkdir -p "$case_dir"
 : > "$case_dir/log"
 sh "$root/scripts/build-site.sh" "$case_dir/site" > /dev/null
 check "committed site/ equals a fresh build" diff -r "$root/site" "$case_dir/site"
-for file in _headers index.html install; do check "site/ has $file" [ -f "$root/site/$file" ]; done
-for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt; do
+for file in _headers index.html install og.png; do check "site/ has $file" [ -f "$root/site/$file" ]; done
+for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 7 ]
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 9 ]
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"
@@ -886,6 +886,11 @@ check "the page no longer calls Paperland coming soon" fails grep -qiE 'Paperlan
 check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
 check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
 check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"
+check "the page's link preview is the served og.png" grep -qF '<meta property="og:image" content="https://getpaper.sh/og.png">' "$root/site/index.html"
+check "the page gives the link preview's size" \
+  sh -c "grep -qF '<meta property=\"og:image:width\" content=\"1200\">' '$root/site/index.html' && grep -qF '<meta property=\"og:image:height\" content=\"630\">' '$root/site/index.html'"
+check "the page asks for a large preview card" grep -qF '<meta name="twitter:card" content="summary_large_image">' "$root/site/index.html"
+check "og.png is a 1200x630 PNG" sh -c "file '$root/site/og.png' | grep -qF 'PNG image data, 1200 x 630'"
 check "the page announces copying to screen readers" grep -qF 'aria-live="polite"' "$root/site/index.html"
 check "no tracker IDs in served files" fails grep -Eq '(PAP|PAPER)-[0-9]' "$root/site/install" "$root/site/index.html"
 
