@@ -25,7 +25,11 @@ Paper is one scrolling workflow on two platforms: PaperMac on macOS and Paperlan
 
 ## Positioning
 
-Windows sit side by side on a horizontal strip that is wider than the screen. Moving focus scrolls the strip; windows are not shrunk into a grid and do not overlap. The same concepts, layout, labels and shortcuts on macOS and on Hyprland: a user who learns one does not relearn the other.
+Windows sit side by side in a scrolling Strip that can extend beyond the screen. Moving focus scrolls the Strip; windows are not shrunk into a grid and do not overlap. Paper uses shared terminology on macOS and Hyprland while keeping platform-specific capabilities explicit.
+
+Approved tagline: "Go beyond Mission Control. Unleash your desktop on an infinite canvas."
+
+Infinite Canvas is the feature name; "an infinite canvas" describes the experience in a sentence. Unlimited capacity is product intent until the corresponding behavior is verified. The tagline does not promise unbounded capacity or imply that PaperMac replaces native Mission Control.
 
 ## Operating Context
 
@@ -36,13 +40,27 @@ Windows sit side by side on a horizontal strip that is wider than the screen. Mo
 
 ## Capabilities and Constraints
 
-Shared concepts (both products): the scrolling strip per Desktop/workspace; focus moves left/right and the focused window is centered by default; window width presets (0.33, 0.5, 0.66, 0.9 of the screen); new windows open after the focused one; a minimap of the strip with Desktop pills; a keyboard window switcher (Option/Alt+Tab); Desktop/workspace pills in the menu bar or Omarchy bar with hover previews; named Desktops; a command-line interface.
+Shared concepts (both products): scrolling Strips within a Desktop; focus moves left/right and the focused window is centered by default; window width presets (0.33, 0.5, 0.66, 0.9 of the screen); new windows open after the focused one; a Minimap of the Strip with Desktop pills; a keyboard window switcher (Option/Alt+Tab); Desktop pills in the menu bar or Omarchy bar with hover previews; named Desktops; a command-line interface.
 
 PaperMac only or ahead today: Limelight (dims unfocused windows), optional focused-window border, typed search in the switcher across all Desktops, window snoozing, per-app rules, customizable shortcuts with a Ghost Keys overlay, a guided first-run lesson ("First Flow"), Sparkle updates.
 
-Paperland only or ahead today: full-display overview with Full/Icons/Timeline modes, Peek mode for the minimap, scratchpad.
+Paperland only or ahead today: full-display Overview with Full/Icons/Timeline modes, Peek mode for the Minimap, scratchpad.
 
-Terminology: "Desktop" vs "Workspace" wording is an open owner decision; prefer showing over labeling. PaperMac's Desktop labels use macOS words; Paperland's use Hyprland words.
+### Shared terminology
+
+- **Strip:** A scrolling band of window columns that move together.
+- **Canvas:** The surface containing Strips.
+- **Infinite Canvas:** The feature and product direction for a Canvas extending beyond the screen. Unlimited capacity remains intent until verified.
+- **Overview:** The zoomed-out browsing mode used to find, jump to, or rearrange windows where supported.
+- **Desktop:** A native macOS Space or Hyprland workspace. Keep Desktop and Strip distinct.
+- **Column:** A window column within a Strip.
+- **Stack:** Multiple windows grouped vertically in a Column.
+- **Window:** An individual application window.
+- **Minimap:** The compact navigation representation.
+
+Introduce the metaphors briefly: a Strip scrolls like ticker tape; Overview lets users scan their Desktop like a newspaper. Routine controls use the concrete names. These metaphors do not imply automatic scrolling, editorial reflow, or new capabilities. Multiple Strips above and below one another describe the Canvas direction; existing platform specifications and implemented behavior govern availability.
+
+Use Desktop in product-facing prose, while preserving native platform wording when describing macOS Spaces or Hyprland workspaces. UI Strip still maps to `lane` in existing CLI/API/config identifiers, wire fields and persisted data; this vocabulary change does not rename those contracts.
 
 Page constraints: self-hosted fonts and images only; no third-party requests (no CDNs, hosted fonts, analytics, trackers). Light and dark. Works from 320 px to wide desktop. Accessible: keyboard reachable, visible focus, reduced motion respected.
 
@@ -60,7 +78,7 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 
 ## Product Principles
 
-1. Show the strip, then say it: the mechanism is visual and should be seen before it is explained.
+1. Show the Strip, then say it: the mechanism is visual and should be seen before it is explained.
 2. One workflow, two platforms: the page treats macOS and Hyprland as equals.
 3. Honest alpha: state what is real today and mark what is coming.
 4. The command is the call to action: every path ends at a copyable, readable command.
