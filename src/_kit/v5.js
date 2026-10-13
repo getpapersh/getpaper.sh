@@ -4,13 +4,13 @@
   const cmd = Fork5.cmd, CURL = Fork5.CURL;
   V.COPIED = "Copied. Paste it in a terminal. It installs PaperMac on macOS or Paperland on Omarchy.";
   V.MAC_EXTRA = " PaperMac will then ask for Accessibility access.";
-  V.LEDE = "If you've used PaperWM or niri, you already know how it works. Every window stays a glance away.";
-  V.CAPS = ["New windows open beside your current one.", "Nothing shrinks or overlaps.", "Four widths, no dragging.", "The same strip on macOS and Omarchy."];
+  V.LEDE = "Windows scroll together in a Strip, like ticker tape. On Omarchy, zoom out in Overview to scan your Desktop like a newspaper and jump to a window.";
+  V.CAPS = ["New windows open beside your current one in the Strip.", "Nothing shrinks or overlaps.", "Four widths, no dragging.", "Scrolling Strips on macOS and Omarchy."];
 
   V.heroHTML = () => `
     <p class="cat">A scrolling window manager for macOS and Linux</p>
     <h1 id="title">Paper</h1>
-    <p class="tag">Your desktop is wider than your screen.</p>
+    <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
     ${cmd(CURL, "after-hero")}
     <p class="k-after" id="after-hero" data-mac-extra>${V.COPIED}</p>
     <p class="links"><a href="/install">Read the script</a><a href="#uninstall">Uninstall</a><span class="alpha">Alpha</span></p>`;
@@ -20,8 +20,8 @@
   // a platform-only feature names its platform; the mark alone is too small to read
   const on = (p) => `<span class="on">${LOGOS[p === "mac" ? "apple" : "omarchy"]}${p === "mac" ? "macOS" : "Omarchy"}</span>`;
   V.GROUPS = [
-    ["Get around", [["minimap", "The whole strip at a glance", ""], ["pills", "Hover the bar to preview", ""]]],
-    ["Find a window", [["overview", "See every window at once", on("om")], ["switcher", "Type to find any window", on("mac")]]],
+    ["Get around", [["minimap", "Minimap: the whole Strip at a glance", ""], ["pills", "Preview a Desktop from the bar", ""]]],
+    ["Find a window", [["overview", "Overview: see every window at once", on("om")], ["switcher", "Type to find any window", on("mac")]]],
     ["Focus on one", [["limelight", "Dim everything else", on("mac")], ["snooze", "Snooze a window for later", on("mac")]]],
   ];
   V.groupHTML = ([name, tiles], i) => `<div class="group"><h3><span class="no">0${i + 1}</span>${name}</h3><div class="tiles">${tiles.map(([k, cap, plat]) => `<figure class="tile" data-tile="${k}"><figcaption><span>${cap}</span>${plat}</figcaption></figure>`).join("")}</div></div>`;

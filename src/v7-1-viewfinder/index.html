@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Paper: a scrolling window manager for macOS and Linux</title>
 <meta property="og:title" content="Paper: a scrolling window manager for macOS and Linux">
-<meta property="og:description" content="Your desktop is wider than your screen.">
+<meta property="og:description" content="Go beyond Mission Control. Unleash your desktop on an infinite canvas.">
 <meta property="og:image" content="https://getpaper.sh/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Paper: Your desktop is wider than your screen. curl -fsSL https://getpaper.sh/install | sh">
+<meta property="og:image:alt" content="Paper: Go beyond Mission Control. Unleash your desktop on an infinite canvas. curl -fsSL https://getpaper.sh/install | sh">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="description" content="Paper is a scrolling window manager for macOS and Linux. Your desktop is wider than your screen.">
+<meta name="description" content="Paper is a scrolling window manager for macOS and Linux. Go beyond Mission Control. Unleash your desktop on an infinite canvas.">
 <link rel="stylesheet" href="../_kit/kit.css">
 <link rel="stylesheet" href="../_kit/v5.css">
 <link rel="stylesheet" href="../_kit/fork5.css">
@@ -104,7 +104,7 @@
 <script>
 // captions; the reduced-motion list below is built from the same lines
 const C = { land: V5.CAPS[0], none: V5.CAPS[1], drag: "Drag an edge to any width.", full: "Take the whole screen when you need it.", rest: "The rest waits just off screen.",
-  walk: "Step window to window from the keyboard.", swipe: "Swipe and the whole strip scrolls.", pair: V5.CAPS[3], mini: "The minimap shows where you are." };
+  walk: "Step window to window from the keyboard.", swipe: "Swipe and the whole Strip scrolls.", pair: V5.CAPS[3], mini: "The Minimap shows where you are in the Strip." };
 document.querySelector(".k-beats").innerHTML = [C.land, C.none, C.drag, C.full, C.rest, C.walk + " (⌘⌥← on macOS, Super+← on Omarchy)", C.swipe + " (hold ⌘⌥ on macOS)", C.pair, C.mini].map((x) => `<li>${x}</li>`).join("");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches, phone0 = innerWidth <= 700;
 // desktop with motion: the install section hangs off the story's two screens
