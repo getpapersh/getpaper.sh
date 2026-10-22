@@ -116,10 +116,22 @@ h1:focus { outline: none; }
 .bad .bad-only { display: block; }
 .bad .good-only { display: none; }
 p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1.5; }
-.mail { font-weight: 750; color: var(--ink); user-select: all; }
 @media (max-width: 700px) { .wrap { width: calc(100% - 32px); } .slip { padding: 30px 20px; } }
 
 .keybox { overflow-wrap: anywhere; user-select: all; }
+</style>
+<style>
+a[href^="mailto:"] {
+  color: var(--pro-text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: .18em;
+}
+a[href^="mailto:"]:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
 </style>
 </head>
 <body>
@@ -138,7 +150,7 @@ p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1
       <p class="how">Then open PaperMac › Settings › License and paste.</p>
       <p class="note">Your receipt email has this key too.</p>
     </div>
-    <p class="bad-only">Open the button in your receipt email again, and if this still shows, write to <span class="mail">billing@getpaper.sh</span> for your key.</p>
+    <p class="bad-only">Open the button in your receipt email again, and if this still shows, write to <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> for your key.</p>
   </section>
 </main>
 </body>

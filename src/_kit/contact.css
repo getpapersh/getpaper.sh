@@ -1,0 +1,11 @@
+a[href^="mailto:"] {
+  color: var(--pro-text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: .18em;
+}
+a[href^="mailto:"]:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
