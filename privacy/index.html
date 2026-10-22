@@ -189,6 +189,9 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .brand img { width: 30px; height: 30px; }
 .top nav { display: flex; align-items: center; gap: 24px; margin-left: auto; font-weight: 650; font-size: 15px; }
 .top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:hover { color: var(--ink); }
+.buy-notice { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.45; }
+.top.with-buy-notice { display: grid; grid-template-columns: 1fr auto; gap: 4px 28px; height: auto; padding-block: 14px 8px; }
+.top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
 
 
 .hero { padding-top: clamp(8px, 2vh, 28px); }
@@ -266,6 +269,7 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .slip .price s { text-decoration-thickness: 2px; }
 .slip .btn.pro { width: 100%; margin-top: 18px; min-height: 54px; font-size: 17px; }
 .slip .to { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; }
+.slip .buy-notice { margin-top: 8px; text-align: center; }
 .slip .trial { margin: 18px 0 0; font-size: 15px; font-weight: 650; line-height: 1.45; }
 .slip hr { margin: 22px 0; border: 0; border-top: 1.5px dashed var(--line); }
 .terms { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; font-size: 14px; line-height: 1.4; }
