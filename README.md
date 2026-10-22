@@ -27,7 +27,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
-| `terms/index.html`, `privacy/index.html` | Minimal legal placeholders, built from `src/terms/` and `src/privacy/`, until the legal pages are ready. |
+| `terms/index.html`, `privacy/index.html` | Terms and privacy policy, built from `src/terms/` and `src/privacy/`. |
 | `media/papermac/` | Three real-app recordings with synthetic documents, plus JPEG posters. Delivery clips are 1920×1200, 8–12 seconds, H264 without audio. Native-resolution masters stay outside the repository. |
 | `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0), and `FONTS.txt` on the subsets; served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
@@ -176,8 +176,8 @@ running the suites below; the default build's committed-source guard stays intac
 QR, generated inline with Segno during bundling. It currently points to the
 owner-approved Test-mode checkout; replace it before live sales. The EARLY code
 takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
-up to five active Macs per person. Terms and Privacy remain placeholders pending
-owner review. Public activation also requires the hosting redirect to
+up to five active Macs per person. The final legal pages require owner and attorney
+review before deployment. Public activation also requires the hosting redirect to
 preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
 substitution check. Local files do not establish deployed routing, byte-range
 support or Safari playback.

@@ -20,10 +20,14 @@ class Page(HTMLParser):
     def __init__(self, text):
         super().__init__()
         self.tags = []
+        self.texts = []
         self.feed(text)
 
     def handle_starttag(self, tag, attributes):
         self.tags.append((tag, dict(attributes)))
+
+    def handle_data(self, data):
+        self.texts.append(data)
 
 
 for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/index.html', 'privacy/index.html']:
@@ -74,7 +78,15 @@ assert product.count(buy_notice) == 4
 assert 'Not included in Free or Pro.' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
-    assert 'Coming before sales open' in (site / route / 'index.html').read_text()
+    legal_html = (site / route / 'index.html').read_text()
+    legal_body = re.search(r'<main\b[^>]*>(.*?)</main>', legal_html, re.S).group(1)
+    legal_text = ' '.join(Page(legal_body).texts)
+    assert 'Jason Martin' in legal_text
+    assert '12337 Seal Beach Blvd #1010, Seal Beach, CA 90740, United States' in legal_text
+    assert '[' not in legal_text and ']' not in legal_text
+    assert 'Coming before sales open' not in legal_html
+assert '<h2>30-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
+assert '<table>' in (site / 'privacy/index.html').read_text()
 main = (site / 'index.html').read_text()
 assert 'href="/mac/">Mac</a>' in main and 'href="/mac/">PaperMac</a>' in main
 
