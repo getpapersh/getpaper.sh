@@ -12,3 +12,25 @@
 /
   Cache-Control: public, max-age=300
   X-Content-Type-Options: nosniff
+
+/mac
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff
+
+/mac/
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff
+
+/mac/activate/
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+
+/mac/activate/*
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+
+/media/papermac/*
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds the deployable site/ from its committed sources: install (served at /install,
 # with the Paperland installer from paperland/ inlined by scripts/assemble-install.sh),
-# index.html, og.png (the page's link preview), _headers (Cloudflare's response headers)
+# index.html, mac/, media/, og.png (the page's link preview), _headers (Cloudflare's response headers)
 # and licenses/ (the page's font and logo licences, served at /licenses/). site/ is
 # committed too, so a deployed file always maps to a commit. wrangler.jsonc deploys site/;
 # the build checks that it still points there.
@@ -12,7 +12,7 @@ die() { printf 'build-site: %s\n' "$*" >&2; exit 1; }
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/site}
-sources="install index.html og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
+sources="install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
 
 if [ "$out" = "$root/site" ]; then
   for source in $sources; do
@@ -42,4 +42,12 @@ cp -R "$root/licenses" "$out/licenses.tmp"
 chmod 644 "$out/licenses.tmp"/*
 rm -rf "$out/licenses"
 mv "$out/licenses.tmp" "$out/licenses"
-echo "Built $out/install, $out/index.html, $out/og.png, $out/_headers and $out/licenses/"
+for tree in mac media terms privacy; do
+  rm -rf "$out/$tree.tmp"
+  cp -R "$root/$tree" "$out/$tree.tmp"
+  find "$out/$tree.tmp" -type d -exec chmod 755 {} +
+  find "$out/$tree.tmp" -type f -exec chmod 644 {} +
+  rm -rf "$out/$tree"
+  mv "$out/$tree.tmp" "$out/$tree"
+done
+echo "Built $out/install, $out/index.html, $out/mac/, $out/media/, $out/terms/, $out/privacy/, $out/og.png, $out/_headers and $out/licenses/"

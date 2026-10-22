@@ -1,0 +1,76 @@
+@font-face { font-family: "Paper Sans"; src: url("../fonts/MonaSans.ttf") format("truetype"); font-weight: 200 900; font-stretch: 75% 125%; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/JetBrainsMono.ttf") format("truetype"); font-weight: 100 800; font-display: swap; }
+
+:root {
+  color-scheme: light;
+  --paper: #f2efe7; --paper-2: #e8e4d8; --slab: #fffdf8; --ink: #14151a; --ink-2: #55585f; --line: rgba(20,21,26,.14);
+  --hi: #e2470f; --hi-text: #b53a0a; --pro: #0965d0; --pro-hover: #0857b5; --pro-ink: #fff; --pro-text: #0352c5;
+  --wall: radial-gradient(70% 90% at 12% 108%, #ff9a62 0%, rgba(255,154,98,0) 60%), radial-gradient(60% 70% at 92% -6%, #8b7dff 0%, rgba(139,125,255,0) 62%),
+          radial-gradient(80% 60% at 60% 70%, rgba(38,104,255,.85) 0%, rgba(38,104,255,0) 70%), linear-gradient(165deg, #2546d8 0%, #16237e 55%, #0b0f3d 100%);
+  --mbar: rgba(255,255,255,.55); --mbar-ink: #14151a; --bezel: #0c0d12;
+  --win: #ffffff; --win-bar: #f3f3f5; --win-line: #dcdde3; --win-ink: #14151a; --win-soft: #eef0f3; --term: #161821;
+  --code1: #d1006b; --code2: #0b71e4; --code3: #14804f; --ring: #ffffff; --sel: #ffb020;
+  --map-bar: rgba(20,21,26,.16); --map-focus: #14151a; --map-view: #e2470f; --out-o: .32;
+  --done-bg: #c2410c; --done-ink: #fff;
+}
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --paper: #121317; --paper-2: #1a1b21; --slab: #1d1e24; --ink: #f2efe7; --ink-2: #b9b5ab; --line: rgba(242,239,231,.14);
+  --hi: #ff7a45; --hi-text: #ff8a5c; --pro: #0965d0; --pro-hover: #0b71e4; --pro-ink: #fff; --pro-text: #79b6ff;
+  --mbar: rgba(18,19,24,.55); --mbar-ink: #f2efe7;
+  --win: #24262e; --win-bar: #2c2e37; --win-line: #3c3f4a; --win-ink: #ebe8e1; --win-soft: #2f313b; --term: #101118;
+  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45; --out-o: .26;
+  --done-bg: #ff7a45; --done-ink: #14151a;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-mode]) {
+  color-scheme: dark;
+  --paper: #121317; --paper-2: #1a1b21; --slab: #1d1e24; --ink: #f2efe7; --ink-2: #b9b5ab; --line: rgba(242,239,231,.14);
+  --hi: #ff7a45; --hi-text: #ff8a5c; --pro: #0965d0; --pro-hover: #0b71e4; --pro-ink: #fff; --pro-text: #79b6ff;
+  --mbar: rgba(18,19,24,.55); --mbar-ink: #f2efe7;
+  --win: #24262e; --win-bar: #2c2e37; --win-line: #3c3f4a; --win-ink: #ebe8e1; --win-soft: #2f313b; --term: #101118;
+  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45; --out-o: .26;
+  --done-bg: #ff7a45; --done-ink: #14151a;
+} }
+
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; display: grid; grid-template-rows: auto 1fr; background: var(--paper); color: var(--ink); font: 550 17px/1.5 "Paper Sans", system-ui, sans-serif; }
+::selection { background: var(--done-bg); color: var(--done-ink); }
+:focus-visible { outline: 3px solid var(--hi); outline-offset: 3px; border-radius: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { width: min(1240px, calc(100% - 48px)); margin-inline: auto; }
+.top { display: flex; align-items: center; height: 68px; }
+.brand { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; }
+.brand img { width: 30px; height: 30px; }
+main { display: grid; place-items: center; padding: 24px 0 72px; }
+.slip { width: min(560px, 100%); padding: 40px 34px; --tooth: 9px; background: var(--slab); color: var(--ink); filter: drop-shadow(0 22px 26px rgba(20,21,26,.16));
+  -webkit-mask: radial-gradient(var(--tooth) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--tooth) * 2.2) 51% repeat-x, radial-gradient(var(--tooth) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--tooth) * 2.2) 51% repeat-x;
+  mask: radial-gradient(var(--tooth) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--tooth) * 2.2) 51% repeat-x, radial-gradient(var(--tooth) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--tooth) * 2.2) 51% repeat-x; }
+.who { display: flex; align-items: center; gap: 14px; }
+.who img { width: 52px; height: 52px; }
+.who b { display: block; font-weight: 900; font-stretch: 118%; font-size: 24px; line-height: 1; letter-spacing: -.02em; }
+.who span { display: block; margin-top: 4px; color: var(--ink-2); font-size: 14px; font-weight: 650; }
+h1 { margin: 22px 0 0; font-weight: 900; font-stretch: 125%; font-size: clamp(34px, 4.6vw, 52px); line-height: .95; letter-spacing: -.035em; }
+h1:focus { outline: none; }
+.keybox { margin: 26px 0 0; padding: 18px; border-radius: 12px; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); font: 600 clamp(17px, 2.2vw, 21px)/1.45 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .01em; overflow-wrap: anywhere; user-select: all; }
+.acts { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.btn { flex: 1 1 200px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 20px; border: 0; border-radius: 12px; cursor: pointer;
+  font: 750 16px/1 "Paper Sans", system-ui; text-decoration: none; transition: background .15s, transform .15s; }
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn.ink { background: var(--ink); color: var(--paper); }
+.btn.ink:hover { background: color-mix(in srgb, var(--ink) 86%, var(--hi)); }
+.btn.pro { background: var(--pro); color: var(--pro-ink); box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--pro) 80%, black); }
+.btn.pro:hover { background: var(--pro-hover); }
+.btn.done { background: var(--done-bg); color: var(--done-ink); }
+.how { margin: 18px 0 0; font-weight: 700; font-size: 17px; }
+.note { margin: 22px 0 0; padding-top: 18px; border-top: 1.5px dashed var(--line); font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.bad-only { display: none; }
+.bad .bad-only { display: block; }
+.bad .good-only { display: none; }
+p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1.5; }
+.mail { font-weight: 750; color: var(--ink); user-select: all; }
+@media (max-width: 700px) { .wrap { width: calc(100% - 32px); } .slip { padding: 30px 20px; } }
+
+.keybox { overflow-wrap: anywhere; user-select: all; }
