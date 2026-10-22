@@ -13,12 +13,19 @@ page's HTML, CSS and JS contain (the page renders most of its copy from script).
 CSS. Its copyright, RFN declaration and licence records stay as they are. JetBrains Mono
 reserves no name and keeps its own.
 """
-import base64, io, pathlib, re, sys
+import base64, html as html_lib, io, pathlib, re, sys
 from fontTools import subset
 from fontTools.ttLib import TTFont
 
 page = pathlib.Path(sys.argv[1]).resolve()
 html = page.read_text()
+if "{{CHECKOUT_URL}}" in html:
+    checkout = (page.parent / "checkout-url.txt").read_text().strip()
+    html = html.replace("{{CHECKOUT_URL}}", html_lib.escape(checkout, quote=True))
+    if "{{CHECKOUT_QR}}" in html:
+        import segno
+        html = html.replace("{{CHECKOUT_QR}}", segno.make(checkout, error="m", micro=False).svg_inline(
+            border=4, omitsize=True, title="QR code for the PaperMac Pro checkout"))
 html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: "<style>\n" + (page.parent / m.group(1)).read_text() + "</style>", html)
 html = re.sub(r'<script src="([^"]+)"></script>', lambda m: "<script>\n" + (page.parent / m.group(1)).read_text() + "</script>", html)
 

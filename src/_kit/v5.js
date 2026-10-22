@@ -13,7 +13,7 @@
     <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
     ${cmd(CURL, "after-hero")}
     <p class="k-after" id="after-hero" data-mac-extra>${V.COPIED}</p>
-    <p class="links"><a href="/install">Read the script</a><a href="#uninstall">Uninstall</a><span class="alpha">Alpha</span></p>`;
+    <p class="links"><a href="/mac/">Mac</a><a href="/install">Read the script</a><a href="#uninstall">Uninstall</a><span class="alpha">Alpha</span></p>`;
 
   V.forkHTML = (screens) => Fork5.html({ title: "Install", copied: V.COPIED, trunk: "This command detects your system.", rejoin: "Open a few windows and watch them line up." }, screens);
 

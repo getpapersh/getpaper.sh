@@ -26,10 +26,13 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source is `src/v7-1-viewfinder/index.html` with `src/_kit/` and `src/fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
 | `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
+| `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
+| `terms/index.html`, `privacy/index.html` | Minimal legal placeholders, built from `src/terms/` and `src/privacy/`, until the legal pages are ready. |
+| `media/papermac/` | Three real-app recordings with synthetic documents, plus JPEG posters. Delivery clips are 1920×1200, 8–12 seconds, H264 without audio. Native-resolution masters stay outside the repository. |
 | `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0), and `FONTS.txt` on the subsets; served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
-| `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html`, `og.png`, `_headers` and `licenses/`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
+| `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html`, `mac/`, `media/`, `terms/`, `privacy/`, `og.png`, `_headers` and `licenses/`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
 | `site/` | Built, committed output to deploy; `site/install` is the served `/install`. |
 | `tests/run.sh`, `tests/stub.sh` | Stubbed tests of the served (built) script and the site build. |
 | `paperland/` | The Paperland installer and uninstaller inlined into `site/install`, its pinned release, and its own tests. See its README. |
@@ -153,6 +156,31 @@ minimum), and `notarized` to be a JSON boolean. `build` is not used. Parsing use
 stub on Macs without the Command Line Tools.
 
 ## Build and test
+
+Rebuild the five self-contained pages after editing their sources:
+
+```sh
+uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html
+mkdir -p mac/activate terms privacy
+uvx --with segno --from fonttools python scripts/bundle-page.py src/mac/index.html > mac/index.html
+uvx --from fonttools python scripts/bundle-page.py src/mac-activate/index.html > mac/activate/index.html
+uvx --from fonttools python scripts/bundle-page.py src/terms/index.html > terms/index.html
+uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > privacy/index.html
+sh scripts/build-site.sh /tmp/getpaper-site-preview
+```
+
+The preview output has 25 entries including directories. To test an uncommitted
+change, copy that explicit preview output into this worktree's `site/` before
+running the suites below; the default build's committed-source guard stays intact.
+`src/mac/checkout-url.txt` is the single input for all Buy links and the phone
+QR, generated inline with Segno during bundling. It currently points to the
+owner-approved Test-mode checkout; replace it before live sales. The EARLY code
+takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
+up to five active Macs per person. Terms and Privacy remain placeholders pending
+owner review. Public activation also requires the hosting redirect to
+preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
+substitution check. Local files do not establish deployed routing, byte-range
+support or Safari playback.
 
 ```sh
 sh tests/run.sh                            # stubbed: every case pipes the built script into sh, like curl | sh

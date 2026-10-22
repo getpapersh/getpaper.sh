@@ -859,7 +859,8 @@ for file in _headers index.html install og.png; do check "site/ has $file" [ -f 
 for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 9 ]
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 25 ]
+check "Mac pages, local media and activation privacy contract" python3 "$root/tests/mac-pages.py" "$root/site"
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"

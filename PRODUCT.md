@@ -74,7 +74,7 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 ## Evidence on Hand
 
 - A PaperMac app icon exists (`papermac/Resources/AppIcon.png`).
-- No product screenshots, recordings, testimonials, user counts, benchmarks or press exist for the page. Do not invent any. Demonstrations may be built as clearly synthetic mock UI.
+- The Mac page includes three recordings of the real app with synthetic document windows: focus scrolling, Overview and the Minimap, and three uneven Strips with a three-window Stack. Testimonials, user counts, benchmarks and press remain unavailable. Illustrative diagrams stay distinct from recordings.
 
 ## Product Principles
 
