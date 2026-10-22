@@ -176,8 +176,9 @@ running the suites below; the default build's committed-source guard stays intac
 QR, generated inline with Segno during bundling. It currently points to the
 owner-approved Test-mode checkout; replace it before live sales. The EARLY code
 takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
-up to five active Macs per person. The final legal pages require owner and attorney
-review before deployment. Public activation also requires the hosting redirect to
+up to five active Macs per person. The final legal text has completed the owner-approved AI consensus review.
+Before deployment, replace the Test checkout, verify that refunds disable keys,
+and check EU/UK digital-content withdrawal consent at checkout. Public activation also requires the hosting redirect to
 preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
 substitution check. Local files do not establish deployed routing, byte-range
 support or Safari playback.

@@ -75,6 +75,8 @@ assert buy_links == [checkout] * 3
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
 assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
 assert product.count(buy_notice) == 4
+download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
+assert product.count(download_notice) == 2
 assert 'Not included in Free or Pro.' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
@@ -87,6 +89,7 @@ for route in ['terms', 'privacy']:
     assert 'Coming before sales open' not in legal_html
 assert '<h2>30-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
 assert '<table>' in (site / 'privacy/index.html').read_text()
+assert 'only while it helps us improve PaperMac' in (site / 'privacy/index.html').read_text()
 main = (site / 'index.html').read_text()
 assert 'href="/mac/">Mac</a>' in main and 'href="/mac/">PaperMac</a>' in main
 
