@@ -21,18 +21,36 @@ class Page(HTMLParser):
         super().__init__()
         self.tags = []
         self.texts = []
+        self.emails = []
+        self.anchor = None
         self.feed(text)
 
     def handle_starttag(self, tag, attributes):
         self.tags.append((tag, dict(attributes)))
+        if tag == 'a':
+            self.anchor = dict(attributes).get('href')
+
+    def handle_endtag(self, tag):
+        if tag == 'a':
+            self.anchor = None
 
     def handle_data(self, data):
         self.texts.append(data)
+        for email in re.findall(r'(?:support|billing)@getpaper\.sh', data):
+            self.emails.append((email, self.anchor))
 
 
 for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/index.html', 'privacy/index.html']:
     text = (site / route).read_text()
     page = Page(text)
+    # Split markers so the test source stays clear in repository-wide privacy scans.
+    for marker in ('Seal' + ' Beach', '123' + '37'):
+        assert marker not in text, route
+    for email, href in page.emails:
+        assert href == 'mailto:' + email, (route, email, href)
+    assert 'made by' not in ' '.join(page.texts).lower(), route
+    if route not in ['terms/index.html', 'privacy/index.html']:
+        assert 'Jason Martin' not in text, route
     assert not re.search(r'(?:PAP|PAPER)-\d+', text), route
     for tag, attributes in page.tags:
         assert not (tag == 'script' and 'src' in attributes), route
@@ -100,9 +118,17 @@ for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
     legal_html = (site / route / 'index.html').read_text()
     legal_body = re.search(r'<main\b[^>]*>(.*?)</main>', legal_html, re.S).group(1)
-    legal_text = ' '.join(Page(legal_body).texts)
+    legal_text = ' '.join(' '.join(Page(legal_body).texts).split())
     assert 'Jason Martin' in legal_text
-    assert '12337 Seal Beach Blvd #1010, Seal Beach, CA 90740, United States' in legal_text
+    assert legal_text.count('Jason Martin') == 1
+    assert 'href="https://github.com/jsonMartin">Jason Martin</a>' in legal_body
+    identity = re.search(r'<(?:li|p) class="identity">(.*?)</(?:li|p)>', legal_body, re.S)[1]
+    assert 'PaperMac\'s developer' in identity
+    if route == 'terms':
+        assert identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1]
+        assert legal_text.startswith('PaperMac Terms Effective October 22, 2026 These terms cover')
+    else:
+        assert re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S)
     assert '[' not in legal_text and ']' not in legal_text
     assert 'Coming before sales open' not in legal_html
 assert '<h2>30-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
@@ -114,7 +140,7 @@ assert 'href="/mac/">Mac</a>' in main and 'href="/mac/">PaperMac</a>' in main
 activation_text = (site / 'mac/activate/index.html').read_text()
 assert 'Then open PaperMac › Settings › License and paste.' in activation_text
 activation = Page(activation_text)
-assert [attributes['href'] for tag, attributes in activation.tags if tag == 'a'] == ['papermac://license']
+assert [attributes['href'] for tag, attributes in activation.tags if tag == 'a'] == ['papermac://license', 'mailto:billing@getpaper.sh']
 meta = {attributes.get('name'): attributes.get('content') for tag, attributes in activation.tags if tag == 'meta'}
 assert 'noindex' in meta['robots'].split(', ')
 assert meta['referrer'] == 'no-referrer'

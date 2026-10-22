@@ -70,7 +70,6 @@ h1:focus { outline: none; }
 .bad .bad-only { display: block; }
 .bad .good-only { display: none; }
 p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1.5; }
-.mail { font-weight: 750; color: var(--ink); user-select: all; }
 @media (max-width: 700px) { .wrap { width: calc(100% - 32px); } .slip { padding: 30px 20px; } }
 
 .keybox { overflow-wrap: anywhere; user-select: all; }

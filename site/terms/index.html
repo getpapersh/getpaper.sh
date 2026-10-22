@@ -422,6 +422,21 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 .legal table { width: 100%; min-width: 40rem; border-collapse: collapse; text-align: left; font-size: 15px; line-height: 1.5; }
 .legal th, .legal td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .legal th { font-weight: 750; }
+
+.legal .identity { color: var(--ink-2); font-size: 14px; font-weight: 550; }
+</style>
+<style>
+a[href^="mailto:"] {
+  color: var(--pro-text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: .18em;
+}
+a[href^="mailto:"]:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
 </style>
 </head>
 <body>
@@ -429,9 +444,9 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 <main class="wrap legal">
 <h1>PaperMac Terms</h1>
 <p>Effective October 22, 2026</p>
-<p>PaperMac is made by Jason Martin, 12337 Seal Beach Blvd #1010, Seal Beach, CA 90740, United States ("we", "us"). These terms cover the free version and PaperMac Pro. By buying, installing or using PaperMac, you agree to them.</p>
+<p>These terms cover the free version and PaperMac Pro. By buying, installing or using PaperMac, you agree to them.</p>
 <h2>30-day refunds, for any reason</h2>
-<p>If PaperMac Pro isn't right for you, email billing@getpaper.sh within 30 days of purchase. Include your order number or purchase email if you have it. You get a full refund, and we won't ask why.</p>
+<p>If PaperMac Pro isn't right for you, email <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> within 30 days of purchase. Include your order number or purchase email if you have it. You get a full refund, and we won't ask why.</p>
 <p>When we refund you, your Pro license ends and we deactivate its key. You can keep using the free version.</p>
 <p>This refund is in addition to any cancellation rights the law gives you.</p>
 <h2>Your license</h2>
@@ -483,7 +498,8 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 <li><strong>Governing law.</strong> California law governs these terms, and disputes go to the state or federal courts in California. If you're a consumer, you can also bring a claim where you live, you keep that place's consumer protections, and we'll only bring a claim against you where you live.</li>
 <li><strong>Third-party software.</strong> PaperMac includes open-source components, which are covered by their own licenses.</li>
 <li><strong>Trademarks.</strong> PaperMac is not affiliated with or endorsed by Apple. Mac and macOS are trademarks of Apple Inc.</li>
-<li><strong>Contact.</strong> Email support@getpaper.sh for help with the app, and billing@getpaper.sh for purchases and refunds.</li>
+<li><strong>Contact.</strong> Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a> for help with the app, and <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> for purchases and refunds.</li>
+<li class="identity">Who "we" are. PaperMac's developer, <a href="https://github.com/jsonMartin">Jason Martin</a>.</li>
 </ul>
 </main>
 <footer><div class="wrap"><a class="brand" href="/">Paper</a><nav aria-label="Legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></nav><span>Help with the app: <a href="mailto:support@getpaper.sh">support@getpaper.sh</a></span></div></footer>

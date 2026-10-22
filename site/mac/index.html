@@ -426,6 +426,21 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 .legal table { width: 100%; min-width: 40rem; border-collapse: collapse; text-align: left; font-size: 15px; line-height: 1.5; }
 .legal th, .legal td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .legal th { font-weight: 750; }
+
+.legal .identity { color: var(--ink-2); font-size: 14px; font-weight: 550; }
+</style>
+<style>
+a[href^="mailto:"] {
+  color: var(--pro-text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: .18em;
+}
+a[href^="mailto:"]:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
 </style>
 </head>
 <body>
