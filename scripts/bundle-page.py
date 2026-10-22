@@ -21,6 +21,10 @@ page = pathlib.Path(sys.argv[1]).resolve()
 html = page.read_text()
 if "{{CHECKOUT_URL}}" in html:
     checkout = (page.parent / "checkout-url.txt").read_text().strip()
+    sales_mode = "off" if checkout == "off" else "url"
+    html = re.sub(r"<!-- sales:(off|url) -->(.*?)<!-- /sales:\1 -->",
+                  lambda match: match[2] if match[1] == sales_mode else "", html, flags=re.S)
+    html = html.replace("{{SALES_MODE}}", sales_mode)
     html = html.replace("{{CHECKOUT_URL}}", html_lib.escape(checkout, quote=True))
     if "{{CHECKOUT_QR}}" in html:
         import segno

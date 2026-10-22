@@ -172,13 +172,17 @@ sh scripts/build-site.sh /tmp/getpaper-site-preview
 The preview output has 25 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
-`src/mac/checkout-url.txt` is the single input for all Buy links and the phone
-QR, generated inline with Segno during bundling. It currently points to the
-owner-approved Test-mode checkout; replace it before live sales. The EARLY code
+`src/mac/checkout-url.txt` is the single sales-mode input. The committed default
+is `off`: trial actions link to the install section, Buy buttons and their Terms
+notices remain visible but muted, and the phone checkout frame has no QR code.
+Disabled Buy buttons explain that buying opens during the beta. No Lemon Squeezy
+URL is emitted in the product page. A checkout URL restores the Buy links and
+inline Segno QR; use the verified live checkout before taking payments. EARLY
 takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
-up to five active Macs per person. The final legal text has completed the owner-approved AI consensus review.
-Before deployment, replace the Test checkout, verify that refunds disable keys,
-and check EU/UK digital-content withdrawal consent at checkout. Public activation also requires the hosting redirect to
+up to five active Macs per person. The final legal text completed the
+owner-approved AI consensus review. Trial-only launch can precede sales; before
+enabling payments, verify refund key deactivation and EU/UK digital-content
+withdrawal consent at checkout. Public activation also requires the hosting redirect to
 preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
 substitution check. Local files do not establish deployed routing, byte-range
 support or Safari playback.

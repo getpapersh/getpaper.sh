@@ -67,14 +67,32 @@ for video in videos:
     assert 'autoplay' not in video
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
-assert 'QR code for the PaperMac Pro checkout' in product
-assert '{{CHECKOUT_' not in product
+assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
-buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
-assert buy_links == [checkout] * 3
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
 assert product.count(buy_notice) == 4
+if checkout == 'off':
+    assert 'lemonsqueezy' not in product.lower()
+    assert 'QR code for the PaperMac Pro checkout' not in product
+    assert '<svg class="segno"' not in product
+    assert 'class="qr-placeholder"' in product
+    assert 'class="phone sales-unavailable"' in product
+    trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
+    assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
+    assert product.count('Try Pro free for 14 days') == 3
+    buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
+    assert len(buys) == 3
+    for attrs in buys:
+        assert 'disabled' in attrs and 'href' not in attrs
+        description = attrs['aria-describedby']
+        assert f'<p class="sales-closed" id="{description}">Buying Pro opens during the beta</p>' in product
+else:
+    assert 'QR code for the PaperMac Pro checkout' in product
+    assert 'trial-cta"' not in product
+    assert 'class="qr-placeholder"' not in product
+    buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
+    assert buy_links == [checkout] * 3
+    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Not included in Free or Pro.' in product
