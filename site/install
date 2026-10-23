@@ -444,7 +444,7 @@ paperland_install() (
 set -eu
 
 PLUGIN_URL=https://github.com/getpapersh/paperland.git
-PLUGIN_SHA=f444cc52fb83c3b6f96bc9983f14a12b8379733f
+PLUGIN_SHA=f63a3420fdb3a40ded9eb10b6c3840e2e1c0649c
 MIN_HYPRLAND=0.56
 
 PLUGIN_ID=json.paperland
@@ -550,8 +550,12 @@ check_linux() {
 }
 
 # Saved choices win: fresh-install defaults only apply when there are none.
+saved_setup() {
+  [ -f "$GENERATED_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland-setup.lua" ]
+}
+
 setup_desc() {
-  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+  if saved_setup; then
     SETUP_DESC="Your saved Paperland shortcut and autostart choices are applied again."
   else
     SETUP_DESC="SUPER + M opens the minimap, replacing any existing SUPER + M binding,
@@ -560,7 +564,7 @@ setup_desc() {
 }
 
 run_setup() {
-  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+  if saved_setup; then
     "$LAUNCHER" setup --apply --replace-bindings
   else
     "$LAUNCHER" setup --shortcut 'SUPER + M' --autostart on --apply --replace-bindings
@@ -581,21 +585,21 @@ print_plan() {
     setup_line="Keep your Paperland shortcut and autostart setup unchanged."
   elif [ -n "$MAIN_LINK" ] && [ -n "$EDIT_DOTFILES" ]; then
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+    setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
      $MAIN_LINK. With --edit-dotfiles, add Paperland's marked include to
      that file in place (the link stays a link, and nothing else is written
      there), then have Paperland check it.
      $SETUP_DESC"
   elif [ -n "$MAIN_LINK" ]; then
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+    setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
      $MAIN_LINK, which this installer does not edit by default: Paperland
      prints the lines to paste there, and this run stops. Paste them and run it
      again, or rerun with --edit-dotfiles to have them added for you.
      $SETUP_DESC"
   else
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua and one marked include in
+    setup_line="Write $GENERATED_DIR/paperland.lua and one marked include in
      $HYPR_DIR/hyprland.lua (Paperland backs both up first).
      $SETUP_DESC"
   fi
@@ -817,31 +821,24 @@ install_linux() {
   RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   LAUNCHER=$HOME/.local/bin/paperland
   HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
+  GENERATED_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/paperland/hypr
   STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED='' INCLUDE_ADDED=''
   WIDGET_OFF='' MAIN_LINK=''
   check_linux
   # Checked before the runtime refresh, which always recreates the launcher.
   NEEDS_SETUP=
-  if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$HYPR_DIR/paperland.lua" ] ||
+  if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$GENERATED_DIR/paperland.lua" ] ||
+     [ -f "$HYPR_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland-setup.lua" ] ||
+     [ -f "$HYPR_DIR/paperland-workspace-names.lua" ] ||
      ! grep -qF -- '-- BEGIN Paperland setup' "$HYPR_DIR/hyprland.lua" 2>/dev/null; then
     NEEDS_SETUP=1
   fi
-  if [ -n "$NEEDS_SETUP" ]; then
-    # Paperland's setup refuses a symlinked folder anywhere above paperland.lua, and
-    # for a symlinked hyprland.lua only prints an include to paste.
-    folder_link=$(first_symlink "$HYPR_DIR")
-    if [ -n "$folder_link" ]; then
-      refusal="Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink to $(readlink "$folder_link"). Paperland's setup writes its generated files into $HYPR_DIR and never writes through a symlink. This is lifted once Paperland keeps its generated files outside $HYPR_DIR."
-      if [ -n "$EDIT_DOTFILES" ]; then refusal="$refusal --edit-dotfiles does not lift this yet."; fi
-      die "$refusal Nothing was changed."
-    fi
-  fi
-  if [ -L "$HYPR_DIR/hyprland.lua" ]; then
+  if [ -n "$(first_symlink "$HYPR_DIR/hyprland.lua")" ]; then
     # The file at the end of the chain, which is what an append through the link edits.
     MAIN_LINK=$(readlink -f "$HYPR_DIR/hyprland.lua" 2>/dev/null || readlink "$HYPR_DIR/hyprland.lua")
     case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
   elif [ -n "$EDIT_DOTFILES" ]; then
-    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua is a symlink, and here it is not; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
+    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua or a parent is a symlink, and here neither is; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
   fi
   print_plan
   confirm
@@ -900,11 +897,12 @@ usage() {
   cat <<EOF
 Usage: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- [--edit-dotfiles]
 
-  --edit-dotfiles  When ~/.config/hypr/hyprland.lua is a symlink (into a dotfiles
+  --edit-dotfiles  When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a dotfiles
                    repository, say), add Paperland's marked include to the file it
                    points to instead of printing the lines for you to paste. The link
                    stays a link, and Paperland's generated files never go there.
-                   A symlinked ~/.config/hypr folder is still refused.
+                   Generated files live under \$XDG_STATE_HOME/paperland/hypr
+                   (default: ~/.local/state/paperland/hypr).
 EOF
 }
 
@@ -968,20 +966,14 @@ first_symlink() {
   done
 }
 
-# Paperland's setup and uninstall never write through a symlink, so a symlinked
-# hyprland.lua or Hyprland folder is undone by hand before this uninstaller can finish.
-manual_recipe() { # LINK FOLDER_TOO
-  main=$hypr/hyprland.lua
-  if [ -L "$main" ]; then
-    main=$(readlink -f "$main" 2>/dev/null || readlink "$main")
-    case "$main" in /*) ;; *) main=$hypr/$main ;; esac
-  fi
+# Remove only the include by hand; Paperland's uninstall can then remove its
+# generated files without writing through the dotfiles symlink.
+manual_recipe() { # LINK
+  main=$(readlink -f "$hypr/hyprland.lua" 2>/dev/null || readlink "$hypr/hyprland.lua")
   printf '%s\n' "paper: $1 is a symlink, and Paperland never edits through one. Nothing was removed." \
     "Remove Paperland's setup by hand:" \
     "  1. Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $main, if present." \
-    "  2. rm '$hypr/paperland.lua'" >&2
-  if [ -n "$2" ]; then printf '%s\n' "  3. rm '$launcher' && rm -rf '$runtime'" >&2; fi
-  printf '%s\n' "Then run this uninstaller again." >&2
+    "Then run this uninstaller again. Paperland removes its generated config in $generated; old generated files behind symlinks are kept for your review." >&2
   exit 1
 }
 
@@ -1005,6 +997,8 @@ uninstall_linux() {
   runtime=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   launcher=$HOME/.local/bin/paperland
   hypr=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
+  generated=${XDG_STATE_HOME:-$HOME/.local/state}/paperland/hypr
+  main_link=
   LEFT=
   found=
   REPAIR="To repair, install again and then rerun this uninstaller, or remove these by hand."
@@ -1018,12 +1012,18 @@ uninstall_linux() {
   if [ -L "$launcher" ] && [ "$(readlink "$launcher")" = "$runtime/paperland" ] && [ ! -L "$runtime" ] &&
      [ "$(cat "$runtime/.installed-by-paperland" 2>/dev/null)" = "$MARKER" ] && [ -x "$runtime/paperland" ]; then
     ours=1
-    folder_link=$(first_symlink "$hypr")
-    if [ -n "$folder_link" ]; then
-      manual_recipe "$folder_link" folder
-    elif [ -L "$hypr/hyprland.lua" ] && { [ -e "$hypr/paperland.lua" ] ||
-         grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; }; then
-      manual_recipe "$hypr/hyprland.lua" ''
+    main_link=$(first_symlink "$hypr/hyprland.lua")
+    if [ -n "$main_link" ]; then
+      if grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; then
+        manual_recipe "$main_link"
+      fi
+      # Disk detachment does not unload bindings or hooks from the compositor.
+      hyprctl reload || die "Hyprland could not reload after manual detachment; nothing was removed."
+      errors=$(hyprctl configerrors) || die "Could not check Hyprland config after manual detachment; nothing was removed."
+      [ -z "$errors" ] || die "Hyprland reported config errors after manual detachment: $errors. Nothing was removed."
+      revision=$(hyprctl repl 'return _G.paperland_setup_revision') ||
+        die "Could not verify Paperland detachment in Hyprland; nothing was removed."
+      [ "$revision" = nil ] || die "Hyprland still reports Paperland setup revision '$revision' after reload; nothing was removed."
     fi
   fi
 
@@ -1036,9 +1036,13 @@ uninstall_linux() {
 
   if [ -n "$ours" ]; then
     found=1
-    say "Removing Paperland shortcuts and autostart..."
-    "$launcher" setup --shortcut none --resize system --autostart off --strip-chord none --apply ||
-      die "Paperland setup could not remove its shortcuts; nothing else was removed. Fix the reported problem and rerun."
+    # After manual detachment, setup would recreate the include. Uninstall
+    # removes the owned generated files directly without editing the linked target.
+    if [ -z "$main_link" ]; then
+      say "Removing Paperland shortcuts and autostart..."
+      "$launcher" setup --shortcut none --resize system --autostart off --strip-chord none --apply ||
+        die "Paperland setup could not remove its shortcuts; nothing else was removed. Fix the reported problem and rerun."
+    fi
   elif [ -e "$launcher" ] || [ -L "$launcher" ]; then
     LEFT="$LEFT
   $launcher (not Paperland's launcher, or its runtime is missing; not run)"
@@ -1090,8 +1094,21 @@ uninstall_linux() {
 
   if [ -e "$runtime" ] || [ -L "$runtime" ]; then LEFT="$LEFT
   $runtime (Paperland runtime)"; fi
-  if [ -f "$hypr/paperland.lua" ]; then LEFT="$LEFT
-  $hypr/paperland.lua (generated Paperland config)"; fi
+  for config in "$generated/paperland.lua" "$generated/paperland-desktop-directions.lua"; do
+    if [ -f "$config" ]; then LEFT="$LEFT
+  $config (generated Paperland config)"; fi
+  done
+  for config in "$hypr/paperland.lua" "$hypr/paperland-desktop-directions.lua" "$hypr/paperland-setup.lua"; do
+    [ -f "$config" ] || continue
+    if [ -n "$(first_symlink "$config")" ] &&
+       ! grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null &&
+       ! grep -qF "${config##*/}" "$hypr/hyprland.lua" 2>/dev/null; then
+      say "Retained detached generated file behind a symlink: $config"
+    else
+      LEFT="$LEFT
+  $config (generated Paperland config)"
+    fi
+  done
   if grep -qF -- '-- BEGIN Paperland setup' "$hypr/hyprland.lua" 2>/dev/null; then LEFT="$LEFT
   the marked Paperland include in $hypr/hyprland.lua"; fi
 
@@ -1140,7 +1157,7 @@ Usage:
 macOS installs PaperMac. Linux (Omarchy with Hyprland) installs Paperland.
 
   --uninstall      Remove PaperMac (macOS) or Paperland (Linux). Settings are kept.
-  --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua is a symlink (into a
+  --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a
                    dotfiles repository, say), add Paperland's marked include to the file
                    it points to instead of printing the lines for you to paste. The link
                    stays a link, and Paperland's generated files never go there.
