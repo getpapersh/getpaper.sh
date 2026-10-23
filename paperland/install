@@ -115,8 +115,12 @@ check_linux() {
 }
 
 # Saved choices win: fresh-install defaults only apply when there are none.
+saved_setup() {
+  [ -f "$GENERATED_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland-setup.lua" ]
+}
+
 setup_desc() {
-  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+  if saved_setup; then
     SETUP_DESC="Your saved Paperland shortcut and autostart choices are applied again."
   else
     SETUP_DESC="SUPER + M opens the minimap, replacing any existing SUPER + M binding,
@@ -125,7 +129,7 @@ setup_desc() {
 }
 
 run_setup() {
-  if [ -f "$HYPR_DIR/paperland.lua" ]; then
+  if saved_setup; then
     "$LAUNCHER" setup --apply --replace-bindings
   else
     "$LAUNCHER" setup --shortcut 'SUPER + M' --autostart on --apply --replace-bindings
@@ -146,21 +150,21 @@ print_plan() {
     setup_line="Keep your Paperland shortcut and autostart setup unchanged."
   elif [ -n "$MAIN_LINK" ] && [ -n "$EDIT_DOTFILES" ]; then
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+    setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
      $MAIN_LINK. With --edit-dotfiles, add Paperland's marked include to
      that file in place (the link stays a link, and nothing else is written
      there), then have Paperland check it.
      $SETUP_DESC"
   elif [ -n "$MAIN_LINK" ]; then
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua. $HYPR_DIR/hyprland.lua is a symlink to
+    setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
      $MAIN_LINK, which this installer does not edit by default: Paperland
      prints the lines to paste there, and this run stops. Paste them and run it
      again, or rerun with --edit-dotfiles to have them added for you.
      $SETUP_DESC"
   else
     setup_desc
-    setup_line="Write $HYPR_DIR/paperland.lua and one marked include in
+    setup_line="Write $GENERATED_DIR/paperland.lua and one marked include in
      $HYPR_DIR/hyprland.lua (Paperland backs both up first).
      $SETUP_DESC"
   fi
@@ -382,31 +386,24 @@ install_linux() {
   RUNTIME=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
   LAUNCHER=$HOME/.local/bin/paperland
   HYPR_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
+  GENERATED_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/paperland/hypr
   STAGE_ROOT='' tree='' BACKUP='' OLD_HEAD='' RUNTIME_STARTED='' RUNTIME_DONE='' SETUP_STARTED='' INCLUDE_ADDED=''
   WIDGET_OFF='' MAIN_LINK=''
   check_linux
   # Checked before the runtime refresh, which always recreates the launcher.
   NEEDS_SETUP=
-  if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$HYPR_DIR/paperland.lua" ] ||
+  if [ -z "$EXISTING" ] || [ ! -L "$LAUNCHER" ] || [ ! -f "$GENERATED_DIR/paperland.lua" ] ||
+     [ -f "$HYPR_DIR/paperland.lua" ] || [ -f "$HYPR_DIR/paperland-setup.lua" ] ||
+     [ -f "$HYPR_DIR/paperland-workspace-names.lua" ] ||
      ! grep -qF -- '-- BEGIN Paperland setup' "$HYPR_DIR/hyprland.lua" 2>/dev/null; then
     NEEDS_SETUP=1
   fi
-  if [ -n "$NEEDS_SETUP" ]; then
-    # Paperland's setup refuses a symlinked folder anywhere above paperland.lua, and
-    # for a symlinked hyprland.lua only prints an include to paste.
-    folder_link=$(first_symlink "$HYPR_DIR")
-    if [ -n "$folder_link" ]; then
-      refusal="Paperland's setup cannot manage $HYPR_DIR: $folder_link is a symlink to $(readlink "$folder_link"). Paperland's setup writes its generated files into $HYPR_DIR and never writes through a symlink. This is lifted once Paperland keeps its generated files outside $HYPR_DIR."
-      if [ -n "$EDIT_DOTFILES" ]; then refusal="$refusal --edit-dotfiles does not lift this yet."; fi
-      die "$refusal Nothing was changed."
-    fi
-  fi
-  if [ -L "$HYPR_DIR/hyprland.lua" ]; then
+  if [ -n "$(first_symlink "$HYPR_DIR/hyprland.lua")" ]; then
     # The file at the end of the chain, which is what an append through the link edits.
     MAIN_LINK=$(readlink -f "$HYPR_DIR/hyprland.lua" 2>/dev/null || readlink "$HYPR_DIR/hyprland.lua")
     case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
   elif [ -n "$EDIT_DOTFILES" ]; then
-    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua is a symlink, and here it is not; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
+    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua or a parent is a symlink, and here neither is; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
   fi
   print_plan
   confirm
@@ -465,11 +462,12 @@ usage() {
   cat <<EOF
 Usage: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- [--edit-dotfiles]
 
-  --edit-dotfiles  When ~/.config/hypr/hyprland.lua is a symlink (into a dotfiles
+  --edit-dotfiles  When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a dotfiles
                    repository, say), add Paperland's marked include to the file it
                    points to instead of printing the lines for you to paste. The link
                    stays a link, and Paperland's generated files never go there.
-                   A symlinked ~/.config/hypr folder is still refused.
+                   Generated files live under \$XDG_STATE_HOME/paperland/hypr
+                   (default: ~/.local/state/paperland/hypr).
 EOF
 }
 

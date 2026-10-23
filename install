@@ -442,7 +442,7 @@ Usage:
 macOS installs PaperMac. Linux (Omarchy with Hyprland) installs Paperland.
 
   --uninstall      Remove PaperMac (macOS) or Paperland (Linux). Settings are kept.
-  --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua is a symlink (into a
+  --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a
                    dotfiles repository, say), add Paperland's marked include to the file
                    it points to instead of printing the lines for you to paste. The link
                    stays a link, and Paperland's generated files never go there.
