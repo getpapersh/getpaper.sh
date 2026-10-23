@@ -29,8 +29,13 @@ publishes it with one rename. A rerun renames the installed plugin into
 refreshes Paperland's runtime with `paperland install --no-setup`, points the bar
 widget at the runtime's launcher (`omarchy bar set json.paperland executable ...`,
 which writes the setting into the widget's item in `~/.config/omarchy/shell.json`),
-and runs `paperland setup` only when the launcher, `paperland.lua` or the include is
-missing, keeping saved choices.
+and runs `paperland setup` when the launcher, generated config or marked include is
+missing, or former generated config or saved names still need migration, keeping saved choices.
+Generated files live in `$XDG_STATE_HOME/paperland/hypr` (default:
+`~/.local/state/paperland/hypr`). An upgrade from the former `~/.config/hypr` layout
+applies setup to migrate the include and recognized generated files, preserving
+shortcut/autostart choices. Paperland backs up changes and keeps settings and saved
+names. Symlinked dotfiles require the manual integration described below.
 
 Failures: up to the runtime refresh, cleanup works out the state from the real
 staged, live and moved-aside paths (never from flags a signal can interrupt), ignores
@@ -44,13 +49,14 @@ prints the command to turn it on. A development Omarchy (`omarchy-version` print
 `dev...`) is accepted when `$OMARCHY_PATH/version` says 4 or newer.
 
 Symlinked Hyprland config (dotfiles): the installer detects a symlinked
-`hyprland.lua`, `~/.config/hypr` or any parent, and names where it points. It never
+`hyprland.lua`, `~/.config/hypr` or any parent, and names the resolved main config. It never
 reads stdin, so there is no prompt; the choice is a flag:
 
-- **Default, symlinked `hyprland.lua`:** the installer never writes into the
-  dotfiles. Paperland's setup stages `paperland.lua` and prints the marked include
+- **Default, symlinked `hyprland.lua` or a parent:** the installer never writes into the
+  dotfiles. Paperland's setup stages `paperland.lua` in the generated directory and prints the marked include
   block; the run stops and asks you to paste it into the link's target and rerun.
-  The rerun has Paperland check the pasted lines with `paperland setup --dry-run`.
+  The rerun applies any pending migration, including names-only former installs;
+  otherwise it checks the pasted lines with `paperland setup --dry-run`.
 - **`--edit-dotfiles`** (`curl … | sh -s -- --edit-dotfiles`, listed in `--help`):
   the installer appends exactly the block Paperland printed to the file
   `hyprland.lua` links to, in place, so the link stays a link and the file keeps its
@@ -59,14 +65,21 @@ reads stdin, so there is no prompt; the choice is a flag:
   a block to replace, lines to remove, or any other setup error stops with the file
   untouched. Paperland's generated files never go into the dotfiles. Hyprland loads
   the include on its next config reload.
-- **Symlinked `~/.config/hypr` (or a parent):** refused before any change, with or
-  without the flag, because Paperland's setup writes its generated files into
-  `~/.config/hypr` and refuses any symlinked folder above them. The message names
-  the link's target and says this is lifted once Paperland keeps its generated
-  files outside `~/.config/hypr`.
+- **Symlinked `~/.config/hypr` (or a parent):** supported with the same default
+  manual include and `--edit-dotfiles` opt-in. Generated files stay outside the
+  dotfiles. For an old marked include, paste Paperland's replacement block and
+  remove any extra lines it names; `--edit-dotfiles` still refuses replacement or
+  removal requests. Rerun afterwards so setup can validate the active include and
+  finish migration. Old generated files behind a symlink remain for manual review.
 - `--edit-dotfiles` is refused on macOS and by the uninstaller, which takes no
   options. For a symlinked config the uninstaller prints the manual steps instead
-  of running Paperland's setup or uninstall.
+  of editing the target. After you remove the marked include, rerun: Paperland's
+  wrapper first requires a successful Hyprland reload, no configuration errors and
+  no active Paperland setup revision. Only then does Paperland's own uninstall
+  remove the owned generated files and runtime. Detached old files behind symlinks
+  are reported for review without failing uninstall or advising reinstallation.
+  Do not delete the
+  generated state file or runtime by hand. Settings, saved names and backups remain.
 
 Backups: every upgrade keeps the replaced plugin in
 `~/.config/omarchy/.paperland-previous-*`, and every uninstall keeps a copy in
@@ -152,8 +165,8 @@ the installed plugin folder held `LICENSE`.
 - Backups are kept and never pruned; every path is printed with its `rm` command.
 - Symlinked configs: detected and named. The default never writes into dotfiles;
   `--edit-dotfiles` adds the include to a symlinked `hyprland.lua`'s target. A
-  symlinked `~/.config/hypr` stays refused until Paperland moves its generated files
-  out of it; the uninstall recipe for that case removes the runtime with `rm -rf`,
-  where Paperland's own uninstall would keep it.
+  symlinked `~/.config/hypr` was refused until Paperland moved its generated files
+  out of it. The `8e2edd9` alignment above supersedes that refusal and the former
+  manual runtime-removal recipe.
 - An interrupted first install is not enabled by the rerun; the rerun prints the
   enable command.

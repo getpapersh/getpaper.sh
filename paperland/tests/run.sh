@@ -138,14 +138,14 @@ untouched() { # the live plugin and runtime are exactly as before
 }
 installed() { # HEAD [disabled]: the state a completed install of HEAD leaves
   plugin=$home/.config/omarchy/plugins/json.paperland
-  mkdir -p "$plugin/paperland" "$plugin/.git" "$home/.local/share/paperland" "$home/.local/bin" "$home/.config/hypr"
+  mkdir -p "$plugin/paperland" "$plugin/.git" "$home/.local/share/paperland" "$home/.local/bin" "$home/.config/hypr" "$home/.local/state/paperland/hypr"
   echo "$1" > "$plugin/.git/stub-head"
   cp "$root/tests/stub.sh" "$plugin/paperland/paperland"
   ln -s "$root/tests/stub.sh" "$home/.local/share/paperland/paperland"
   echo "Paperland CLI installation v1" > "$home/.local/share/paperland/.installed-by-paperland"
   ln -s "$home/.local/share/paperland/paperland" "$home/.local/bin/paperland"
-  echo "-- generated" > "$home/.config/hypr/paperland.lua"
-  printf '%s\n' "-- user" "-- BEGIN Paperland setup" "-- END Paperland setup" > "$home/.config/hypr/hyprland.lua"
+  echo "-- generated" > "$home/.local/state/paperland/hypr/paperland.lua"
+  printf '%s\n' "-- user" "-- BEGIN Paperland setup" "dofile(\"$home/.local/state/paperland/hypr/paperland.lua\")" "-- END Paperland setup" > "$home/.config/hypr/hyprland.lua"
   if [ "${2:-}" != disabled ]; then
     touch "$home/.stub-enabled"
     # What enable plus `omarchy bar set ... executable` leave in shell.json.
@@ -528,7 +528,7 @@ echo "-- user" > "$home/dotfiles/hyprland.lua"
 ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 # Paperland's setup stages paperland.lua, prints the include to paste, and exits 1.
 run "$PINNED" "$HIS"
-check "a symlinked hyprland.lua plan names the link's target" says "hyprland.lua is a symlink to"
+check "a symlinked hyprland.lua plan names the link's target" says "hyprland.lua resolves through a symlink to"
 check "a symlinked hyprland.lua plan says it is not edited by default" says "which this installer does not edit by default"
 check "a symlinked hyprland.lua plan offers --edit-dotfiles" says "or rerun with --edit-dotfiles"
 check "a symlinked hyprland.lua stops after setup" status 1
@@ -580,7 +580,7 @@ check "--edit-dotfiles says what it edited" says "Added Paperland's include to $
 check "--edit-dotfiles keeps the link" [ -L "$home/.config/hypr/hyprland.lua" ]
 check "--edit-dotfiles keeps the target's mode" [ "$(mode_of "$home/dotfiles/hyprland.lua")" = "-rw-r-----" ]
 check "--edit-dotfiles keeps the user's lines" [ "$(head -n 1 "$home/dotfiles/hyprland.lua")" = "-- user" ]
-check "--edit-dotfiles writes the exact block once" [ "$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$home/dotfiles/hyprland.lua")" = "$(printf '%s\n' "-- BEGIN Paperland setup" "dofile(\"$home/.config/hypr/paperland.lua\")" "-- END Paperland setup")" ]
+check "--edit-dotfiles writes the exact block once" [ "$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$home/dotfiles/hyprland.lua")" = "$(printf '%s\n' "-- BEGIN Paperland setup" "dofile(\"$home/.local/state/paperland/hypr/paperland.lua\")" "-- END Paperland setup")" ]
 check "--edit-dotfiles writes nothing else into the dotfiles" [ "$(find "$home/dotfiles" -type f | wc -l | tr -d ' ')" = 1 ]
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
 check "--edit-dotfiles has Paperland check the result" called "~/.local/bin/paperland [setup] [--dry-run]"
@@ -615,7 +615,7 @@ ARGS=--edit-dotfiles
 run "$PINNED" "$HIS"
 ARGS=
 check "--edit-dotfiles with a regular hyprland.lua is refused" status 1
-check "--edit-dotfiles with a regular hyprland.lua says why" says "--edit-dotfiles applies only when $home/.config/hypr/hyprland.lua is a symlink"
+check "--edit-dotfiles with a regular hyprland.lua says why" says "--edit-dotfiles applies only when $home/.config/hypr/hyprland.lua or a parent is a symlink"
 check "--edit-dotfiles with a regular hyprland.lua changes nothing" not_called "git [clone]"
 
 new_case edit-dotfiles-relative-link
@@ -649,17 +649,31 @@ mkdir -p "$home/dotfiles/hypr" "$home/.config"
 echo "-- user" > "$home/dotfiles/hypr/hyprland.lua"
 ln -s "$home/dotfiles/hypr" "$home/.config/hypr"
 run "$PINNED" "$HIS"
-check "a symlinked Hyprland folder is refused" status 1
-check "a symlinked Hyprland folder names the link and its target" says "$home/.config/hypr is a symlink to $home/dotfiles/hypr"
-check "a symlinked Hyprland folder says why" says "Paperland's setup writes its generated files into $home/.config/hypr"
-check "a symlinked Hyprland folder says it will be lifted" says "This is lifted once Paperland keeps its generated files outside $home/.config/hypr."
-check "a symlinked Hyprland folder changes nothing" not_called "git [clone]"
+check "a symlinked Hyprland folder stages setup and asks for the include" status 1
+check "a symlinked Hyprland folder names the resolved main config" says "$home/dotfiles/hypr/hyprland.lua"
+check "a symlinked Hyprland folder preserves the target" [ "$(cat "$home/dotfiles/hypr/hyprland.lua")" = "-- user" ]
+check "a symlinked Hyprland folder stages generated config outside dotfiles" [ -f "$home/.local/state/paperland/hypr/paperland.lua" ]
+check "a symlinked Hyprland folder writes no generated file into dotfiles" [ ! -e "$home/dotfiles/hypr/paperland.lua" ]
 ARGS=--edit-dotfiles
 run "$PINNED" "$HIS"
 ARGS=
-check "--edit-dotfiles does not lift the folder refusal" status 1
-check "--edit-dotfiles says it does not apply to a folder" says "--edit-dotfiles does not lift this yet."
-check "--edit-dotfiles with a symlinked folder changes nothing" not_called "git [clone]"
+check "--edit-dotfiles supports a symlinked Hyprland folder" status 0
+check "--edit-dotfiles keeps the folder link" [ -L "$home/.config/hypr" ]
+check "--edit-dotfiles adds the include to the folder target" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hypr/hyprland.lua"
+check "--edit-dotfiles keeps generated files outside the folder target" [ ! -e "$home/dotfiles/hypr/paperland.lua" ]
+
+new_case state-home
+mkdir -p "$home/.config/hypr"
+echo "-- user" > "$home/.config/hypr/hyprland.lua"
+run "$PINNED" XDG_STATE_HOME="$home/state" "$HIS"
+check "custom XDG_STATE_HOME is used in the plan" says "Write $home/state/paperland/hypr/paperland.lua"
+
+new_case former-layout-upgrade
+installed "$OLD"
+mv "$home/.local/state/paperland/hypr/paperland.lua" "$home/.config/hypr/paperland.lua"
+run "$PINNED" "$HIS"
+check "former-layout upgrade runs setup" called "~/.local/bin/paperland [setup] [--apply] [--replace-bindings]"
+check "former-layout upgrade preserves saved choices" not_called "[--shortcut]"
 
 new_case options
 ARGS=--help
@@ -693,10 +707,17 @@ check "repair passes no defaults" not_called "[--shortcut]"
 
 new_case repair-without-saved-choices
 installed "$OLD"
-rm "$home/.config/hypr/paperland.lua"
+rm "$home/.local/state/paperland/hypr/paperland.lua"
 run "$PINNED" "$HIS"
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
 check "repair without saved choices uses the defaults" called "~/.local/bin/paperland [setup] [--shortcut] [SUPER + M] [--autostart] [on] [--apply] [--replace-bindings]"
+
+# Names may be the only former generated file after a files-only install.
+new_case former-names-only
+installed "$OLD"
+echo '-- saved names' > "$home/.config/hypr/paperland-workspace-names.lua"
+run "$PINNED" "$HIS"
+check "names-only former files trigger applying setup" called "~/.local/bin/paperland [setup] [--apply] [--replace-bindings]"
 
 # --- uninstall ----------------------------------------------------------------------
 
@@ -780,11 +801,11 @@ check "uninstall with a symlinked hyprland.lua stops" status 1
 check "uninstall with a symlinked hyprland.lua runs nothing" not_called "[setup]"
 check "uninstall with a symlinked hyprland.lua keeps the plugin" head_is "$SHA"
 check "uninstall with a symlinked hyprland.lua gives the recipe" says "Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $home/hyprland.lua"
-check "uninstall with a symlinked hyprland.lua says to delete paperland.lua" says "rm '$home/.config/hypr/paperland.lua'"
+check "uninstall with a symlinked hyprland.lua names state storage" says "Paperland removes its generated config in $home/.local/state/paperland/hypr"
+check "uninstall with a symlinked hyprland.lua never asks to remove the runtime by hand" lacks "rm -rf"
 check "uninstall with a symlinked hyprland.lua says to rerun" says "Then run this uninstaller again."
 check "uninstall with a symlinked hyprland.lua does not blame setup" lacks "could not remove its shortcuts"
 # After the recipe, Paperland's setup changes nothing and its files-only uninstall runs.
-mv "$home/.config/hypr/paperland.lua" "$home/paperland.lua.removed"
 printf '%s\n' "-- user" > "$home/hyprland.lua"
 run "$UNINSTALL"
 check "uninstall after the recipe succeeds" status 0
@@ -797,14 +818,62 @@ ln -s "$home/hypr" "$home/.config/hypr"
 run "$UNINSTALL"
 check "uninstall with a symlinked Hyprland folder stops" status 1
 check "uninstall with a symlinked Hyprland folder runs nothing" not_called "[setup]"
-check "uninstall with a symlinked Hyprland folder removes the runtime by hand" says "rm '$home/.local/bin/paperland' && rm -rf '$home/.local/share/paperland'"
+check "uninstall with a symlinked Hyprland folder names the resolved main config" says "in $home/hypr/hyprland.lua"
+check "uninstall with a symlinked Hyprland folder keeps its generated config" [ -f "$home/.local/state/paperland/hypr/paperland.lua" ]
+check "uninstall with a symlinked Hyprland folder never asks to remove the runtime by hand" lacks "rm -rf"
 # The recipe, then the second pass.
 printf '%s\n' "-- user" > "$home/hypr/hyprland.lua"
-rm "$home/hypr/paperland.lua" "$home/.local/bin/paperland"
-rm -rf "$home/.local/share/paperland"
 run "$UNINSTALL"
 check "uninstall after the folder recipe succeeds" status 0
+check "uninstall after the folder recipe removes generated config" [ ! -e "$home/.local/state/paperland/hypr/paperland.lua" ]
+check "uninstall after the folder recipe removes the launcher" [ ! -e "$home/.local/bin/paperland" ]
+check "uninstall after the folder recipe keeps the folder link" [ -L "$home/.config/hypr" ]
 check "uninstall after the folder recipe removes the plugin" called "omarchy [plugin] [remove] [json.paperland] [--yes]"
+
+# Removing an include on disk does not unload its active compositor revision.
+for problem in stale-revision reload-fails config-errors; do
+  new_case "uninstall-detached-$problem"
+  installed "$SHA"
+  mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
+  ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+  echo '-- user, include manually detached' > "$home/hyprland.lua"
+  echo deadbeef > "$case_dir/active-revision"
+  case "$problem" in
+    stale-revision) fault=STUB_RELOAD_KEEPS_REVISION=1 ;;
+    reload-fails) fault=STUB_RELOAD_FAILS=1 ;;
+    config-errors) fault=STUB_CONFIG_ERRORS=broken-config ;;
+  esac
+  run "$UNINSTALL" "$HIS" STUB_REVISION_FILE="$case_dir/active-revision" "$fault"
+  check "uninstall blocks $problem after manual detachment" status 1
+  check "uninstall retains runtime on $problem" [ -x "$home/.local/bin/paperland" ]
+  check "uninstall keeps plugin on $problem" head_is "$SHA"
+  check "uninstall never deletes runtime on $problem" not_called "[uninstall]"
+done
+
+new_case uninstall-detached-reloaded
+installed "$SHA"
+mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
+ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
+echo '-- user, include manually detached' > "$home/hyprland.lua"
+echo deadbeef > "$case_dir/active-revision"
+run "$UNINSTALL" "$HIS" STUB_REVISION_FILE="$case_dir/active-revision"
+check "detached uninstall reloads the active compositor" [ "$(cat "$case_dir/active-revision")" = nil ]
+check "detached uninstall checks config errors" called "hyprctl [configerrors]"
+check "detached uninstall finishes after verified reload" status 0
+
+new_case uninstall-retained-dotfiles
+installed "$SHA"
+echo '-- former generated config' > "$home/.config/hypr/paperland.lua"
+mv "$home/.config/hypr" "$home/dotfiles-hypr"
+ln -s "$home/dotfiles-hypr" "$home/.config/hypr"
+echo '-- user, include manually detached' > "$home/dotfiles-hypr/hyprland.lua"
+run "$UNINSTALL" "$HIS"
+check "detached old files behind a link do not fail uninstall" status 0
+check "detached old files are reported separately" says "Retained detached generated file behind a symlink:"
+check "detached old files stay intact" [ -f "$home/dotfiles-hypr/paperland.lua" ]
+check "detached old files do not advise reinstalling" lacks "To repair, install again"
+run "$UNINSTALL" "$HIS"
+check "later uninstall also succeeds with retained detached files" status 0
 
 new_case uninstall-worktree-plugin
 installed "$SHA"

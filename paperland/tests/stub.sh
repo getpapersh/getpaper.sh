@@ -30,7 +30,17 @@ done
 printf '%s\n' "$line" >> "$LOG"
 
 plugin=$HOME/.config/omarchy/plugins/json.paperland
-runtime=$HOME/.local/share/paperland
+runtime=${XDG_DATA_HOME:-$HOME/.local/share}/paperland
+hypr=${XDG_CONFIG_HOME:-$HOME/.config}/hypr
+generated=${XDG_STATE_HOME:-$HOME/.local/state}/paperland/hypr
+behind_symlink() {
+  path=$1
+  while [ -n "$path" ]; do
+    [ ! -L "$path" ] || return 0
+    case "$path" in */*) path=${path%/*} ;; *) path= ;; esac
+  done
+  return 1
+}
 enabled=$HOME/.stub-enabled
 last=
 for arg in "$@"; do last=$arg; done
@@ -44,7 +54,25 @@ case "$name" in
     case "$1" in
       version) echo "Hyprland ${STUB_HYPR:-0.56.2} built from branch v0.56.2 at commit 0 clean" ;;
       -j) echo '[]' ;;
-      repl) sed -n 's/^_G.paperland_setup_revision = "\([a-f0-9]*\)"$/\1/p' "$HOME/.config/hypr/paperland.lua" 2>/dev/null ;;
+      reload)
+        [ -z "${STUB_RELOAD_FAILS:-}" ] || exit 1
+        if [ -n "${STUB_REVISION_FILE:-}" ] && [ -z "${STUB_RELOAD_KEEPS_REVISION:-}" ]; then
+          # This cache changes on reload, independently of the on-disk include.
+          active=$(sed -n 's/^dofile("\(.*paperland.lua\)")$/\1/p' "$hypr/hyprland.lua")
+          if [ -n "$active" ]; then
+            sed -n 's/^_G.paperland_setup_revision = "\([a-f0-9]*\)"$/\1/p' "$active" > "$STUB_REVISION_FILE"
+          else
+            echo nil > "$STUB_REVISION_FILE"
+          fi
+        fi ;;
+      configerrors) printf '%s' "${STUB_CONFIG_ERRORS:-}" ;;
+      repl)
+        if [ -n "${STUB_REVISION_FILE:-}" ]; then cat "$STUB_REVISION_FILE"; else
+          active=$(sed -n 's/^dofile("\(.*paperland.lua\)")$/\1/p' "$hypr/hyprland.lua")
+          if [ -n "$active" ]; then
+            sed -n 's/^_G.paperland_setup_revision = "\([a-f0-9]*\)"$/\1/p' "$active" 2>/dev/null
+          else echo nil; fi
+        fi ;;
     esac ;;
   git)
     dir=
@@ -143,17 +171,18 @@ case "$name" in
         echo "Paperland CLI installation v1" > "$runtime/.installed-by-paperland"
         ln -sf "$runtime/paperland" "$HOME/.local/bin/paperland" ;;
       setup)
-        main=$HOME/.config/hypr/hyprland.lua
+        main=$hypr/hyprland.lua
         case " $* " in *" --dry-run "*) exit "${STUB_SETUP_STATUS:-0}" ;; esac
         if [ -n "${STUB_SETUP_OTHER_ERROR:-}" ]; then echo "paperland: Hyprland reported config errors" >&2; exit 1; fi
         # Like setup.py when the installer applies setup: a symlinked hyprland.lua without
         # the include gets paperland.lua staged and the block to paste printed, exit 1.
         case " $* " in *" --replace-bindings "*)
-          if [ -L "$main" ] && ! grep -qF -- '-- BEGIN Paperland setup' "$main"; then
-            echo "-- generated" > "$HOME/.config/hypr/paperland.lua"
+          if behind_symlink "$main" && ! grep -qF -- '-- BEGIN Paperland setup' "$main"; then
+            mkdir -p "$generated"
+            echo "-- generated" > "$generated/paperland.lua"
             printf '%s\n' "paperland: Symlinked main config needs a manual include." \
               "Add these exact lines to its tracked target:" "-- BEGIN Paperland setup" \
-              "dofile(\"$HOME/.config/hypr/paperland.lua\")" "-- END Paperland setup" "Then rerun setup to validate it." >&2
+              "dofile(\"$generated/paperland.lua\")" "-- END Paperland setup" "Then rerun setup to validate it." >&2
             exit 1
           fi ;;
         esac
@@ -167,9 +196,13 @@ case "$name" in
           exit 1
         fi
         rm -f "$HOME/.local/bin/paperland"
-        rm -rf "$runtime" "$HOME/.config/hypr/paperland.lua"
-        main=$HOME/.config/hypr/hyprland.lua
-        if [ -f "$main" ]; then grep -v 'Paperland setup' "$main" > "$main.tmp"; mv "$main.tmp" "$main"; fi ;;
+        rm -rf "$runtime" "$generated/paperland.lua"
+        if ! behind_symlink "$hypr/paperland.lua"; then rm -f "$hypr/paperland.lua"; fi
+        main=$hypr/hyprland.lua
+        if [ -f "$main" ] && ! behind_symlink "$main"; then
+          sed '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/d' "$main" > "$main.tmp"
+          mv "$main.tmp" "$main"
+        fi ;;
     esac ;;
 esac
 exit 0
