@@ -16,6 +16,19 @@ expected.update('media/papermac/' + name + suffix
 assert {str(path.relative_to(site)) for path in site.rglob('*')} == expected
 
 
+dmg_url = (Path(__file__).resolve().parents[1] / 'src/mac/dmg-url.txt').read_text().strip()
+for target in [*site.rglob('*.html'), site / 'install']:
+    text = target.read_text()
+    assert 'vercel-storage' not in text, target
+    assert not re.search(r'https?://[^\s"\'<>]*alpha[^\s"\'<>]*\.dmg', text, re.I), target
+    assert '{{DMG_URL}}' not in text, target
+    for link in re.findall(r'https?://[^\s"\'<>]*\.dmg', text):
+        assert link == dmg_url, (target, link)
+assert (site / 'index.html').read_text().count('href="' + dmg_url + '"') == 1
+assert (site / 'mac/index.html').read_text().count('href="' + dmg_url + '"') == 2
+assert 'PAPERMAC_DMG_URL=' + dmg_url + '\n' in (site / 'install').read_text()
+
+
 class Page(HTMLParser):
     def __init__(self, text):
         super().__init__()
@@ -158,4 +171,4 @@ for line in (site / '_headers').read_text().splitlines():
 for route in ['/mac/activate/', '/mac/activate/*']:
     assert rules[route]['referrer-policy'] == 'no-referrer'
     assert rules[route]['cache-control'] == 'no-store'
-print('PASS: exact site inventory, local resources, recording controls, Mac links and activation link/header policy')
+print('PASS: exact site inventory, shared DMG links, local resources, recording controls, Mac links and activation link/header policy')

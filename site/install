@@ -18,11 +18,11 @@ set -eu
 # manifest instead; then any manifest problem stops the install, never falling back to
 # the pin.
 PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json
-PAPERMAC_VERSION=27.0.0-alpha.3
-PAPERMAC_DMG_URL=https://mjcscmicvgmdk1ey.public.blob.vercel-storage.com/papermac/PaperMac-27.0.0-alpha.3.dmg
-PAPERMAC_DMG_SHA256=84eb7a5ff6c0319476b6249f6060470437fd9c5b00d4fc5b6360ef342d585e03
+PAPERMAC_VERSION=27.0.0-beta.1
+PAPERMAC_DMG_URL=https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.1.dmg
+PAPERMAC_DMG_SHA256=60c5bc4899e255956ed22d10f464978e4258bc89183cf665ee3c33b1532e15ea
 PAPERMAC_MIN_MACOS=27
-PAPERMAC_NOTARIZED=false
+PAPERMAC_NOTARIZED=true
 # A manifest may only point at a disk image directly under this URL.
 MANIFEST_DMG_PREFIX=https://dl.getpaper.sh/papermac/
 

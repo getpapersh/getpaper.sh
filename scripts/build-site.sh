@@ -12,7 +12,7 @@ die() { printf 'build-site: %s\n' "$*" >&2; exit 1; }
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/site}
-sources="install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
+sources="src/mac/dmg-url.txt install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
 
 if [ "$out" = "$root/site" ]; then
   for source in $sources; do

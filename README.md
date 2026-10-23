@@ -22,7 +22,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | Path | Purpose |
 | --- | --- |
 | `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
-| `scripts/assemble-install.sh` | Replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
+| `scripts/assemble-install.sh` | Fills the shared DMG URL and replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
 | `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source is `src/v7-1-viewfinder/index.html` with `src/_kit/` and `src/fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
 | `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
@@ -141,8 +141,8 @@ backups, rollback, and the uninstaller's order) is in `paperland/README.md`.
 From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/latest.json`:
 
 ```json
-{"version": "27.0.0-alpha.4", "build": "...", "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-alpha.4.dmg",
- "sha256": "<64 hex>", "min_macos": "27", "notarized": false}
+{"version": "27.0.0-beta.1", "build": 16, "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.1.dmg",
+ "sha256": "60c5bc4899e255956ed22d10f464978e4258bc89183cf665ee3c33b1532e15ea", "min_macos": "27", "notarized": true}
 ```
 
 `install` sets `PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json`. In manifest mode the
@@ -150,12 +150,18 @@ script fails closed: a fetch error, a file `plutil` cannot read, or any missing 
 malformed field stops the install, and it never falls back to the pin. It requires
 `dmg_url` to start with `https://dl.getpaper.sh/papermac/` and end in a plain `.dmg`
 file name, `sha256` to be 64 lowercase hex characters, `version` to look like
-`27.0.0` or `27.0.0-alpha.4`, `min_macos` to be digits (it replaces the pinned
+`27.0.0` or `27.0.0-beta.1`, `min_macos` to be digits (it replaces the pinned
 minimum), and `notarized` to be a JSON boolean. `build` is not used. Parsing uses
 `plutil -extract <key> raw -expect <type>`; never python3, which is an install-dialog
 stub on Macs without the Command Line Tools.
 
 ## Build and test
+
+`src/mac/dmg-url.txt` is the shared download URL for both `/mac` buttons,
+the home page's Mac fork and the built installer's pinned fallback. The page
+bundler and installer assembler fill `{{DMG_URL}}` from that file. When changing
+the pinned release, also update its version, SHA-256 and notarization fields in
+`install`; verify the downloaded DMG's hash before publishing.
 
 Rebuild the five self-contained pages after editing their sources:
 
