@@ -33,6 +33,12 @@ if "{{CHECKOUT_URL}}" in html:
 html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: "<style>\n" + (page.parent / m.group(1)).read_text() + "</style>", html)
 html = re.sub(r'<script src="([^"]+)"></script>', lambda m: "<script>\n" + (page.parent / m.group(1)).read_text() + "</script>", html)
 
+if "{{DMG_URL}}" in html:
+    dmg_url = (pathlib.Path(__file__).resolve().parents[1] / "src/mac/dmg-url.txt").read_text().strip()
+    if not re.fullmatch(r"https://dl\.getpaper\.sh/papermac/PaperMac-[0-9][0-9a-z.-]*\.dmg", dmg_url):
+        sys.exit("DMG URL must be a PaperMac release on dl.getpaper.sh")
+    html = html.replace("{{DMG_URL}}", html_lib.escape(dmg_url, quote=True))
+
 # Font URLs are relative to the stylesheet that names them, which is always in _kit/.
 kit = page.parent.parent / "_kit"
 text = re.sub(r'url\("\.\./fonts/[^"]+"\)', "", html)
