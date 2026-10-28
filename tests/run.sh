@@ -26,7 +26,7 @@ SHA=$(sed -n 's/^PAPERMAC_DMG_SHA256=//p' "$root/install")
 URL=$(cat "$root/src/mac/dmg-url.txt")
 MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json
 # Keep the manifest distinct from the pin so URL and version overrides are observable.
-M_URL=https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.2.dmg
+M_URL=https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.3.dmg
 M_SHA=1111111111111111111111111111111111111111111111111111111111111111
 STUBS="id uname sw_vers curl shasum plutil ps osascript sleep hdiutil ditto codesign open"
 
@@ -59,7 +59,7 @@ manifest_mode() { # [KEY JSON_VALUE]...: switch the case's script to the manifes
   if [ "${1:-}" = raw ]; then printf '%s\n' "$2" > "$case_dir/latest.json"; return; fi
   # The fields are named variables, overridden and read back through eval.
   # shellcheck disable=SC2034,SC2154
-  version='"27.0.0-beta.2"' build=16 dmg_url="\"$M_URL\"" sha256="\"$M_SHA\"" min_macos='"27"' notarized=false
+  version='"27.0.0-beta.3"' build=16 dmg_url="\"$M_URL\"" sha256="\"$M_SHA\"" min_macos='"27"' notarized=false
   while [ $# -gt 0 ]; do eval "$1=\$2"; shift 2; done
   {
     echo '{'
@@ -143,7 +143,7 @@ QUIT="osascript [-e] [quit app id \"dev.jsonmartin.papermac\"]"
 new_case fresh
 run
 check "install succeeds" status 0
-check "install says what and where" says "Installing PaperMac 27.0.0-beta.1 (notarized)."
+check "install says what and where" says "Installing PaperMac 27.0.0-beta.2 (notarized)."
 check "install names the destination" says "Installing to $apps/PaperMac.app"
 check "install runs the steps in order" calls "$CURL [$DMG] [$URL]
 shasum [-a] [256] [$DMG]
@@ -411,7 +411,7 @@ new_case detach-fails
 run -- STUB_DETACH_FAILS=1
 check "a detach failure fails" status 1
 check "a detach failure still installed the app" app_is "$apps/PaperMac.app" new
-check "a detach failure says the app is installed" says "PaperMac 27.0.0-beta.1 is installed at $apps/PaperMac.app. Open it with:"
+check "a detach failure says the app is installed" says "PaperMac 27.0.0-beta.2 is installed at $apps/PaperMac.app. Open it with:"
 check "a detach failure gives the detach command" says "Detach it with: hdiutil detach '"
 check "a detach failure keeps the download" [ -f "$(find "$case_dir/tmp" -name PaperMac.dmg | head -n 1)" ]
 check "a detach failure says where the download is" says "The download is kept at"
@@ -566,14 +566,14 @@ $ID_CHECK
 hdiutil [detach] [-quiet] [$MNT]
 open [/Applications/PaperMac.app]
 at open: lock held"
-check "manifest install names the manifest's release" says "Installing PaperMac 27.0.0-beta.2 (not notarized)."
+check "manifest install names the manifest's release" says "Installing PaperMac 27.0.0-beta.3 (not notarized)."
 check "manifest install shows the manifest's checksum" says "SHA-256: $M_SHA"
 check "manifest install replaced the app" app_is "$apps/PaperMac.app" new
 
 new_case manifest-notarized
 manifest_mode notarized true
 run -- STUB_DMG_SHA=$M_SHA
-check "a notarized release says so" says "Installing PaperMac 27.0.0-beta.2 (notarized)."
+check "a notarized release says so" says "Installing PaperMac 27.0.0-beta.3 (notarized)."
 
 new_case manifest-min-macos
 manifest_mode min_macos '"28"'
