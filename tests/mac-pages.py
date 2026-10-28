@@ -127,6 +127,8 @@ else:
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Not included in Free or Pro.' in product
+assert product.count('BETABELIEVER') == 2 and 'EARLY' not in product
+assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
     legal_html = (site / route / 'index.html').read_text()
@@ -139,7 +141,8 @@ for route in ['terms', 'privacy']:
     assert 'PaperMac\'s developer' in identity
     if route == 'terms':
         assert identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1]
-        assert legal_text.startswith('PaperMac Terms Effective October 22, 2026 These terms cover')
+        assert legal_text.startswith('PaperMac Terms Effective October 27, 2026 These terms cover')
+        assert 'PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text
     else:
         assert re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S)
     assert '[' not in legal_text and ']' not in legal_text
