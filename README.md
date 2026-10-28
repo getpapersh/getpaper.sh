@@ -183,7 +183,7 @@ is `off`: trial actions link to the install section, Buy buttons and their Terms
 notices remain visible but muted, and the phone checkout frame has no QR code.
 Disabled Buy buttons explain that buying opens during the beta. No Lemon Squeezy
 URL is emitted in the product page. A checkout URL restores the Buy links and
-inline Segno QR; use the verified live checkout before taking payments. EARLY
+inline Segno QR; use the verified live checkout before taking payments. BETABELIEVER
 takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
 up to five active Macs per person. The final legal text completed the
 owner-approved AI consensus review. Trial-only launch can precede sales; before
