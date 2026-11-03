@@ -141,8 +141,8 @@ backups, rollback, and the uninstaller's order) is in `paperland/README.md`.
 From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/latest.json`:
 
 ```json
-{"version": "27.0.0-beta.2", "build": 17, "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.2.dmg",
- "sha256": "9ddfa97f02c64aeb51fffcf6fe5a62bddd40ea39dfbb8f9028d6c84307d78bc4", "min_macos": "27", "notarized": true}
+{"version": "27.0.0-beta.3", "build": 18, "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.3.dmg",
+ "sha256": "110d056130beb6cf8f41284d087f2018b9561d83736db7a44522a87310597d25", "min_macos": "27", "notarized": true}
 ```
 
 `install` sets `PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json`. In manifest mode the
@@ -150,7 +150,7 @@ script fails closed: a fetch error, a file `plutil` cannot read, or any missing 
 malformed field stops the install, and it never falls back to the pin. It requires
 `dmg_url` to start with `https://dl.getpaper.sh/papermac/` and end in a plain `.dmg`
 file name, `sha256` to be 64 lowercase hex characters, `version` to look like
-`27.0.0` or `27.0.0-beta.2`, `min_macos` to be digits (it replaces the pinned
+`27.0.0` or `27.0.0-beta.3`, `min_macos` to be digits (it replaces the pinned
 minimum), and `notarized` to be a JSON boolean. `build` is not used. Parsing uses
 `plutil -extract <key> raw -expect <type>`; never python3, which is an install-dialog
 stub on Macs without the Command Line Tools.
