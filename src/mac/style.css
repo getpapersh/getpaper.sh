@@ -378,7 +378,7 @@ footer .brand img { width: 24px; height: 24px; }
 .compare .txt.soon b { display: block; color: var(--ink); font-weight: 850; }
 .compare .col > .btn { justify-self: start; margin-top: 8px; }
 .compare .slip { position: static; margin-top: 12px; }
-.plain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 32px; margin-top: 64px; padding-top: 24px; border-top: 1.5px solid var(--line); }
+.plain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 32px; margin-top: 64px; padding-top: 24px; border-top: 1.5px solid var(--line); }
 .plain strong { display: block; font-weight: 850; font-size: 17px; }
 .plain p { margin: 6px 0 0; font-size: 15px; font-weight: 600; color: var(--ink-2); line-height: 1.5; }
 @media (max-width: 1100px) { .plain { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

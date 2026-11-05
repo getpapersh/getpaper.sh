@@ -86,10 +86,22 @@ assert 'A scrolling window manager for macOS that sets your windows side by side
 assert 'Free forever' not in product
 assert '#activate=' not in product
 assert 'Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.' in product
-assert 'Your edition never expires.' in product
-assert 'optional discounted upgrades' in product
+assert 'Your license for this edition never expires.' in product
+assert 'optional, discounted upgrades for existing customers.' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
-assert 'up to 5 Macs at once' in product
+assert 'Your free week of PaperMac Pro starts automatically after setup.' in product
+assert 'you can extend your trial for one additional free week' in product
+assert 'There is no automatic charge.' in product
+assert '14-day' not in product and '14 days' not in product
+assert 'half and half' not in product
+free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
+pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
+assert 'The core window manager is free, forever.' in free_column
+assert 'up to two adjustable-height Strips per Desktop and stacks of up to two windows.' in free_column
+assert 'data-pic="select"' in free_column and 'data-pic="select"' not in pro_column
+assert 'Three or more Strips per Desktop, with adjustable heights' in pro_column
+assert 'Lanes of different heights' not in pro_column
+assert 'with up to five activations at a time. Each macOS user account counts as a separate activation.' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
 assert len(videos) == 3
@@ -110,7 +122,7 @@ if checkout == 'off':
     assert 'class="phone sales-unavailable"' in product
     trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
     assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
-    assert product.count('Try Pro free for 14 days') == 3
+    assert product.count('Try Pro free') == 3
     buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
     assert len(buys) == 3
     for attrs in buys:
@@ -126,7 +138,7 @@ else:
     assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
-assert 'Not included in Free or Pro.' in product
+assert 'Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product
 assert product.count('BETABELIEVER') == 2 and 'EARLY' not in product
 assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
