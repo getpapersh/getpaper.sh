@@ -25,7 +25,7 @@
 <a class="btn pro small" href="{{CHECKOUT_URL}}">Buy Pro</a>
 <!-- /sales:url -->
 <!-- sales:off -->
-<a class="btn pro small trial-cta" href="#install">Try Pro free for 14 days</a>
+<a class="btn pro small trial-cta" href="#install">Try Pro free</a>
 <button class="btn pro small" type="button" disabled aria-describedby="header-sales">Buy Pro</button>
 <!-- /sales:off -->
   </nav>
@@ -72,12 +72,12 @@
 <a class="btn pro wide" href="{{CHECKOUT_URL}}">Buy Pro</a>
 <!-- /sales:url -->
 <!-- sales:off -->
-<a class="btn pro wide trial-cta" href="#install">Try Pro free for 14 days</a>
+<a class="btn pro wide trial-cta" href="#install">Try Pro free</a>
 <button class="btn pro wide" type="button" disabled aria-describedby="hero-sales">Buy Pro</button>
 <p class="sales-closed" id="hero-sales">Buying Pro opens during the beta</p>
 <!-- /sales:off -->
           <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <p class="trial">The 14-day Pro trial starts inside the app, when you choose.</p>
+          <p class="trial">Your free week of PaperMac Pro starts automatically after setup. When it ends, you can extend your trial for one additional free week if you’d like more time to explore. There is no automatic charge.</p>
         </div>
       </aside>
     </div>
@@ -121,9 +121,10 @@
     <div class="cols">
       <div class="col" id="free">
         <div class="col-head"><h3>PaperMac Free</h3><b>$0</b></div>
-        <p class="col-intro">The whole scrolling Strip, on every Desktop and every display.</p>
+        <p class="col-intro">The core window manager is free, forever.</p>
+        <p class="txt">Get scrollable tiling on every Desktop and display, with up to two adjustable-height Strips per Desktop and stacks of up to two windows.</p>
         <div class="pics">
-          <figure class="pic" data-pic="lanes2"><div class="mini" aria-hidden="true"></div><figcaption>Up to <b>2 lanes</b> per Desktop, full height or half and half</figcaption></figure>
+          <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Up to <b>two adjustable-height Strips</b> per Desktop</figcaption></figure>
           <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 windows</b></figcaption></figure>
           <figure class="pic" data-pic="strip"><div class="mini" aria-hidden="true"></div><figcaption>A Strip on every Desktop and display, in live motion</figcaption></figure>
           <figure class="pic" data-pic="resize"><div class="mini" aria-hidden="true"></div><figcaption>Move between windows and resize them</figcaption></figure>
@@ -132,23 +133,22 @@
           <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
-          <p class="txt">Also free: rules for your apps, gestures, your own shortcuts, a config file and a CLI, and crash recovery.</p>
+          <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
+          <p class="txt">Includes the minimap, Option-Tab window switching, moving windows between Desktops and displays, selecting and arranging multiple windows, app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.</p>
         </div>
         <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
       </div>
       <div class="col pro" id="pro">
         <div class="col-head"><h3>PaperMac Pro 27</h3><b>$19 <s><span class="sr-only">was </span>$29</s></b></div>
-        <p class="col-intro">Everything in Free, plus:</p>
+        <p class="col-intro">Optional additions to the free core:</p>
         <div class="pics">
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
-          <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>3 or more windows</b></figcaption></figure>
-          <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Lanes of different heights</figcaption></figure>
+          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>Three or more Strips per Desktop, with adjustable heights</b>. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>three or more windows</b></figcaption></figure>
           <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>
           <figure class="pic" data-pic="previews"><div class="mini" aria-hidden="true"></div><figcaption>Window previews on hover</figcaption></figure>
-          <figure class="pic" data-pic="synced"><div class="mini" aria-hidden="true"></div><figcaption>Strips that stay in sync across displays</figcaption></figure>
-          <figure class="pic" data-pic="names"><div class="mini" aria-hidden="true"></div><figcaption>Desktops that name themselves</figcaption></figure>
-          <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Snooze a window until you need it</figcaption></figure>
-          <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
+          <figure class="pic" data-pic="synced"><div class="mini" aria-hidden="true"></div><figcaption>Synced Strips across displays</figcaption></figure>
+          <figure class="pic" data-pic="names"><div class="mini" aria-hidden="true"></div><figcaption>Desktop auto-naming</figcaption></figure>
+          <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Window snoozing</figcaption></figure>
         </div>
         <aside class="slip" aria-label="Buy PaperMac Pro">
           <div class="who"><img src="data:image/webp;base64,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" alt="" width="52" height="52"><div><b>PaperMac Pro 27</b><span>The edition for macOS 27</span></div></div>
@@ -157,7 +157,7 @@
 <a class="btn pro" href="{{CHECKOUT_URL}}">Buy PaperMac Pro</a>
 <!-- /sales:url -->
 <!-- sales:off -->
-<a class="btn pro trial-cta" href="#install">Try Pro free for 14 days</a>
+<a class="btn pro trial-cta" href="#install">Try Pro free</a>
 <button class="btn pro" type="button" disabled aria-describedby="panel-sales">Buy PaperMac Pro</button>
 <p class="sales-closed" id="panel-sales">Buying Pro opens during the beta</p>
 <!-- /sales:off -->
@@ -182,14 +182,12 @@
         </aside>
       </div>
     </div>
-    <p class="txt soon"><b>Coming soon</b>Stack scrolling and stack height controls. Not included in Free or Pro.</p>
     <p class="txt soon"><b>Beta software</b>PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things.</p>
     <p class="lead">Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.</p>
     <div class="plain" role="list" aria-label="Purchase terms">
-      <div role="listitem"><strong>Pay once.</strong><p>No subscription.</p></div>
-      <div role="listitem"><strong>Your edition never expires.</strong><p>Keep using PaperMac Pro 27 on macOS 27. Future editions are optional discounted upgrades.</p></div>
-      <div role="listitem"><strong>One person, all your Macs.</strong><p>Use your license on up to 5 Macs at once.</p></div>
-      <div role="listitem"><strong>No grace window.</strong><p>A new edition is a separate purchase, even if you bought this one recently.</p></div>
+      <div role="listitem"><strong>Pay once.</strong><p>Your license for this edition never expires. Future PaperMac editions for new macOS versions will be optional, discounted upgrades for existing customers.</p></div>
+      <div role="listitem"><p>One license covers one person across all their Macs, with up to five activations at a time. Each macOS user account counts as a separate activation.</p></div>
+      <div role="listitem"><p>Your free week of PaperMac Pro starts automatically after setup. When it ends, you can extend your trial for one additional free week if you’d like more time to explore. There is no automatic charge.</p></div>
     </div>
   </section>
 
