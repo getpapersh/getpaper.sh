@@ -140,6 +140,13 @@ download_notice = '<p class="buy-notice download-notice">By downloading, you agr
 assert product.count(download_notice) == 2
 assert 'Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product
 assert product.count('BETABELIEVER') == 2 and 'EARLY' not in product
+assert '<p class="price"><b>$29</b> one time.</p>' in product
+assert '<div class="price"><b>$29</b><span>one time.</span></div>' in product
+assert '<h3>PaperMac Pro 27</h3><b>$29</b>' in product
+assert 'Use <b>BETABELIEVER</b> for $10 off ($19).' in product
+assert 'Use BETABELIEVER for $10 off ($19).' in product
+assert product.count('$19') == 2 and product.count('$29') == 3
+assert 'beta price' not in product and '<s>' not in product
 assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
