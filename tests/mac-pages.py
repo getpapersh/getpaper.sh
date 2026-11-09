@@ -85,7 +85,7 @@ product = (site / 'mac/index.html').read_text()
 assert 'A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product
 assert 'Free forever' not in product
 assert '#activate=' not in product
-assert 'Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.' in product
+assert 'Your license covers PaperMac 27 Pro on macOS 27 Golden Gate.' in product and 'PaperMac Pro 27' not in product
 assert 'Your license for this edition never expires.' in product
 assert 'optional, discounted upgrades for existing customers.' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
@@ -102,7 +102,7 @@ assert 'data-pic="select"' in free_column and 'data-pic="select"' not in pro_col
 assert 'Three or more Strips per Desktop, with adjustable heights' in pro_column
 assert 'Lanes of different heights' not in pro_column
 assert 'with up to five activations at a time. Each macOS user account counts as a separate activation.' in product
-assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
+assert not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
 assert len(videos) == 3
 for video in videos:
@@ -112,10 +112,12 @@ sources = [attributes['src'] for tag, attributes in Page(product).tags if tag ==
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
 assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
+lifetime = (Path(__file__).resolve().parents[1] / 'src/mac/lifetime-checkout-url.txt').read_text().strip()
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert product.count(buy_notice) == 4
-if checkout == 'off':
+assert product.count(buy_notice) == 4 + (lifetime != 'off')
+if checkout == 'off' and lifetime == 'off':
     assert 'lemonsqueezy' not in product.lower()
+if checkout == 'off':
     assert 'QR code for the PaperMac Pro checkout' not in product
     assert '<svg class="segno"' not in product
     assert 'class="qr-placeholder"' in product
@@ -133,20 +135,38 @@ else:
     assert 'QR code for the PaperMac Pro checkout' in product
     assert 'trial-cta"' not in product
     assert 'class="qr-placeholder"' not in product
-    buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
+    buy_links = [attrs['href'] for tag, attrs in Page(product).tags
+                 if tag == 'a' and 'btn pro' in attrs.get('class', '') and 'lifetime-cta' not in attrs['class']]
     assert buy_links == [checkout] * 3
-    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
+    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3 + (lifetime != 'off')
+lifetime_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'lifetime-cta' in attrs.get('class', '').split()]
+founding_until = '<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59 PM PT</time>'
+if lifetime == 'off':
+    assert 'Lifetime' not in product and '$79' not in product and '$39.50' not in product and lifetime_links == []
+else:
+    assert lifetime_links == [lifetime]
+    assert '<b>PaperMac 27 Lifetime</b><span>Covers this and all future versions of PaperMac with a Pro license.</span>' in product
+    assert '<div class="price"><b>$39.50</b><span><s><span class="sr-only">regular price </span>$79</s><br>one time.</span></div>' in product
+assert '{{LIFETIME_' not in product and 'lifetime:' not in product
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product
-assert product.count('BETABELIEVER') == 2 and 'EARLY' not in product
-assert '<p class="price"><b>$29</b> one time.</p>' in product
-assert '<div class="price"><b>$29</b><span>one time.</span></div>' in product
-assert '<h3>PaperMac Pro 27</h3><b>$29</b>' in product
-assert 'Use <b>BETABELIEVER</b> for $10 off ($19).' in product
-assert 'Use BETABELIEVER for $10 off ($19).' in product
-assert product.count('$19') == 2 and product.count('$29') == 3
-assert 'beta price' not in product and '<s>' not in product
+# Checkout URLs carry the founding codes, so buyers never see or type one.
+visible = ' '.join(Page(product).texts)
+for phrase in ['betabeliever', 'foreverfounder', 'coupon', 'discount code', 'promo', '$10 off']:
+    assert phrase not in visible.lower(), phrase
+assert 'EARLY' not in product
+pro_list = '<s><span class="sr-only">regular price </span>$39</s>'
+assert f'<h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b> {pro_list}</p>' in product
+assert f'<li>One-time founding price through {founding_until}. Then $39.</li>' in product
+assert f'<h3>PaperMac 27 Pro</h3><b>$19.50 {pro_list}</b>' in product
+assert '<b>PaperMac 27 Pro</b><span>The edition for macOS 27</span>' in product
+assert f'<div class="price"><b>$19.50</b><span>{pro_list}<br>one time.</span></div>' in product
+assert f'<p class="to">Founding price through {founding_until}.</p>' in product
+assert product.count(founding_until) == 2 + (lifetime != 'off')
+assert product.count('$19.50') == 3 and product.count(pro_list) == 3
+assert '$29' not in product and not re.search(r'\$19(?!\.50)', product)
+assert 'beta price' not in product
 assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)

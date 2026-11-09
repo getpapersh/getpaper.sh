@@ -178,14 +178,38 @@ sh scripts/build-site.sh /tmp/getpaper-site-preview
 The preview output has 25 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
-`src/mac/checkout-url.txt` is the single sales-mode input. The committed default
-is `off`: trial actions link to the install section, Buy buttons and their Terms
+Two files set the sales modes, and both committed defaults are `off`:
+`src/mac/checkout-url.txt` for PaperMac 27 Pro and
+`src/mac/lifetime-checkout-url.txt` for PaperMac 27 Lifetime. With the Pro file
+`off`, trial actions link to the install section, Buy buttons and their Terms
 notices remain visible but muted, and the phone checkout frame has no QR code.
-Disabled Buy buttons explain that buying opens during the beta. No Lemon Squeezy
-URL is emitted in the product page. A checkout URL restores the Buy links and
-inline Segno QR; use the verified live checkout before taking payments. BETABELIEVER
-takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
-up to five active Macs per person. The final legal text completed the
+Disabled Buy buttons explain that buying opens during the beta. With the Lifetime
+file `off`, the page has no Lifetime offer at all. No Lemon Squeezy URL is emitted
+in the product page while both are `off`. The bundler accepts only `off` or an
+`https://` URL in either file.
+
+PaperMac 27 Pro lists at $39 and PaperMac 27 Lifetime at $79. Through Tue Dec 1
+2026 11:59 PM PT (2026-12-02T07:59:59Z), the founding prices are $19.50 for Pro
+(code BETABELIEVER) and $39.50 for Lifetime (code FOREVERFOUNDER). Buyers never
+type a code: each checkout URL carries its code, and the page shows founding
+prices and the deadline without naming either code. To turn a product on, write
+its Lemon Squeezy buy URL with the code prefilled into its file and rebuild,
+for example:
+
+```text
+https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=BETABELIEVER
+```
+
+A Pro URL restores the Buy links and inline Segno QR; a Lifetime URL adds the
+Lifetime price and Buy link to the buy panel. Use the verified live checkouts
+before taking payments. After the deadline the codes expire and checkout charges
+list price, but the page's founding copy is static: replace it with list prices
+and rebuild when founding ends. The license covers PaperMac 27 Pro on macOS 27
+Golden Gate, with up to five active Macs per person. A Lifetime license is Pro for
+life: it covers PaperMac 27 Pro and every future version's Pro, but not a higher
+tier if one is ever added. The page promises no lifetime support or updates. The
+Terms still treat later editions as separate purchases, so they need a Lifetime
+clause before the Lifetime file is turned on. The final legal text completed the
 owner-approved AI consensus review. Trial-only launch can precede sales; before
 enabling payments, verify refund key deactivation and EU/UK digital-content
 withdrawal consent at checkout. Public activation also requires the hosting redirect to
