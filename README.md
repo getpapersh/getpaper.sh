@@ -141,8 +141,8 @@ backups, rollback, and the uninstaller's order) is in `paperland/README.md`.
 From Alpha 4, PaperMac's release publishes `https://dl.getpaper.sh/papermac/latest.json`:
 
 ```json
-{"version": "27.0.0-beta.6", "build": 21, "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.6.dmg",
- "sha256": "302203713cc9342a8ed59240f698398361eb2e020062092251fe0b1a47011129", "min_macos": "27", "notarized": true}
+{"version": "27.0.0-beta.7", "build": 22, "dmg_url": "https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.7.dmg",
+ "sha256": "529c9ce28b2688212bb28c088243eb098e0622b5e1c021b8184d2057877eef29", "min_macos": "27", "notarized": true}
 ```
 
 `install` sets `PAPERMAC_MANIFEST_URL=https://dl.getpaper.sh/papermac/latest.json`. In manifest mode the
