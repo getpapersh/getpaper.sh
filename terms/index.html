@@ -270,7 +270,7 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .slip .who img { width: 52px; height: 52px; }
 .slip .who b { display: block; font-weight: 900; font-stretch: 118%; font-size: 24px; line-height: 1; letter-spacing: -.02em; }
 .slip .who span { display: block; margin-top: 4px; color: var(--ink-2); font-size: 14px; font-weight: 650; }
-.slip .price { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 4px; }
+.slip .price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin: 26px 0 4px; }
 .slip .price b { font-weight: 900; font-stretch: 125%; font-size: 72px; line-height: .8; letter-spacing: -.04em; }
 .slip .price span { color: var(--ink-2); font-weight: 650; font-size: 15px; line-height: 1.3; }
 .slip .price s { text-decoration-thickness: 2px; }
@@ -389,7 +389,7 @@ footer .brand img { width: 24px; height: 24px; }
 .compare .txt.soon b { display: block; color: var(--ink); font-weight: 850; }
 .compare .col > .btn { justify-self: start; margin-top: 8px; }
 .compare .slip { position: static; margin-top: 12px; }
-.plain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 32px; margin-top: 64px; padding-top: 24px; border-top: 1.5px solid var(--line); }
+.plain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 32px; margin-top: 64px; padding-top: 24px; border-top: 1.5px solid var(--line); }
 .plain strong { display: block; font-weight: 850; font-size: 17px; }
 .plain p { margin: 6px 0 0; font-size: 15px; font-weight: 600; color: var(--ink-2); line-height: 1.5; }
 @media (max-width: 1100px) { .plain { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -445,18 +445,19 @@ a[href^="mailto:"]:focus-visible {
 <main class="wrap legal">
 <h1>PaperMac Terms</h1>
 <p>Effective October 27, 2026</p>
-<p>These terms cover the free version and PaperMac Pro. By buying, installing or using PaperMac, you agree to them.</p>
+<p>These terms cover the free version, PaperMac 27 Pro and PaperMac 27 Lifetime. By buying, installing or using PaperMac, you agree to them.</p>
 <h2>30-day refunds, for any reason</h2>
-<p>If PaperMac Pro isn't right for you, email <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> within 30 days of purchase. Include your order number or purchase email if you have it. You get a full refund, and we won't ask why.</p>
-<p>When we refund you, your Pro license ends and we deactivate its key. You can keep using the free version.</p>
+<p>If a paid PaperMac license isn't right for you, email <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> within 30 days of purchase. Include your order number or purchase email if you have it. You get a full refund, and we won't ask why.</p>
+<p>When we refund you, that license ends and we deactivate its key. You can keep using the free version.</p>
 <p>This refund is in addition to any cancellation rights the law gives you.</p>
 <h2>Your license</h2>
 <ul>
-<li><strong>What you buy.</strong> Buying PaperMac Pro gives you a license to use it, not ownership of the software.</li>
+<li><strong>What you buy.</strong> Buying PaperMac 27 Pro or PaperMac 27 Lifetime gives you a license to use it, not ownership of the software.</li>
 <li><strong>Who can use it.</strong> One license covers one person, with up to 5 active installations on their own Macs. Each activated macOS user account counts as one installation. To free a slot, deactivate an installation in the app. If you can't reach a Mac to deactivate it, contact support.</li>
 <li><strong>Sharing your key.</strong> Don't share, sell or publish your license key, except to transfer your license where the law allows it.</li>
-<li><strong>How long it lasts.</strong> Your license covers PaperMac Pro 27 on macOS 27 Golden Gate. It never expires.</li>
-<li><strong>Updates and future editions.</strong> Updates to PaperMac 27 are included. Editions for later macOS versions are separate, optional purchases.</li>
+<li><strong>How long it lasts.</strong> A PaperMac 27 Pro license covers PaperMac 27 Pro on macOS 27 Golden Gate. It never expires.</li>
+<li><strong>Updates and future editions.</strong> Updates to the edition you licensed are included. For PaperMac 27 Pro, editions for later macOS versions are separate, optional purchases. PaperMac 27 Lifetime is different; see below.</li>
+<li><strong>PaperMac 27 Lifetime.</strong> A one-time purchase that covers the Pro license for PaperMac 27 and all future versions of PaperMac. It does not include any higher tier above Pro if one is ever offered. The same activation limit (5 Macs) and other license terms apply. Lifetime is not a promise of lifetime support, that PaperMac will be developed forever, or a fix for every Apple update; see Compatibility.</li>
 <li><strong>The free version.</strong> You can use it for free under these same terms.</li>
 <li><strong>The trial.</strong> The Pro trial lasts 14 days from when you start it in the app. When it ends, PaperMac returns to the free version and keeps your layout.</li>
 <li><strong>Internet access.</strong> Activating a license, and checking it from time to time, needs an internet connection. See the <a href="/privacy">privacy policy</a>.</li>
