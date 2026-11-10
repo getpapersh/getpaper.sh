@@ -181,12 +181,12 @@ running the suites below; the default build's committed-source guard stays intac
 Two files set the sales modes, and both committed defaults are `off`:
 `src/mac/checkout-url.txt` for PaperMac 27 Pro and
 `src/mac/lifetime-checkout-url.txt` for PaperMac 27 Lifetime. With the Pro file
-`off`, trial actions link to the install section, Buy buttons and their Terms
-notices remain visible but muted, and the phone checkout frame has no QR code.
-Disabled Buy buttons explain that buying opens during the beta. With the Lifetime
-file `off`, the page has no Lifetime offer at all. No Lemon Squeezy URL is emitted
-in the product page while both are `off`. The bundler accepts only `off` or an
-`https://` URL in either file.
+`off`, the header, hero and buy panel offer the manually started 14-day Pro trial
+and say buying opens soon. Buy links, buying Terms notices, the phone frame and
+its QR code are absent; download Terms notices remain. With the Lifetime file
+`off`, the page has no Lifetime offer. No Lemon Squeezy URL is emitted while both
+are `off`. The bundler accepts only `off` or an `https://` URL in either file and
+rejects Lifetime checkout while Pro checkout is off.
 
 PaperMac 27 Pro lists at $39 and PaperMac 27 Lifetime at $79. Through Tue Dec 1
 2026 11:59 PM PT (2026-12-02T07:59:59Z), the founding prices are $19.50 for Pro
@@ -200,15 +200,18 @@ for example:
 https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=BETABELIEVER
 ```
 
-A Pro URL restores the Buy links and inline Segno QR; a Lifetime URL adds the
-Lifetime price and Buy link to the buy panel. Use the verified live checkouts
+A Pro URL enables Buy links and the inline Segno QR; with Pro on, a Lifetime URL
+adds Lifetime to the hero, buy panel and purchase terms. Use the verified live checkouts
 before taking payments. After the deadline the codes expire and checkout charges
 list price, but the page's founding copy is static: replace it with list prices
 and rebuild when founding ends. The license covers PaperMac 27 Pro on macOS 27
 Golden Gate, with up to five active Macs per person. A Lifetime license is Pro for
 life: it covers PaperMac 27 Pro and every future version's Pro, but not a higher
-tier if one is ever added. The page promises no lifetime support or updates. The Terms include the Lifetime clause; the higher-tier exclusion lives only in the Terms. The final legal text completed the
-owner-approved AI consensus review. Trial-only launch can precede sales; before
+tier if one is ever added. The page promises no lifetime support or updates. The
+Terms include Lifetime coverage and exclude any future tier above Pro; the product
+page states the Pro coverage. The final legal text completed the owner-approved
+AI consensus review. Keep both checkout files off until Pro and Lifetime checkouts
+are verified and ready to open together; before
 enabling payments, verify refund key deactivation and EU/UK digital-content
 withdrawal consent at checkout. Public activation also requires the hosting redirect to
 preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
