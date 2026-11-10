@@ -25,7 +25,7 @@ for target in [*site.rglob('*.html'), site / 'install']:
     for link in re.findall(r'https?://[^\s"\'<>]*\.dmg', text):
         assert link == dmg_url, (target, link)
 assert (site / 'index.html').read_text().count('href="' + dmg_url + '"') == 1
-assert (site / 'mac/index.html').read_text().count('href="' + dmg_url + '"') == 2
+assert (site / 'mac/index.html').read_text().count('href="' + dmg_url + '"') == 4
 assert 'PAPERMAC_DMG_URL=' + dmg_url + '\n' in (site / 'install').read_text()
 
 
@@ -86,68 +86,75 @@ product = (site / 'mac/index.html').read_text()
 assert 'A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product
 assert 'Free forever' not in product
 assert '#activate=' not in product
-assert 'Your license covers PaperMac 27 Pro on macOS 27 Golden Gate.' in product and 'PaperMac Pro 27' not in product
-assert 'Your license for this edition never expires.' in product
-assert 'optional, discounted upgrades for existing customers.' in product
+assert 'A PaperMac 27 Pro license covers PaperMac 27 Pro on macOS 27 Golden Gate.' in product and 'PaperMac Pro 27' not in product
+assert 'No subscription. A PaperMac 27 Pro license never expires. Editions for later macOS versions are separate, optional purchases.' in product
+assert 'discounted upgrades' not in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
-assert product.count('The 14-day Pro trial starts inside the app, when you choose.') == 2
+assert product.count('The 14-day Pro trial starts inside the app, when you choose.') == 3
 assert 'There is no automatic charge.' in product
 assert 'free week' not in product and 'starts automatically after setup' not in product
 assert 'half and half' not in product
 free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
 pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
-assert 'The core window manager is free, forever.' in free_column
+assert 'The core window manager is free to use, with no time limit.' in free_column
 assert 'up to two adjustable-height Strips per Desktop and stacks of up to two windows.' in free_column
 assert 'data-pic="select"' in free_column and 'data-pic="select"' not in pro_column
-assert 'Three or more Strips per Desktop, with adjustable heights' in pro_column
+assert 'Three or more Strips</b> per Desktop, stacked, with adjustable heights' in pro_column
 assert 'Lanes of different heights' not in pro_column
 assert 'with up to five activations at a time. Each macOS user account counts as a separate activation.' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
 assert len(videos) == 3
 for video in videos:
-    assert all(key in video for key in ('controls', 'muted', 'playsinline', 'loop', 'poster'))
-    assert 'autoplay' not in video
+    assert all(key in video for key in ('controlslist', 'disablepictureinpicture', 'muted', 'playsinline', 'loop', 'poster'))
+    assert 'autoplay' not in video and 'controls' not in video
+    assert video['controlslist'] == 'nodownload noplaybackrate'
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
 assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
 lifetime = (Path(__file__).resolve().parents[1] / 'src/mac/lifetime-checkout-url.txt').read_text().strip()
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert product.count(buy_notice) == 4 + (lifetime != 'off')
-if checkout == 'off' and lifetime == 'off':
-    assert 'lemonsqueezy' not in product.lower()
+assert product.count(buy_notice) == (2 + 2 * (lifetime != 'off') if checkout != 'off' else 0)
+trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
+assert len(trial_links) == (3 if checkout == 'off' else 2)
+assert all(attrs.get('href') == '#install' for attrs in trial_links)
+assert not any(tag == 'button' and 'disabled' in attrs for tag, attrs in Page(product).tags)
 if checkout == 'off':
-    assert 'QR code for the PaperMac Pro checkout' not in product
-    assert '<svg class="segno"' not in product
-    assert 'class="qr-placeholder"' in product
-    assert 'class="phone sales-unavailable"' in product
-    trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
-    assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
-    assert product.count('Try Pro free for 14 days') == 3
-    buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
-    assert len(buys) == 3
-    for attrs in buys:
-        assert 'disabled' in attrs and 'href' not in attrs
-        description = attrs['aria-describedby']
-        assert f'<p class="sales-closed" id="{description}">Buying Pro opens during the beta</p>' in product
+    assert lifetime == 'off'
+    assert 'lemonsqueezy' not in product.lower()
+    assert 'class="segno"' not in product and 'class="phone"' not in product
+    assert 'qr-placeholder' not in product
+    assert '<p class="sales-closed" id="header-sales">Buying opens soon</p>' in product
+    assert product.count('Buying opens soon. Until then, try Pro free for 14 days.') == 2
+    assert not any(tag == 'a' and attrs.get('href', '').startswith('https://') and 'pro' in attrs.get('class', '').split() for tag, attrs in Page(product).tags)
 else:
-    assert 'QR code for the PaperMac Pro checkout' in product
-    assert 'trial-cta"' not in product
-    assert 'class="qr-placeholder"' not in product
+    assert 'class="segno"' in product
+    assert '<p class="sales-closed"' not in product
+    assert 'Scan to buy PaperMac 27 Pro on your phone' in product
     buy_links = [attrs['href'] for tag, attrs in Page(product).tags
-                 if tag == 'a' and 'btn pro' in attrs.get('class', '') and 'lifetime-cta' not in attrs['class']]
+                 if tag == 'a' and 'pro' in attrs.get('class', '').split() and 'trial-cta' not in attrs.get('class', '').split()]
     assert buy_links == [checkout] * 3
-    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3 + (lifetime != 'off')
 lifetime_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'lifetime-cta' in attrs.get('class', '').split()]
-founding_until = '<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59 PM PT</time>'
+founding_until = '<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>'
 if lifetime == 'off':
     assert 'Lifetime' not in product and '$79' not in product and '$39.50' not in product and lifetime_links == []
+    assert 'aria-label="Buy PaperMac 27 Pro"' in product
 else:
-    assert lifetime_links == [lifetime]
-    assert '<b>PaperMac 27 Lifetime</b><span>Covers this and all future versions of PaperMac with a Pro license.</span>' in product
-    assert '<div class="price"><b>$39.50</b><span><s><span class="sr-only">regular price </span>$79</s><br>one time.</span></div>' in product
+    assert lifetime_links == [lifetime] * 2
+    assert 'aria-label="Buy PaperMac 27 Pro or Lifetime"' in product
+    assert product.count('Covers this and all future versions of PaperMac with a Pro license.') == 3
+    assert product.count('$39.50') == 2
+    assert product.count('<span class="was">Regular $79</span>') == 2
 assert '{{LIFETIME_' not in product and 'lifetime:' not in product
+assert '{{BUY_LABEL}}' not in product
+for tag, attrs in Page(product).tags:
+    if tag == 'button' and 'cmd' in attrs.get('class', '').split():
+        assert 'aria-label' not in attrs
+        assert f'id="{attrs["aria-describedby"]}"' in product
+assert 'Also in Pro: lock windows together as a group.' in pro_column
+assert 'Everything in Free, plus:' in pro_column
+assert 'Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product
@@ -157,14 +164,14 @@ for phrase in ['betabeliever', 'foreverfounder', 'coupon', 'discount code', 'pro
     assert phrase not in visible.lower(), phrase
 assert 'EARLY' not in product
 pro_list = '<s><span class="sr-only">regular price </span>$39</s>'
-assert f'<h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b> {pro_list}</p>' in product
-assert f'<li>One-time founding price through {founding_until}. Then $39.</li>' in product
-assert f'<h3>PaperMac 27 Pro</h3><b>$19.50 {pro_list}</b>' in product
-assert '<b>PaperMac 27 Pro</b><span>The edition for macOS 27</span>' in product
-assert f'<div class="price"><b>$19.50</b><span>{pro_list}<br>one time.</span></div>' in product
-assert f'<p class="to">Founding price through {founding_until}.</p>' in product
+assert '<h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b>' in product
+assert f'<li>One-time purchase for macOS 27. Founding price through {founding_until}, then $39.</li>' in product
+assert '<h3>PaperMac 27 Pro</h3><b>$19.50 ' in product
+assert '<p class="coverage">PaperMac 27 Pro on macOS 27</p>' in product
+assert f'<p class="to">Founding price through {founding_until}</p>' in product
 assert product.count(founding_until) == 2 + (lifetime != 'off')
 assert product.count('$19.50') == 3 and product.count(pro_list) == 3
+assert product.count('<span class="was">Regular $39</span>') == 3
 assert '$29' not in product and not re.search(r'\$19(?!\.50)', product)
 assert 'beta price' not in product
 assert 'built on private macOS APIs' in product
@@ -180,7 +187,7 @@ for route in ['terms', 'privacy']:
     assert 'PaperMac\'s developer' in identity
     if route == 'terms':
         assert identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1]
-        assert legal_text.startswith('PaperMac Terms Effective October 27, 2026 These terms cover')
+        assert legal_text.startswith('PaperMac Terms Effective November 9, 2026 These terms cover')
         assert 'PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text
     else:
         assert re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S)

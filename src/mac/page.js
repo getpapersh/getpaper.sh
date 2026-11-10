@@ -40,6 +40,33 @@
   }
   for (const b of $$("[data-copy]")) wireCopy(b, () => b.dataset.copy || $("#" + b.dataset.copyFrom).textContent.trim());
 
+  for (const button of $$(".share-download")) {
+    button.addEventListener("click", async () => {
+      const url = "https://getpaper.sh/mac/";
+      if (navigator.share) {
+        try { await navigator.share({ url }); return; }
+        catch (error) { if (error.name === "AbortError") return; }
+      }
+      const ok = await copyText(url);
+      say(ok ? "Copied" : "Copy failed: select the text and copy it.");
+    });
+  }
+
+  for (const video of $$("video")) {
+    const frame = document.createElement("div");
+    frame.className = "video-frame";
+    video.before(frame); frame.append(video);
+    const play = document.createElement("button");
+    play.type = "button"; play.className = "video-play";
+    play.setAttribute("aria-label", "Play");
+    play.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v18l15-9z"/></svg>';
+    frame.append(play);
+    play.addEventListener("click", async () => {
+      try { await video.play(); video.controls = true; play.hidden = true; }
+      catch { video.controls = true; }
+    });
+  }
+
   for (const list of $$("[role=tablist][data-ways]")) {
     const tabs = $$("[role=tab]", list);
     const pick = (t, focus) => {

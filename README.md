@@ -207,9 +207,7 @@ list price, but the page's founding copy is static: replace it with list prices
 and rebuild when founding ends. The license covers PaperMac 27 Pro on macOS 27
 Golden Gate, with up to five active Macs per person. A Lifetime license is Pro for
 life: it covers PaperMac 27 Pro and every future version's Pro, but not a higher
-tier if one is ever added. The page promises no lifetime support or updates. The
-Terms still treat later editions as separate purchases, so they need a Lifetime
-clause before the Lifetime file is turned on. The final legal text completed the
+tier if one is ever added. The page promises no lifetime support or updates. The Terms include the Lifetime clause; the higher-tier exclusion lives only in the Terms. The final legal text completed the
 owner-approved AI consensus review. Trial-only launch can precede sales; before
 enabling payments, verify refund key deactivation and EU/UK digital-content
 withdrawal consent at checkout. Public activation also requires the hosting redirect to

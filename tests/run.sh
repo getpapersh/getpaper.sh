@@ -862,6 +862,7 @@ for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; d
 done
 check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 25 ]
 check "Mac pages, shared DMG links, local media and activation privacy contract" python3 "$root/tests/mac-pages.py" "$root/site"
+check "checkout combinations reject Lifetime without Pro" uvx --offline --with segno --from fonttools python "$root/tests/sales-modes.py"
 check "/install is served as plain text" grep -qxF '  Content-Type: text/plain; charset=utf-8' "$root/site/_headers"
 check "/install is never cached stale" grep -qxF '  Cache-Control: no-cache' "$root/site/_headers"
 check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-sh"' "$root/wrangler.jsonc"
