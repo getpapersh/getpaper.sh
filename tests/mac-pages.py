@@ -81,6 +81,8 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     for resource in re.findall(r'url\([\s\"\']*([^\)\"\']+)', text):
         assert resource.startswith('data:'), (route, resource[:60])
     assert not any(tag == 'form' for tag, attributes in page.tags), route
+    if route != 'index.html':
+        assert 'outline: 3px solid var(--focus, currentColor);' in text, route
 
 product = (site / 'mac/index.html').read_text()
 assert 'A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product
@@ -102,6 +104,8 @@ assert 'data-pic="select"' in free_column and 'data-pic="select"' not in pro_col
 assert 'Three or more Strips</b> per Desktop, stacked, with adjustable heights' in pro_column
 assert 'Lanes of different heights' not in pro_column
 assert 'with up to five activations at a time. Each macOS user account counts as a separate activation.' in product
+assert '<strong>Five activations.</strong><p>One license covers one person across all their Macs, with up to five activations at a time. Each macOS user account counts as a separate activation.</p>' in product
+assert '<strong>Try Pro.</strong><p>The 14-day Pro trial starts inside the app, when you choose. There is no automatic charge.</p>' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
 assert len(videos) == 3
