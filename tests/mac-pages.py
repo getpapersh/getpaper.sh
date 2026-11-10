@@ -9,6 +9,10 @@ site = Path(sys.argv[1])
 expected = {'index.html', '_headers', 'install', 'og.png', 'licenses',
             'mac', 'mac/index.html', 'mac/activate', 'mac/activate/index.html',
             'media', 'media/papermac', 'terms', 'terms/index.html', 'privacy', 'privacy/index.html'}
+expected.update(['brand', 'brand/papermac', 'brand/paperland',
+                 'brand/papermac/papermac-icon.svg', 'brand/paperland/paperland-icon.svg',
+                 'brand/papermac/papermac-icon-32.png', 'brand/papermac/papermac-icon-180.png',
+                 'mac/og.png'])
 expected.update('licenses/' + name for name in
                 ['OFL-monasans.txt', 'OFL-jetbrainsmono.txt', 'LOGOS-SOURCE.txt', 'FONTS.txt'])
 expected.update('media/papermac/' + name + suffix
@@ -69,7 +73,7 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     for tag, attributes in page.tags:
         assert not (tag == 'script' and 'src' in attributes), route
         resources = [attributes[key] for key in ('src', 'poster') if key in attributes]
-        if tag == 'link' and attributes.get('rel') in ('stylesheet', 'icon', 'preload', 'prefetch'):
+        if tag == 'link' and attributes.get('rel') in ('stylesheet', 'icon', 'apple-touch-icon', 'preload', 'prefetch'):
             resources.append(attributes['href'])
         for resource in resources:
             parsed = urlsplit(resource)

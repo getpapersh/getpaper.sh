@@ -108,7 +108,7 @@
 .scroller .railmap { position: relative; flex: 1; max-width: 420px; height: 26px; }
 .scroller .railmap button { position: absolute; top: 5px; bottom: 5px; padding: 0; border: 0; border-radius: 4px; background: var(--map-bar); cursor: pointer; transition: background .25s; }
 .scroller .railmap button.in { background: var(--map-focus); }
-.scroller .railmap button:hover { background: var(--ink-2); }
+.scroller .railmap button:hover { background: var(--brand-accent); }
 .scroller .railmap u { position: absolute; top: 0; bottom: 0; border: 2px solid var(--map-view); border-radius: 7px; pointer-events: none; }
 .scroller .ctl .nav { display: flex; gap: 8px; margin-left: auto; }
 
@@ -179,7 +179,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .cmd { display: flex; align-items: stretch; width: 100%; padding: 0; border: 0; border-radius: 14px; cursor: pointer; text-align: left; background: var(--ink); color: var(--paper); font: inherit; transition: transform .15s; }
 .cmd:hover { transform: translateY(-1px); } .cmd:active { transform: translateY(1px); }
 .cmd code { flex: 1; min-width: 0; padding: 16px 18px; font-size: clamp(13px, 1.05vw, 15px); line-height: 1.45; font-weight: 500; overflow-wrap: anywhere; }
-.cmd code::before { content: "$ "; opacity: .45; }
+.cmd code::before { content: "$ ";; }
 .cmd .lbl { flex: none; display: grid; place-items: center; min-width: 6.4em; padding: 0 16px; border-radius: 0 14px 14px 0; background: rgba(255,255,255,.12); font: 750 14px/1 "Paper Sans"; }
 :root[data-mode="dark"] .cmd .lbl { background: rgba(0,0,0,.1); }
 .cmd.done .lbl, .btn.done { background: var(--done-bg); color: var(--done-ink); }
@@ -187,7 +187,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 
 .top { display: grid; grid-template-columns: 1fr auto; position: relative; align-items: center; gap: 28px; height: 68px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; text-decoration: none; }
-.brand img { width: 30px; height: 30px; }
+.brand img { width: 40px; height: 40px; }
 .top nav { display: flex; align-items: center; gap: 24px; margin-left: auto; font-weight: 650; font-size: 15px; }
 .top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:hover { color: var(--ink); }
 .buy-notice { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 600; line-height: 1.45; }
@@ -206,7 +206,7 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .hero .lede { margin: 14px 0 0; max-width: 46ch; color: var(--ink-2); font-weight: 600; font-size: clamp(16px, 1.25vw, 18px); text-wrap: pretty; }
 .get { display: grid; gap: 12px; }
 .ways { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--paper-2); width: fit-content; }
-:root[data-mode="dark"] .ways { background: #1f2026; }
+:root[data-mode="dark"] .ways { background: var(--brand-raised); }
 .ways [role=tab] { min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-2); font: 700 14px/1 "Paper Sans"; cursor: pointer; }
 .ways [role=tab][aria-selected=true] { background: var(--slab); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink-2); }
 :root[data-mode="dark"] .ways [role=tab][aria-selected=true] { box-shadow: inset 0 0 0 2px var(--ink-2); }
@@ -222,8 +222,8 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 
 .hero .demo { margin-top: clamp(18px, 3vh, 36px); --stage-h: clamp(250px, 41vh, 440px); }
 .hero .demo .foot { width: min(1240px, calc(100% - 48px)); margin-inline: auto; }
-.pause { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink); font: 700 14px/1 "Paper Sans"; cursor: pointer; }
-.pause:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pause { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--brand-ink3); color: var(--ink); font: 700 14px/1 "Paper Sans"; cursor: pointer; }
+.pause:hover { background: var(--brand-accentTint); color: var(--brand-accentText); box-shadow: inset 0 0 0 1.5px var(--brand-focus); }
 .pause svg { width: 14px; height: 14px; }
 .pause[data-paused=true] .i-pause, .pause:not([data-paused=true]) .i-play { display: none; }
 
@@ -297,10 +297,10 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 footer { border-top: 1.5px solid var(--line); }
 footer .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; min-height: 84px; padding: 18px 0; font-size: 14px; font-weight: 650; color: var(--ink-2); }
 footer .brand { font-size: 16px; color: var(--ink); }
-footer .brand img { width: 24px; height: 24px; }
+footer .brand img { width: 32px; height: 32px; }
 .theme { display: flex; gap: 2px; margin-left: auto; padding: 3px; border-radius: 10px; box-shadow: inset 0 0 0 1.5px var(--line); }
 .theme button { min-height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font: 700 13px/1 "Paper Sans"; cursor: pointer; }
-.theme button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+.theme button[aria-pressed=true] { background: var(--brand-accent); color: var(--brand-onAccent); }
 
 
 #activate { display: grid; place-items: center; min-height: calc(100vh - 68px - 84px); padding: 40px 0 80px; }
@@ -490,9 +490,91 @@ a[href^="mailto:"]:focus-visible {
   outline-offset: 3px;
 }
 </style>
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/papermac/papermac-icon-180.png">
+<style>
+/* Approved Paper & Fold Blue. Keep product masters unchanged. */
+:root {
+  color-scheme: light;
+  --brand-paper: #F2EFE7;
+  --brand-surface: #FFFDF8;
+  --brand-raised: #E8E4D8;
+  --brand-ink: #14151A;
+  --brand-ink2: #55585F;
+  --brand-ink3: #64635E;
+  --brand-border: #D9D3C5;
+  --brand-borderStrong: #B8B1A2;
+  --brand-accent: #0965D0;
+  --brand-accentText: #0352C5;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #0965D024;
+  --brand-focus: #0965D0;
+  --brand-viewport: #0352C5;
+  --brand-success: #2E7A4D;
+  --brand-warning: #8F5A00;
+  --brand-error: #C0302B;
+}
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --brand-paper: #121317;
+  --brand-surface: #1D1E24;
+  --brand-raised: #23242A;
+  --brand-ink: #F2EFE7;
+  --brand-ink2: #B9B5AB;
+  --brand-ink3: #9A968D;
+  --brand-border: #36373F;
+  --brand-borderStrong: #55565F;
+  --brand-accent: #1A73E0;
+  --brand-accentText: #79B6FF;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #4D9BFF33;
+  --brand-focus: #79B6FF;
+  --brand-viewport: #79B6FF;
+  --brand-success: #5FCB8E;
+  --brand-warning: #F2B84B;
+  --brand-error: #FF7468;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) {
+  color-scheme: dark;
+  --brand-paper: #121317;
+  --brand-surface: #1D1E24;
+  --brand-raised: #23242A;
+  --brand-ink: #F2EFE7;
+  --brand-ink2: #B9B5AB;
+  --brand-ink3: #9A968D;
+  --brand-border: #36373F;
+  --brand-borderStrong: #55565F;
+  --brand-accent: #1A73E0;
+  --brand-accentText: #79B6FF;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #4D9BFF33;
+  --brand-focus: #79B6FF;
+  --brand-viewport: #79B6FF;
+  --brand-success: #5FCB8E;
+  --brand-warning: #F2B84B;
+  --brand-error: #FF7468;
+  }
+}
+
+:root {
+  --paper: var(--brand-paper); --paper-2: var(--brand-raised); --slab: var(--brand-surface);
+  --ink: var(--brand-ink); --ink-2: var(--brand-ink2); --line: var(--brand-border);
+  --hi: var(--brand-accent); --hi-text: var(--brand-accentText);
+  --pro: var(--brand-accent); --pro-hover: var(--brand-accent); --pro-ink: var(--brand-onAccent); --pro-text: var(--brand-accentText);
+  --done-bg: var(--brand-accent); --done-ink: var(--brand-onAccent);
+  --sel: var(--brand-focus); --map-view: var(--brand-focus); --map-focus: var(--brand-accent);
+}
+::selection { background: var(--brand-accent); color: var(--brand-onAccent); }
+:focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; }
+a:hover { color: var(--brand-accentText); }
+</style>
+<meta property="og:image" content="https://getpaper.sh/mac/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 </head>
 <body>
-<header class="wrap top"><a class="brand" href="/mac/">PaperMac</a><nav aria-label="Page"><a href="/mac/">Back to PaperMac</a></nav></header>
+<header class="wrap top"><a class="brand" href="/mac/"><img src="/brand/papermac/papermac-icon.svg" alt="" width="40" height="40">PaperMac</a><nav aria-label="Page"><a href="/mac/">Back to PaperMac</a></nav></header>
 <main class="wrap legal">
 <h1>PaperMac Terms</h1>
 <p>Effective November 9, 2026</p>

@@ -860,7 +860,8 @@ for file in _headers index.html install og.png; do check "site/ has $file" [ -f 
 for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 25 ]
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 33 ]
+check "Approved Paper brand, contrast and deterministic page bundles" python3 "$root/tests/brand.py" "$root/site"
 check "Mac pages, shared DMG links, local media and activation privacy contract" python3 "$root/tests/mac-pages.py" "$root/site"
 sales_modes() {
   if ! uvx --offline --with segno --from fonttools python -c 'import segno, fontTools'; then
@@ -893,7 +894,7 @@ check "both platform panels have the uninstall command" \
 check "the page's install command is the universal one-liner" page_text_has 'const CURL = "curl -fsSL https://getpaper.sh/install | sh";'
 check "the Linux panel shows the install command" \
   sh -c "sed -n '/data-os=\"lin\"/,/class=\"rejoin\"/p' '$root/site/index.html' | grep -qF '\${F.cmd(CURL)}'"
-check "the page no longer calls Paperland coming soon" fails grep -qiE 'Paperland[^<]*coming soon' "$root/site/index.html"
+check "the page no longer calls PaperLand coming soon" fails grep -qiE 'PaperLand[^<]*coming soon' "$root/site/index.html"
 check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
 check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
 check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"

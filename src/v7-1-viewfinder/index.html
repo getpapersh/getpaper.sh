@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="no-js" data-theme="light">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,9 +39,9 @@
 .map { position: absolute; z-index: 5; left: 0; top: 0; height: 26px; opacity: 0; translate: -50% 0; padding: 5px; border-radius: 9px; background: rgba(255,255,255,.9); box-shadow: 0 8px 20px -10px rgba(0,0,0,.5); }
 .map.om { border-radius: 0; background: #1a1b26; }
 .map b { position: absolute; top: 5px; bottom: 5px; border-radius: 4px; background: #d6d9e8; }
-.map b.f { background: #1b1fe0; }
-.map.om b { border-radius: 0; background: #2b2f45; } .map.om b.f { background: #7aa2f7; }
-.map u { position: absolute; top: 1px; bottom: 1px; border: 2.5px solid #ffb020; border-radius: 6px; }
+.map b.f { background: var(--brand-accent); }
+.map.om b { border-radius: 0; background: #2b2f45; } .map.om b.f { background: #1a73e0; }
+.map u { position: absolute; top: 1px; bottom: 1px; border: 2.5px solid var(--brand-focus); border-radius: 6px; }
 .map.om u { border-radius: 0; }
 .kb { position: absolute; z-index: 5; left: 0; top: 0; opacity: 0; translate: -50% 0; }
 .trunk6 { position: absolute; z-index: 5; left: 50%; top: 40px; width: min(620px, calc(100% - 40px)); translate: -50% 0; text-align: center; opacity: 0; pointer-events: none; }
@@ -69,6 +69,9 @@
   .nm, .bz, .lay.om { display: none; }
 }
 </style>
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/papermac/papermac-icon-180.png">
+<link rel="stylesheet" href="../_kit/brand.css">
 </head>
 <body>
 <a class="skip" href="#install">Skip to install</a>

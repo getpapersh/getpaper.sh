@@ -12,7 +12,7 @@ die() { printf 'build-site: %s\n' "$*" >&2; exit 1; }
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/site}
-sources="src/mac/dmg-url.txt install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
+sources="src/brand scripts/build-site.sh src/mac/dmg-url.txt install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
 
 if [ "$out" = "$root/site" ]; then
   for source in $sources; do
@@ -50,4 +50,10 @@ for tree in mac media terms privacy; do
   rm -rf "$out/$tree"
   mv "$out/$tree.tmp" "$out/$tree"
 done
+rm -rf "$out/brand"
+for product in papermac paperland; do
+  mkdir -p "$out/brand/$product"
+  cp "$root/src/brand/$product/masters/$product-icon.svg" "$out/brand/$product/"
+done
+cp "$root/src/brand/papermac/exports/papermac-icon-32.png" "$root/src/brand/papermac/exports/papermac-icon-180.png" "$out/brand/papermac/"
 echo "Built $out/install, $out/index.html, $out/mac/, $out/media/, $out/terms/, $out/privacy/, $out/og.png, $out/_headers and $out/licenses/"
