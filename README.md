@@ -25,7 +25,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `scripts/assemble-install.sh` | Fills the shared DMG URL and replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
 | `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source is `src/v7-1-viewfinder/index.html` with `src/_kit/` and `src/fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
 | `src/brand/`, `site/brand/` | Approved PaperMac and PaperLand masters, exports and palette tokens stay under `src/brand/`; `src/brand/SHA256SUMS` verifies the supplied assets. The site build copies only the two tiled SVGs and the PaperMac 32 px favicon and 180 px apple-touch icon that the pages use. The 180 px exports are rasterized from the unmodified icon masters. |
-| `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. The Mac product preview is `mac/og.png`, captured from its hero at the same dimensions. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
+| `og.png`, `mac/og.png` | The 1200×630 home and Mac link previews. Capture the built pages over local HTTP so root-absolute `/brand/` images load. See the commands below; the home crop starts at y=45 and the Mac crop at y=0 on a 1440×900 viewport. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
 | `terms/index.html`, `privacy/index.html` | Terms and privacy policy, built from `src/terms/` and `src/privacy/`. |
@@ -175,6 +175,28 @@ uvx --from fonttools python scripts/bundle-page.py src/terms/index.html > terms/
 uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > privacy/index.html
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
+
+Regenerate both OG images after a hero or brand change. Build a preview first, then
+serve it locally in a separate terminal (a static file server, not a dev server):
+
+```sh
+sh scripts/build-site.sh /tmp/getpaper-site-preview
+python3 -m http.server 8767 --bind 127.0.0.1 --directory /tmp/getpaper-site-preview
+```
+
+With that server running:
+
+```sh
+bun src/_tools/og.ts http://127.0.0.1:8767/ og.png
+bun src/_tools/og.ts http://127.0.0.1:8767/mac/ mac/og.png 0
+sh scripts/build-site.sh /tmp/getpaper-site-preview
+```
+
+Stop the static server when finished. The home page is light-only by design;
+the Mac and legal pages keep their existing light/dark behavior.
+`tests/brand.py` also runs `bun tests/brand-states.ts site`, which uses the same
+installed Chrome as the OG tool to check computed hover and copy-state contrast.
+The full-palette check reports every failing pair before exiting nonzero.
 
 The preview output has 33 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before

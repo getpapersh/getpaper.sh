@@ -168,17 +168,19 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .cmd { display: flex; align-items: stretch; width: 100%; padding: 0; border: 0; border-radius: 14px; cursor: pointer; text-align: left; background: var(--ink); color: var(--paper); font: inherit; transition: transform .15s; }
 .cmd:hover { transform: translateY(-1px); } .cmd:active { transform: translateY(1px); }
 .cmd code { flex: 1; min-width: 0; padding: 16px 18px; font-size: clamp(13px, 1.05vw, 15px); line-height: 1.45; font-weight: 500; overflow-wrap: anywhere; }
-.cmd code::before { content: "$ ";; }
+.cmd code::before { content: "$ "; opacity: .45; }
 .cmd .lbl { flex: none; display: grid; place-items: center; min-width: 6.4em; padding: 0 16px; border-radius: 0 14px 14px 0; background: rgba(255,255,255,.12); font: 750 14px/1 "Paper Sans"; }
 :root[data-mode="dark"] .cmd .lbl { background: rgba(0,0,0,.1); }
-.cmd.done .lbl, .btn.done { background: var(--done-bg); color: var(--done-ink); }
+:root .cmd:hover .lbl { background: transparent; }
+/* Match the theme selector so copy feedback wins over the label overlay. */
+:root .cmd.done .lbl, .btn.done { background: var(--done-bg); color: var(--done-ink); }
 
 
 .top { display: flex; align-items: center; gap: 28px; height: 68px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; text-decoration: none; }
 .brand img { width: 40px; height: 40px; }
 .top nav { display: flex; align-items: center; gap: 24px; margin-left: auto; font-weight: 650; font-size: 15px; }
-.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:hover { color: var(--brand-accentText); }
+.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:not(.btn):hover { color: var(--brand-accentText); }
 .buy-notice { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.45; }
 .top.with-buy-notice { display: grid; grid-template-columns: 1fr auto; gap: 4px 28px; height: auto; padding-block: 14px 8px; }
 .top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
