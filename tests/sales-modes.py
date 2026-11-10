@@ -25,9 +25,13 @@ with tempfile.TemporaryDirectory() as directory:
             assert result.returncode == 0, result.stderr
             html = result.stdout
             assert '{{' not in html
+            assert '<s>' not in html
+            assert html.count('<span class="was">Regular $39</span>') == 3
+            assert html.count('<span class="was">Regular $79</span>') == (2 if lifetime != 'off' else 0)
             assert html.count('class="btn quiet lifetime-cta"') == (2 if lifetime != 'off' else 0)
             assert 'aria-label="Buy PaperMac 27 Pro or Lifetime"' in html if lifetime != 'off' else 'aria-label="Buy PaperMac 27 Pro"' in html
             if pro != 'off':
+                assert 'QR code for the PaperMac 27 Pro checkout' in html
                 assert html.count('trial-cta" href="#install"') == 2
                 assert '<p class="sales-closed"' not in html
                 assert html.count('href="' + pro + '"') == 3

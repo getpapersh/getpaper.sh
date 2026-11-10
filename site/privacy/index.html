@@ -195,7 +195,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
 .sales-closed { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 600; line-height: 1.45; }
 .top > .sales-closed { position: absolute; right: 0; bottom: -8px; text-align: right; }
-.top .brand { justify-self: start; }
+.top .brand { justify-self: start; min-height: 44px; }
 .slip .sales-closed { margin-top: 8px; text-align: center; }
 
 
@@ -431,7 +431,7 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
   .decide { order: 2; width: calc(100% - 32px); margin-inline: auto; }
   .col-head { flex-direction: column; align-items: flex-start; gap: 4px; }
   .ways [role=tab], .pause, .theme button, .top .btn.small { min-height: 44px; }
-  footer a { padding-block: 12px; }
+  footer a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; padding-block: 12px; }
   .top { height: 68px; gap: 8px; }
   .top .brand { font-size: 16px; gap: 6px; }
   .top nav { gap: 0; }
@@ -470,7 +470,7 @@ time { white-space: nowrap; }
 @media (pointer: coarse) {
   .direct-download, .slip .phone { display: none; }
   .share-download { display: inline-flex; }
-  .mobile-dmg { display: inline-block; font-size: 15px; }
+  .mobile-dmg { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; }
 }
 .video-frame { position: relative; }
 .video-play { position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border: 0; border-radius: 50%; background: var(--pro); color: var(--pro-ink); cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.25); }

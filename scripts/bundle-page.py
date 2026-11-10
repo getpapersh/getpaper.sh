@@ -39,7 +39,7 @@ if "{{CHECKOUT_URL}}" in html:
     if "{{CHECKOUT_QR}}" in html:
         import segno
         html = html.replace("{{CHECKOUT_QR}}", segno.make(checkout, error="m", micro=False).svg_inline(
-            border=4, omitsize=True, title="QR code for the PaperMac Pro checkout"))
+            border=4, omitsize=True, title="QR code for the PaperMac 27 Pro checkout"))
 if "{{LIFETIME_CHECKOUT_URL}}" in html:
     html, lifetime, lifetime_mode = sell(html, "lifetime-checkout-url.txt", "lifetime")
     if lifetime_mode == "url" and sales_mode == "off":
