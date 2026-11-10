@@ -41,7 +41,10 @@ if "{{CHECKOUT_URL}}" in html:
         html = html.replace("{{CHECKOUT_QR}}", segno.make(checkout, error="m", micro=False).svg_inline(
             border=4, omitsize=True, title="QR code for the PaperMac Pro checkout"))
 if "{{LIFETIME_CHECKOUT_URL}}" in html:
-    html, lifetime, _ = sell(html, "lifetime-checkout-url.txt", "lifetime")
+    html, lifetime, lifetime_mode = sell(html, "lifetime-checkout-url.txt", "lifetime")
+    if lifetime_mode == "url" and sales_mode == "off":
+        sys.exit("Lifetime checkout needs Pro checkout on")
+    html = html.replace("{{BUY_LABEL}}", "Buy PaperMac 27 Pro or Lifetime" if lifetime_mode == "url" else "Buy PaperMac 27 Pro")
     html = html.replace("{{LIFETIME_CHECKOUT_URL}}", html_lib.escape(lifetime, quote=True))
 html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: "<style>\n" + (page.parent / m.group(1)).read_text() + "</style>", html)
 html = re.sub(r'<script src="([^"]+)"></script>', lambda m: "<script>\n" + (page.parent / m.group(1)).read_text() + "</script>", html)
