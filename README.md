@@ -24,7 +24,8 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
 | `scripts/assemble-install.sh` | Fills the shared DMG URL and replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
 | `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source is `src/v7-1-viewfinder/index.html` with `src/_kit/` and `src/fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
-| `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
+| `src/brand/`, `site/brand/` | Approved PaperMac and PaperLand masters, exports and palette tokens stay under `src/brand/`; `src/brand/SHA256SUMS` verifies the supplied assets. The site build copies only the two tiled SVGs and the PaperMac 32 px favicon and 180 px apple-touch icon that the pages use. The 180 px exports are rasterized from the unmodified icon masters. |
+| `og.png` | The page's 1200×630 link preview (`og:image`, served at `/og.png`): a headless-Chrome capture of the rebuilt page's hero at 1440×900, the band from y=45 to y=801 scaled to 1200×630, with the skip link hidden. The Mac product preview is `mac/og.png`, captured from its hero at the same dimensions. After a change to the hero, capture it again with `bun src/_tools/og.ts "$PWD/index.html" og.png`. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
 | `terms/index.html`, `privacy/index.html` | Terms and privacy policy, built from `src/terms/` and `src/privacy/`. |
@@ -175,7 +176,7 @@ uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > priv
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
 
-The preview output has 25 entries including directories. To test an uncommitted
+The preview output has 33 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
 `src/mac/checkout-url.txt` is the single sales-mode input. The committed default

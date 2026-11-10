@@ -2,9 +2,9 @@
    The rails are one SVG drawn from measured positions (fork5.js), so they always meet. */
 .fork { position: relative; padding: 0 20px 24px; text-align: center; }
 .fork > h2 { position: relative; z-index: 1; }
-.fork .trunk { position: relative; z-index: 1; width: min(620px, 100%); margin: 40px auto 0; --k-cmd-bg: #fff; --k-cmd-ink: #0a0b26; --k-cmd-lbl: rgba(10,11,38,.08); }
+.fork .trunk { position: relative; z-index: 1; width: min(620px, 100%); margin: 40px auto 0; --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-cmd-lbl: #ffffff24; }
 .fork .trunk p { margin: 12px 0 0; color: var(--on-dim); font-weight: 600; }
-.fork .trunk .k-after { color: var(--hi); }
+.fork .trunk .k-after { color: var(--brand-accentText); }
 .fork .rails { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .fork .rails path { fill: none; stroke: var(--on); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -29,9 +29,9 @@
 .prod svg { width: 20px; height: 20px; }
 .req { margin: 0; font-weight: 700; }
 /* .way dissolves into the column's subgrid so lead, box and link sit on the same rows in both columns */
-.way { display: contents; --k-cmd-bg: #fff; --k-cmd-ink: #0a0b26; --k-cmd-lbl: rgba(10,11,38,.08); }
+.way { display: contents; --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-cmd-lbl: #ffffff24; }
 .way .lead { margin: 0 0 -8px; font-size: 14px; font-weight: 700; color: var(--on-dim); }
-.way .alt { align-self: stretch; display: flex; --k-cmd-bg: #fff; --k-cmd-ink: #0a0b26; --k-cmd-lbl: rgba(10,11,38,.08); }
+.way .alt { align-self: stretch; display: flex; --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-cmd-lbl: #ffffff24; }
 .way .k-cmd { min-height: 84px; height: auto; align-items: stretch; }
 .way .k-cmd code { display: flex; align-items: center; text-align: left; padding: .8em 1.15em; overflow-wrap: anywhere; }
 .way .k-cmd .lbl { align-self: stretch; }

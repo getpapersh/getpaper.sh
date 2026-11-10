@@ -2,13 +2,14 @@
 (() => {
   const V = (window.V5 = {});
   const cmd = Fork5.cmd, CURL = Fork5.CURL;
-  V.COPIED = "Copied. Paste it in a terminal. It installs PaperMac on macOS or Paperland on Omarchy.";
+  V.COPIED = "Copied. Paste it in a terminal. It installs PaperMac on macOS or PaperLand on Omarchy.";
   V.MAC_EXTRA = " PaperMac will then ask for Accessibility access.";
   V.LEDE = "Windows scroll together in a Strip, like ticker tape. On Omarchy, zoom out in Overview to scan your Desktop like a newspaper and jump to a window.";
   V.CAPS = ["New windows open beside your current one in the Strip.", "Nothing shrinks or overlaps.", "Four widths, no dragging.", "Scrolling Strips on macOS and Omarchy."];
 
   V.heroHTML = () => `
     <p class="cat">A scrolling window manager for macOS and Linux</p>
+    <div class="family-marks"><img src="/brand/papermac/papermac-icon.svg" alt="PaperMac" width="56" height="56"><img src="/brand/paperland/paperland-icon.svg" alt="PaperLand" width="56" height="56"></div>
     <h1 id="title">Paper</h1>
     <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
     ${cmd(CURL, "after-hero")}

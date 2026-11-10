@@ -17,16 +17,16 @@
     <div class="cols">
       <div class="col" data-os="mac">
         <div class="dev laptop" aria-hidden="true"><div class="scr">${screens.mac || ""}</div><div class="foot"></div></div>
-        <div class="who"><h3 class="osname">${LOGOS.apple}macOS</h3><p class="prod"><a href="/mac/">PaperMac</a></p></div>
+        <div class="who"><h3 class="osname">${LOGOS.apple}macOS</h3><p class="prod"><img src="/brand/papermac/papermac-icon.svg" alt="" width="48" height="48"><a href="/mac/">PaperMac</a></p></div>
         <p class="req">Requires macOS 27 or newer.</p>
         <div class="way"><p class="lead">On a Mac, it installs PaperMac</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="{{DMG_URL}}">Or download the DMG</a></p></div>
         <p class="note">Verifies the checksum and signature and never asks for sudo.</p>
       </div>
       <div class="col" data-os="lin">
         <div class="dev monitor" aria-hidden="true"><div class="scr">${screens.lin || ""}</div><div class="foot"></div></div>
-        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod">Paperland</p></div>
+        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod"><img src="/brand/paperland/paperland-icon.svg" alt="" width="48" height="48">PaperLand</p></div>
         <p class="req">Requires Omarchy 4 and Hyprland 0.56, or newer.</p>
-        <div class="way"><p class="lead">On Omarchy, it installs Paperland</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
+        <div class="way"><p class="lead">On Omarchy, it installs PaperLand</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
         <p class="note">Pins and validates the plugin before it changes anything.</p>
       </div>
     </div>

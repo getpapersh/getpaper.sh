@@ -1,0 +1,75 @@
+/* Approved Paper & Fold Blue. Keep product masters unchanged. */
+:root {
+  color-scheme: light;
+  --brand-paper: #F2EFE7;
+  --brand-surface: #FFFDF8;
+  --brand-raised: #E8E4D8;
+  --brand-ink: #14151A;
+  --brand-ink2: #55585F;
+  --brand-ink3: #64635E;
+  --brand-border: #D9D3C5;
+  --brand-borderStrong: #B8B1A2;
+  --brand-accent: #0965D0;
+  --brand-accentText: #0352C5;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #0965D024;
+  --brand-focus: #0965D0;
+  --brand-viewport: #0352C5;
+  --brand-success: #2E7A4D;
+  --brand-warning: #8F5A00;
+  --brand-error: #C0302B;
+}
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --brand-paper: #121317;
+  --brand-surface: #1D1E24;
+  --brand-raised: #23242A;
+  --brand-ink: #F2EFE7;
+  --brand-ink2: #B9B5AB;
+  --brand-ink3: #9A968D;
+  --brand-border: #36373F;
+  --brand-borderStrong: #55565F;
+  --brand-accent: #1A73E0;
+  --brand-accentText: #79B6FF;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #4D9BFF33;
+  --brand-focus: #79B6FF;
+  --brand-viewport: #79B6FF;
+  --brand-success: #5FCB8E;
+  --brand-warning: #F2B84B;
+  --brand-error: #FF7468;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) {
+  color-scheme: dark;
+  --brand-paper: #121317;
+  --brand-surface: #1D1E24;
+  --brand-raised: #23242A;
+  --brand-ink: #F2EFE7;
+  --brand-ink2: #B9B5AB;
+  --brand-ink3: #9A968D;
+  --brand-border: #36373F;
+  --brand-borderStrong: #55565F;
+  --brand-accent: #1A73E0;
+  --brand-accentText: #79B6FF;
+  --brand-onAccent: #FFFFFF;
+  --brand-accentTint: #4D9BFF33;
+  --brand-focus: #79B6FF;
+  --brand-viewport: #79B6FF;
+  --brand-success: #5FCB8E;
+  --brand-warning: #F2B84B;
+  --brand-error: #FF7468;
+  }
+}
+
+:root {
+  --paper: var(--brand-paper); --paper-2: var(--brand-raised); --slab: var(--brand-surface);
+  --ink: var(--brand-ink); --ink-2: var(--brand-ink2); --line: var(--brand-border);
+  --hi: var(--brand-accent); --hi-text: var(--brand-accentText);
+  --pro: var(--brand-accent); --pro-hover: var(--brand-accent); --pro-ink: var(--brand-onAccent); --pro-text: var(--brand-accentText);
+  --done-bg: var(--brand-accent); --done-ink: var(--brand-onAccent);
+  --sel: var(--brand-focus); --map-view: var(--brand-focus); --map-focus: var(--brand-accent);
+}
+::selection { background: var(--brand-accent); color: var(--brand-onAccent); }
+:focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; }
+a:hover { color: var(--brand-accentText); }
