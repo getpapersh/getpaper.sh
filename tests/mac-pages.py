@@ -89,10 +89,9 @@ assert 'Your license covers PaperMac 27 Pro on macOS 27 Golden Gate.' in product
 assert 'Your license for this edition never expires.' in product
 assert 'optional, discounted upgrades for existing customers.' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
-assert 'Your free week of PaperMac Pro starts automatically after setup.' in product
-assert 'you can extend your trial for one additional free week' in product
+assert product.count('The 14-day Pro trial starts inside the app, when you choose.') == 2
 assert 'There is no automatic charge.' in product
-assert '14-day' not in product and '14 days' not in product
+assert 'free week' not in product and 'starts automatically after setup' not in product
 assert 'half and half' not in product
 free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
 pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
@@ -124,7 +123,7 @@ if checkout == 'off':
     assert 'class="phone sales-unavailable"' in product
     trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
     assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
-    assert product.count('Try Pro free') == 3
+    assert product.count('Try Pro free for 14 days') == 3
     buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
     assert len(buys) == 3
     for attrs in buys:
