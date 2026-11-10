@@ -60,6 +60,10 @@ for route, source in routes.items():
     check(built == (site / route).read_bytes() == (root / route).read_bytes(), (route, 'Fresh page bundle'))
 check('/brand/papermac/papermac-icon.svg' in (site / 'index.html').read_text() and
       '/brand/paperland/paperland-icon.svg' in (site / 'index.html').read_text(), 'Both family marks')
+check('data-theme="light" data-mode="light"' in (site / 'index.html').read_text(), 'Home stays light-only')
+
+# Resolve the cascade in Chrome; source-token checks cannot see hover specificity.
+subprocess.run(['bun', str(root / 'tests/brand-states.ts'), str(site)], check=True)
 
 
 def luminance(color):
@@ -77,6 +81,7 @@ palette = json.loads((root / 'src/brand/papermac/palette-paper-blue.json').read_
 check(palette == json.loads((root / 'src/brand/paperland/palette-paper-blue.json').read_text()), 'Identical product palettes')
 css = (root / 'src/_kit/brand.css').read_text()
 ratios = []
+palette_failures = []
 for theme in ['light', 'dark']:
     tokens = {key: value['$value'] for key, value in palette[theme].items()}
     for key, value in tokens.items():
@@ -88,7 +93,14 @@ for theme in ['light', 'dark']:
     pairs += [(edge, bg, 3) for edge in ['ink3', 'focus', 'accent'] for bg in ['paper', 'surface', 'raised']]
     for fg, bg, minimum in pairs:
         ratio = contrast(tokens[fg], tokens[bg])
-        check(ratio >= minimum, (theme, fg, bg, ratio, minimum))
+        try:
+            check(ratio >= minimum, (theme, fg, bg, ratio, minimum))
+        except AssertionError as error:
+            palette_failures.append(str(error))
         ratios.append(f'{theme} {fg}/{bg} {ratio:.2f}:1')
 print('\n'.join(ratios))
+for failure in palette_failures:
+    print('FAIL: ' + failure, file=sys.stderr)
+if palette_failures:
+    sys.exit(f'FAIL: {len(palette_failures)} of {len(ratios)} full-palette contrast pairs; thresholds unchanged')
 print(f'PASS: {checks} brand assertions; {len(ratios)} contrast pairs; five deterministic page bundles')

@@ -182,10 +182,12 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .cmd { display: flex; align-items: stretch; width: 100%; padding: 0; border: 0; border-radius: 14px; cursor: pointer; text-align: left; background: var(--ink); color: var(--paper); font: inherit; transition: transform .15s; }
 .cmd:hover { transform: translateY(-1px); } .cmd:active { transform: translateY(1px); }
 .cmd code { flex: 1; min-width: 0; padding: 16px 18px; font-size: clamp(13px, 1.05vw, 15px); line-height: 1.45; font-weight: 500; overflow-wrap: anywhere; }
-.cmd code::before { content: "$ ";; }
+.cmd code::before { content: "$ "; opacity: .45; }
 .cmd .lbl { flex: none; display: grid; place-items: center; min-width: 6.4em; padding: 0 16px; border-radius: 0 14px 14px 0; background: rgba(255,255,255,.12); font: 750 14px/1 "Paper Sans"; }
 :root[data-mode="dark"] .cmd .lbl { background: rgba(0,0,0,.1); }
-.cmd.done .lbl, .btn.done { background: var(--done-bg); color: var(--done-ink); }
+:root .cmd:hover .lbl { background: transparent; }
+/* Match the theme selector so copy feedback wins over the label overlay. */
+:root .cmd.done .lbl, .btn.done { background: var(--done-bg); color: var(--done-ink); }
 
 
 .top { display: grid; grid-template-columns: 1fr auto; position: relative; align-items: center; gap: 28px; height: 68px; }
