@@ -58,13 +58,14 @@
     video.before(frame); frame.append(video);
     const play = document.createElement("button");
     play.type = "button"; play.className = "video-play";
-    play.setAttribute("aria-label", "Play");
+    play.setAttribute("aria-label", "Play: " + video.getAttribute("aria-label"));
     play.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v18l15-9z"/></svg>';
     frame.append(play);
     play.addEventListener("click", async () => {
       try { await video.play(); video.controls = true; play.hidden = true; }
-      catch { video.controls = true; }
+      catch { video.controls = true; play.hidden = true; }
     });
+    video.controls = false;
   }
 
   for (const list of $$("[role=tablist][data-ways]")) {

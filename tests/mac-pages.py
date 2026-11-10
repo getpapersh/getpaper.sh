@@ -106,8 +106,8 @@ assert not any(phrase in product.lower() for phrase in ['lifetime support', 'lif
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
 assert len(videos) == 3
 for video in videos:
-    assert all(key in video for key in ('controlslist', 'disablepictureinpicture', 'muted', 'playsinline', 'loop', 'poster'))
-    assert 'autoplay' not in video and 'controls' not in video
+    assert all(key in video for key in ('controls', 'controlslist', 'disablepictureinpicture', 'muted', 'playsinline', 'loop', 'poster', 'aria-label'))
+    assert 'autoplay' not in video
     assert video['controlslist'] == 'nodownload noplaybackrate'
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
@@ -125,7 +125,7 @@ if checkout == 'off':
     assert 'lemonsqueezy' not in product.lower()
     assert 'class="segno"' not in product and 'class="phone"' not in product
     assert 'qr-placeholder' not in product
-    assert '<p class="sales-closed" id="header-sales">Buying opens soon</p>' in product
+    assert '<p class="sales-closed" id="header-sales">Buying opens soon.</p>' in product
     assert product.count('Buying opens soon. Until then, try Pro free for 14 days.') == 2
     assert not any(tag == 'a' and attrs.get('href', '').startswith('https://') and 'pro' in attrs.get('class', '').split() for tag, attrs in Page(product).tags)
 else:
@@ -163,7 +163,7 @@ visible = ' '.join(Page(product).texts)
 for phrase in ['betabeliever', 'foreverfounder', 'coupon', 'discount code', 'promo', '$10 off']:
     assert phrase not in visible.lower(), phrase
 assert 'EARLY' not in product
-pro_list = '<s><span class="sr-only">regular price </span>$39</s>'
+pro_list = '<span class="was">Regular $39</span>'
 assert '<h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b>' in product
 assert f'<li>One-time purchase for macOS 27. Founding price through {founding_until}, then $39.</li>' in product
 assert '<h3>PaperMac 27 Pro</h3><b>$19.50 ' in product
@@ -171,7 +171,8 @@ assert '<p class="coverage">PaperMac 27 Pro on macOS 27</p>' in product
 assert f'<p class="to">Founding price through {founding_until}</p>' in product
 assert product.count(founding_until) == 2 + (lifetime != 'off')
 assert product.count('$19.50') == 3 and product.count(pro_list) == 3
-assert product.count('<span class="was">Regular $39</span>') == 3
+assert '<s>' not in product
+assert len({video['aria-label'] for video in videos}) == 3
 assert '$29' not in product and not re.search(r'\$19(?!\.50)', product)
 assert 'beta price' not in product
 assert 'built on private macOS APIs' in product
@@ -201,6 +202,9 @@ assert 'href="/mac/">Mac</a>' in main and 'href="/mac/">PaperMac</a>' in main
 
 activation_text = (site / 'mac/activate/index.html').read_text()
 assert 'Then open PaperMac › Settings › License and paste.' in activation_text
+assert '--hi:' not in activation_text and 'var(--hi)' not in activation_text
+assert '--focus: #0965D0;' in activation_text and activation_text.count('--focus: #79B6FF;') == 2
+assert '--done-bg: #2E7A4D;' in activation_text and activation_text.count('--done-bg: #5FCB8E;') == 2
 activation = Page(activation_text)
 assert [attributes['href'] for tag, attributes in activation.tags if tag == 'a'] == ['papermac://license', 'mailto:billing@getpaper.sh']
 meta = {attributes.get('name'): attributes.get('content') for tag, attributes in activation.tags if tag == 'meta'}
