@@ -34,7 +34,7 @@ Infinite Canvas is the feature name; "an infinite canvas" describes the experien
 ## Operating Context
 
 - Install: `curl -fsSL https://getpaper.sh/install | sh` (universal; on macOS installs PaperMac, on Linux currently prints that Paperland is coming soon). Uninstall: `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
-- Final-state install fork (owner decision): macOS shows `brew install --cask jsonmartin/tap/papermac` and a DMG download; Linux shows an Omarchy plugin install command. Until each is real, the shipped page shows "coming soon" in that slot.
+- Final-state install fork (owner decision): macOS shows `brew tap getpapersh/tap && brew install --cask papermac` and a DMG download; Linux shows an Omarchy plugin install command. Until each is real, the shipped page shows "coming soon" in that slot.
 - Requirements today: PaperMac needs macOS 27 or newer and Accessibility access; Paperland needs Omarchy 4+ with Hyprland 0.56+, Quickshell, Python 3, git and jq.
 - PaperMac runs on top of native macOS Spaces (Mission Control keeps working); Paperland works with Hyprland's native workspaces.
 
@@ -67,7 +67,7 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 ## Brand Commitments
 
 - Names: Paper (family), PaperMac (macOS), Paperland (Hyprland). Domain getpaper.sh.
-- Voice: calm, technical, honest. Current page line: "Unannounced alpha. Expect rough edges."
+- Voice: calm, technical, honest. PaperMac is in public beta (27.0.0-beta.7). The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
 - Soft launch: no announcement copy, no analytics.
 - The earlier papermac-www site work (its layout, palette and headline) is explicitly not a reference for getpaper.sh.
 
