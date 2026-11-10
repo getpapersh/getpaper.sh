@@ -33,8 +33,8 @@ Infinite Canvas is the feature name; "an infinite canvas" describes the experien
 
 ## Operating Context
 
-- Install: `curl -fsSL https://getpaper.sh/install | sh` (universal; on macOS installs PaperMac, on Linux currently prints that Paperland is coming soon). Uninstall: `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
-- Final-state install fork (owner decision): macOS shows `brew tap getpapersh/tap && brew install --cask papermac` and a DMG download; Linux shows an Omarchy plugin install command. Until each is real, the shipped page shows "coming soon" in that slot.
+- Install: `curl -fsSL https://getpaper.sh/install | sh` (universal; on macOS installs PaperMac, on Linux with Omarchy and Hyprland installs Paperland). Uninstall: `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
+- Final-state install fork (owner decision): macOS shows `brew tap getpapersh/tap && brew install --cask papermac` and a DMG download; Linux shows an Omarchy plugin install command. Today the Mac page (`/mac/`) shows the Homebrew command, the DMG and the universal command; the home page's macOS slot shows the universal command and the DMG, and its Linux slot shows the universal command, which installs Paperland as an Omarchy plugin.
 - Requirements today: PaperMac needs macOS 27 or newer and Accessibility access; Paperland needs Omarchy 4+ with Hyprland 0.56+, Quickshell, Python 3, git and jq.
 - PaperMac runs on top of native macOS Spaces (Mission Control keeps working); Paperland works with Hyprland's native workspaces.
 
