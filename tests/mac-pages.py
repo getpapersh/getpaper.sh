@@ -62,6 +62,7 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     for email, href in page.emails:
         assert href == 'mailto:' + email, (route, email, href)
     assert 'made by' not in ' '.join(page.texts).lower(), route
+    assert 'PaperMac Pro 27' not in ' '.join(' '.join(page.texts).split()), route
     if route not in ['terms/index.html', 'privacy/index.html']:
         assert 'Jason Martin' not in text, route
     assert not re.search(r'(?:PAP|PAPER)-\d+', text), route
