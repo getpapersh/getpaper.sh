@@ -96,6 +96,20 @@ try {
         const videoRatio = await evaluate("(() => {const r=document.querySelector('.home-overview').getBoundingClientRect();return r.width/r.height;})()");
         assert(Math.abs(videoRatio - 1.6) < .01, `Home Overview recording aspect ratio: ${videoRatio}`);
         checks++;
+        const truth = await evaluate(`(() => {
+          const section = document.querySelector('.product-truth'), rail = section.closest('.more');
+          const style = getComputedStyle(document.querySelector('.trust'));
+          return {color: style.color, neutral: getComputedStyle(document.querySelector('.hero-facts')).color,
+            rail: !!rail && getComputedStyle(rail, '::before').content !== 'none',
+            pro: [...document.querySelectorAll('[data-tile="limelight"] figcaption > .on, [data-tile="snooze"] figcaption > .on')].map(e => e.textContent.trim()),
+            facts: document.querySelector('.hero-facts').textContent};
+        })()`);
+        assert.equal(truth.color, truth.neutral, "Trust copy must use the neutral secondary text color");
+        assert(truth.rail, "The timeline rail must include the product truth section");
+        assert.deepEqual(truth.pro, ["macOS · Pro", "macOS · Pro"], "Limelight and snoozing must carry Pro tags");
+        assert.equal(truth.facts, "Full-width windows. Scrolling Strips on macOS and Linux.");
+        checks++;
+        await verify('.trust', `home trust text, system ${scheme}`);
         await hover(".k-cmd");
         await verify(".k-cmd", `home Copy hover, system ${scheme}`);
       } else {
@@ -113,7 +127,24 @@ try {
       }
     }
   }
-  console.log(`PASS: ${checks} computed interaction and keyboard checks; no accent-on-accent text; home follows both system schemes`);
+  for (const scheme of ["light", "dark"]) {
+    await send("Emulation.setEmulatedMedia", {features: [{name: "prefers-color-scheme", value: scheme}]});
+    for (const width of [701, 768, 1000]) {
+      await send("Emulation.setDeviceMetricsOverride", {width, height: 1024, deviceScaleFactor: 1, mobile: false});
+      await send("Page.navigate", {url: base + "/paperland/"});
+      await Bun.sleep(250);
+      await evaluate("document.fonts.ready.then(() => true)");
+      const nav = await evaluate(`(() => [...document.querySelectorAll('.top nav a')].map(e => {
+        const r = e.getBoundingClientRect(); return {text: e.textContent, display: getComputedStyle(e).display,
+          visible: r.width > 0 && r.height >= 44 && r.left >= 0 && r.right <= innerWidth};
+      }))()`);
+      assert.equal(nav.length, 3);
+      assert(nav.every(link => link.display !== 'none' && link.visible), `PaperLand nav ${width}px ${scheme}: ${JSON.stringify(nav)}`);
+      console.log(`PASS: PaperLand navigation visible at ${width}x1024, ${scheme}`);
+      checks++;
+    }
+  }
+  console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
 } finally {
   ws?.close(); chrome.kill(); server.stop(true);
   await chrome.exited;

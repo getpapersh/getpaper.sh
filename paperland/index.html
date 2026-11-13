@@ -506,7 +506,7 @@ time { white-space: nowrap; }
 @media (max-width: 800px) { .land-hero { grid-template-columns: 1fr; padding: 32px 0 48px; gap: 24px; } .land-mark { grid-row: 1; width: 96px; } .land p { font-size: 17px; } .top nav { gap: 12px; } .top .brand { font-size: 17px; } }
 @media (max-width: 500px) { .land .cmd { display: flex; flex-direction: column; } .land .cmd code { padding: 16px 10px; font-size: 13px; } .land .cmd .lbl { padding: 12px; } .top nav a { font-size: 13px; } }
 
-@media (max-width: 700px) { .top nav > a:not(.btn) { display: inline-flex; } }
+.top nav > a:not(.btn) { display: inline-flex; }
 </style>
 <style>
 /* Approved Paper & Fold Blue. Keep product masters unchanged. */
@@ -590,7 +590,7 @@ a:hover { color: var(--brand-accentText); }
 <meta property="og:url" content="https://getpaper.sh/paperland/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="PaperLand Alpha: scrolling windows for Linux">
-<meta name="twitter:description" content="PaperMac Beta for macOS. PaperLand Alpha for Linux. Scrolling windows with room to move.">
+<meta name="twitter:description" content="PaperLand Alpha brings scrolling Strips, a Minimap and Overview to Omarchy with Hyprland. GPL-3.0-or-later open source; install without sudo.">
 <meta name="twitter:image" content="https://getpaper.sh/paperland/og.png">
 </head>
 <body>
@@ -602,7 +602,7 @@ a:hover { color: var(--brand-accentText); }
   <img class="land-mark" src="/brand/paperland/paperland-icon.svg" alt="PaperLand's folded P and L mark" width="320" height="320">
 </section>
 <section id="install" class="land-install" aria-labelledby="install-h"><h2 id="install-h">Install on Omarchy</h2><p>Requires Omarchy 4+ and Hyprland 0.56+, with Quickshell, Python 3, git and jq. Other Linux desktops are not supported by this installer.</p><button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh"><code>curl -fsSL <span class="command-tail">https://getpaper.sh/install | sh</span></code><span class="lbl">Copy</span></button><p id="live" aria-live="polite"></p><p><a href="/install">Read the script first</a> · <a href="https://github.com/getpapersh/paperland">Source and changelog</a></p><p>The installer validates the pinned plugin release before publishing it, installs the runtime and configures your shortcut and autostart. No sudo. If your Hyprland config is symlinked, follow the printed include instructions or explicitly choose <code>--edit-dotfiles</code>.</p><p>When setup finishes, open the Minimap with <kbd>Super</kbd> + <kbd>M</kbd> by default. Run the same command again to update. After an update, use <code>paperland stop &amp;&amp; paperland start-hidden</code> as instructed.</p><p><b>Alpha software.</b> Expect rough edges. Review the installer output and keep your config backups.</p></section>
-<section class="land-source" aria-labelledby="source-h"><h2 id="source-h">An open core.</h2><p>PaperLand is GPL-3.0-or-later open source. Paper's open-core family includes PaperMac Free on macOS and paid PaperMac Pro features under a commercial license. PaperLand is not a PaperMac Pro license or a promise of feature parity.</p><p><a href="https://github.com/getpapersh/paperland">Explore PaperLand on GitHub</a> · <a href="/mac/#editions">Compare PaperMac Free and Pro</a></p><details><summary>Uninstall PaperLand</summary><p>Run <code>curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code>. Your settings and config backups are kept.</p></details></section>
+<section class="land-source" aria-labelledby="source-h"><h2 id="source-h">Open source for Linux.</h2><p>PaperLand is GPL-3.0-or-later open source. PaperMac Free and Pro on macOS are separate, closed-source products under <a href="/terms/">PaperMac's proprietary Terms</a>. PaperLand is not a PaperMac Pro license or a promise of feature parity.</p><p><a href="https://github.com/getpapersh/paperland">Explore PaperLand on GitHub</a> · <a href="/mac/#editions">Compare PaperMac Free and Pro</a></p><details><summary>Uninstall PaperLand</summary><p>Run <code>curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code>. Your settings and config backups are kept.</p></details></section>
 </main>
 <footer><div class="wrap"><a href="/">Paper</a><a href="/mac/">PaperMac Beta</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="https://github.com/getpapersh/paperland">GitHub</a></div></footer>
 <script>

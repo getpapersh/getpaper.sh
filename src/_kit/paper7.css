@@ -21,10 +21,11 @@
 .hero-facts { margin: 12px 0 20px; font-size: 16px; color: var(--brand-ink2); }
 .hero .bd { justify-content: flex-start; padding-top: clamp(24px, 3vw, 44px); }
 .hero h1, .hero .h1 { font-size: clamp(64px, 7.2vw, 112px); line-height: 1; white-space: nowrap; }
-.product-truth { width: min(1052px, calc(100% - 40px)); margin: 56px auto 0; }
+.more { padding-top: 56px; }
+.product-truth { margin: 0 0 96px; }
 .product-truth h2 { font-size: clamp(36px, 5vw, 64px); line-height: 1.05; }
 .product-truth p { max-width: 72ch; line-height: 1.65; }
-.trust { color: var(--brand-accentText); font-weight: 700; }
+.trust { color: var(--brand-ink2); font-weight: 700; }
 .tile figcaption { flex-wrap: wrap; }
 .links a { display: inline-flex; align-items: center; min-height: 44px; gap: 5px; }
 @media (max-width: 900px) {

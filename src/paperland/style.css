@@ -15,4 +15,4 @@
 @media (max-width: 800px) { .land-hero { grid-template-columns: 1fr; padding: 32px 0 48px; gap: 24px; } .land-mark { grid-row: 1; width: 96px; } .land p { font-size: 17px; } .top nav { gap: 12px; } .top .brand { font-size: 17px; } }
 @media (max-width: 500px) { .land .cmd { display: flex; flex-direction: column; } .land .cmd code { padding: 16px 10px; font-size: 13px; } .land .cmd .lbl { padding: 12px; } .top nav a { font-size: 13px; } }
 
-@media (max-width: 700px) { .top nav > a:not(.btn) { display: inline-flex; } }
+.top nav > a:not(.btn) { display: inline-flex; }

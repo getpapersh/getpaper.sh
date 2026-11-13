@@ -110,11 +110,11 @@ check('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in produ
 check(product.count('The 14-day Pro trial starts inside the app, when you choose.') == 3)
 check('There is no automatic charge.' in product)
 check('free week' not in product and 'starts automatically after setup' not in product)
-check('two adjustable-height Strips' not in product)
+check('full-height or half-and-half' not in product)
 free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
 pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
 check('The core window manager is free to use, with no time limit.' in free_column)
-check('up to two Strips per Desktop, full-height or half-and-half, and stacks of up to two windows.' in free_column)
+check('up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.' in free_column)
 check('data-pic="select"' in free_column and 'data-pic="select"' not in pro_column)
 check('Three or more Strips</b> per Desktop, stacked, with adjustable heights' in pro_column)
 check('Lanes of different heights' not in pro_column)
@@ -171,7 +171,7 @@ for tag, attrs in Page(product).tags:
     if tag == 'button' and 'cmd' in attrs.get('class', '').split():
         check('aria-label' not in attrs)
         check(f'id="{attrs["aria-describedby"]}"' in product)
-check('Also in Pro: adjustable-height Strips, even with only two, and Window groups (Lock as Group).' in pro_column)
+check('Also in Pro: Window groups (Lock as Group). Strip heights are independently adjustable in Free within two Strips; Pro adds three or more Strips.' in pro_column)
 check('Everything in Free, plus:' in pro_column)
 check('Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column)
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
@@ -207,7 +207,7 @@ for route in ['terms', 'privacy']:
     check('PaperMac\'s developer' in identity)
     if route == 'terms':
         check(identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1])
-        check(legal_text.startswith('PaperMac Terms Effective November 9, 2026 These terms cover'))
+        check(legal_text.startswith('PaperMac Terms Effective November 12, 2026 These terms cover'))
         check('PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text)
     else:
         check(re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S))
@@ -215,7 +215,11 @@ for route in ['terms', 'privacy']:
     check('Coming before sales open' not in legal_html)
 check('<h2>30-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text())
 check('<table>' in (site / 'privacy/index.html').read_text())
-check('only while it helps us improve PaperMac' in (site / 'privacy/index.html').read_text())
+privacy = (site / 'privacy/index.html').read_text()
+check('PaperMac has no accounts, ads or telemetry.' in privacy)
+check('It does not collect feature usage or send system profiles.' in privacy)
+for stale in ['PostHog', 'usage sharing', 'usage data', 'once a week', 'basic system profile']:
+    check(stale not in privacy, ('privacy', stale))
 main = (site / 'index.html').read_text()
 check('href="/mac/">Mac</a>' not in main and 'href="/mac/">PaperMac</a>' in main)
 
@@ -258,8 +262,16 @@ check([url.text for url in urls] == ['https://getpaper.sh' + route for route in 
 check('PaperMac Beta' in main and 'PaperLand Alpha' in main)
 check('PaperMac Free' in main and 'Overview (Experimental)' in main)
 check('PaperMac Free Overview with synthetic document windows' in main and '/media/papermac/overview.mp4' in main)
-check('GPL-3.0 open-core' in main and 'GPL-3.0 open-core' in product)
-check('full-height or half-and-half' in free_column and 'adjustable-height Strips' in pro_column)
+terms = (site / 'terms/index.html').read_text()
+for page in [main, product, terms]:
+    check('closed-source software' in page)
+    check("PaperMac's proprietary Terms" in page or 'licensed under these proprietary Terms' in page)
+    check('open-core' not in page)
+    check('href="https://github.com/jsonMartin/papermac' not in page)
+check('two Strips at independently adjustable heights' in free_column)
+check('adjustable-height Strips, even with only two' not in pro_column)
+check('three or more Strips, deeper stacks, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
+check('on("mac", true)' in main and main.count('on("mac", true)') == 2)
 check('Overview (Experimental)' in free_column)
 check('data-pic="lanes2"' in free_column and 'data-pic="uneven"' not in free_column)
 land = (site / 'paperland/index.html').read_text()
@@ -267,6 +279,12 @@ check('PaperLand Alpha' in land and 'Omarchy 4+' in land and 'Hyprland 0.56+' in
 check('Accessibility' not in land)
 check('Super' in land and 'paperland start-hidden' in land)
 check('No sudo' in land and 'GPL-3.0-or-later' in land)
+check('open-core' not in land and 'separate, closed-source products' in land)
+mac_meta = {a.get('name'): a.get('content') for tag, a in Page(product).tags if tag == 'meta'}
+land_meta = {a.get('name'): a.get('content') for tag, a in Page(land).tags if tag == 'meta'}
+check(mac_meta['twitter:description'] != land_meta['twitter:description'])
+check('native macOS Spaces' in mac_meta['twitter:description'])
+check('Omarchy with Hyprland' in land_meta['twitter:description'])
 check('Paperland CLI installation v1' in (site / 'install').read_text())
 check('PaperLand installer (unannounced alpha; expect rough edges)' in (site / 'install').read_text())
 check('id="changelog"' in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)

@@ -9,12 +9,12 @@ curl -fsSL https://getpaper.sh/install | sh
 
 - **macOS:** installs PaperMac. Run it again to reinstall or upgrade; Sparkle handles
   updates after that.
-- **Linux (Omarchy 4 with Hyprland 0.56 or newer):** installs Paperland as the Omarchy
+- **Linux (Omarchy 4 with Hyprland 0.56 or newer):** installs PaperLand as the Omarchy
   plugin `json.paperland`, with its runtime, shortcut and autostart. Run it again to
   update.
 
 Uninstall with `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall` (PaperMac
-on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is Linux only
+on macOS, PaperLand on Linux). `--help` lists the options; `--edit-dotfiles` is Linux only
 (see "What the Linux install does").
 
 ## Files
@@ -22,9 +22,9 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | Path | Purpose |
 | --- | --- |
 | `install` | The installer source: the macOS half, option parsing and the OS dispatch. POSIX sh. Its `# BEGIN PAPERLAND` block holds stand-ins that refuse Linux until the build fills it in. |
-| `scripts/assemble-install.sh` | Fills the shared DMG URL and replaces that block with the built Paperland `install` and `uninstall`, each as a subshell function. |
+| `scripts/assemble-install.sh` | Fills the shared DMG URL and replaces that block with the built PaperLand `install` and `uninstall`, each as a subshell function. |
 | `index.html` | The landing page: one self-contained file (inline CSS, JS and base64 fonts; no third-party requests). Its editable source is `src/v7-1-viewfinder/index.html` with `src/_kit/` and `src/fonts/`. Edit the source, then rebuild the bundle with `uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html`: it inlines the `_kit/` stylesheets and scripts and both fonts, each subset with pyftsubset to ASCII, Latin-1, common punctuation and every character the page contains, and renames the Mona Sans subset "Paper Sans" (see `licenses/FONTS.txt`). The same sources always give the same bytes. |
-| `src/brand/`, `site/brand/` | Approved PaperMac and PaperLand masters, exports and palette tokens stay under `src/brand/`; `src/brand/SHA256SUMS` verifies the supplied assets. The site build copies only the two tiled SVGs and the PaperMac 32 px favicon and 180 px apple-touch icon that the pages use. The 180 px exports are rasterized from the unmodified icon masters. |
+| `src/brand/`, `site/brand/` | Approved PaperMac and PaperLand masters, exports and palette tokens stay under `src/brand/`; `src/brand/SHA256SUMS` verifies the supplied assets. The site build copies both products' tiled SVGs, 32 px favicons and 180 px apple-touch icons into `site/brand/papermac/` and `site/brand/paperland/`. The 180 px exports are rasterized from the unmodified icon masters. |
 | `og.png`, `mac/og.png` | The 1200×630 home and Mac link previews. Capture the built pages over local HTTP so root-absolute `/brand/` images load. See the commands below; the home crop starts at y=45 and the Mac crop at y=0 on a 1440×900 viewport. |
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
@@ -36,7 +36,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `scripts/build-site.sh` | Builds `site/`: runs `paperland/build.sh` with `paperland/release.env`, assembles `site/install`, copies `index.html`, `mac/`, `media/`, `terms/`, `privacy/`, `og.png`, `_headers` and `licenses/`. Refuses uncommitted sources (including `paperland/`) and a `wrangler.jsonc` that does not deploy `./site`. `build-site.sh OUT_DIR` builds a preview anywhere, without that check. |
 | `site/` | Built, committed output to deploy; `site/install` is the served `/install`. |
 | `tests/run.sh`, `tests/stub.sh` | Stubbed tests of the served (built) script and the site build. |
-| `paperland/` | The Paperland installer and uninstaller inlined into `site/install`, its pinned release, and its own tests. See its README. |
+| `paperland/` | The PaperLand installer and uninstaller inlined into `site/install`, its pinned release, and its own tests. See its README. |
 
 ## What the macOS install does
 
@@ -114,25 +114,25 @@ download is a syntax error and runs nothing.
 
 `main` reads every option first (`--uninstall`, `--edit-dotfiles`, `--help`; anything else
 stops before any change), then dispatches on `uname -s`: macOS runs the PaperMac half
-above, Linux runs the Paperland installer (or its uninstaller for `--uninstall`), and any
+above, Linux runs the PaperLand installer (or its uninstaller for `--uninstall`), and any
 other system is refused. `--edit-dotfiles` is refused on macOS and with `--uninstall`.
 
-The Paperland half is `paperland/install` and `paperland/uninstall`, built with the
+The PaperLand half is `paperland/install` and `paperland/uninstall`, built with the
 pinned `paperland/release.env` and inlined verbatim at build time, each as the body of a
 function that runs in its own subshell (`paperland_install() ( … )`). Its functions,
 variables, `set -eu`, traps and exits stay inside that subshell, as when it was a script
 of its own, so neither half changes the other's reviewed behavior. The only variable both
-halves set is `SITE`, to the same value; the Paperland half redefines `say`, `warn`, `die`,
+halves set is `SITE`, to the same value; the PaperLand half redefines `say`, `warn`, `die`,
 `usage`, `main`, `have`, `first_symlink` and `cgit` inside its subshell, where they shadow
 the outer ones and nowhere else. On Linux the outer shell sets a no-op trap (not an
-ignore, which children would inherit) and waits, so Paperland's own cleanup always
+ignore, which children would inherit) and waits, so PaperLand's own cleanup always
 finishes first. Interrupt it with Ctrl-C, by closing the terminal, or with a signal to
-the whole process group: each reaches the Paperland half, which cleans up and exits 130.
+the whole process group: each reaches the PaperLand half, which cleans up and exits 130.
 A signal sent only to the outer `sh` (`kill <pid>`, `timeout --foreground`, a supervisor
-that signals just its child) is absorbed by that trap, and the Paperland half runs to
+that signals just its child) is absorbed by that trap, and the PaperLand half runs to
 completion. Nothing is fetched at runtime except the pinned plugin release.
 
-What the Paperland installer does, step by step (Omarchy and Hyprland checks, the
+What the PaperLand installer does, step by step (Omarchy and Hyprland checks, the
 verified clone of the pinned `https://github.com/getpapersh/paperland.git` release, the
 one-rename publish, the runtime refresh, setup, symlinked dotfiles and `--edit-dotfiles`,
 backups, rollback, and the uninstaller's order) is in `paperland/README.md`.
@@ -245,17 +245,17 @@ support or Safari playback.
 ```sh
 sh tests/run.sh                            # stubbed: every case pipes the built script into sh, like curl | sh
 TEST_SH=dash sh tests/run.sh               # the same with dash
-sh paperland/tests/run.sh                  # the Paperland half on its own
-COMBINED=1 sh paperland/tests/run.sh       # every Paperland case against the served /install
-TEST_SH=dash sh paperland/tests/run.sh     # the Paperland half with dash
+sh paperland/tests/run.sh                  # the PaperLand half on its own
+COMBINED=1 sh paperland/tests/run.sh       # every PaperLand case against the served /install
+TEST_SH=dash sh paperland/tests/run.sh     # the PaperLand half with dash
 TEST_SH=dash COMBINED=1 sh paperland/tests/run.sh   # and against the served /install
 sh scripts/build-site.sh                   # after committing the sources; then commit site/
 ```
 
 All six runs are required before a change to `install`, `paperland/` or the build ships.
 The `COMBINED=1` runs are the only ones that prove the options take effect in the served
-file (the root suite checks only that Linux dispatches each option to the Paperland
-half). `PAPERLAND_SRC=/path/to/paperland` adds real-`setup.py` runs to the Paperland suite.
+file (the root suite checks only that Linux dispatches each option to the PaperLand
+half). `PAPERLAND_SRC=/path/to/paperland` adds real-`setup.py` runs to the PaperLand suite.
 
 The tests point the script's `SYSTEM_APPLICATIONS` line at a folder inside the test,
 so no case can write to the real `/Applications`, and stub every macOS command.
@@ -308,7 +308,7 @@ On the day the domain is ready:
 
 ## License
 
-GPL-3.0-or-later, the same as Paperland. See [LICENSE](LICENSE). The fonts and logos the page embeds keep their own licences, in `licenses/`.
+GPL-3.0-or-later, the same as PaperLand. See [LICENSE](LICENSE). The fonts and logos the page embeds keep their own licences, in `licenses/`.
 
 ## Launch pages and routing
 
@@ -320,7 +320,10 @@ static server does not process `_redirects`; deployed redirects still need a
 hosting check after an authorized deployment. `sitemap.xml` lists the five public
 indexable pages and excludes the receipt activation page.
 
-PaperMac Free supports two Strips, full-height or half-and-half; Pro unlocks
-adjustable heights, more Strips and Window groups. The existing menu-bar capture
-still shows the earlier icon and needs a fresh real-app capture; it is retained
+PaperMac Free supports up to two Strips at independently adjustable heights and
+stacks of up to 2 showing windows. Pro adds three or more Strips, deeper stacks,
+Window groups, Limelight, snoozing, window previews, Desktop auto-naming and
+synced Strips across displays. Both PaperMac editions are closed source under
+PaperMac's proprietary Terms; PaperLand remains GPL-3.0-or-later open source.
+The existing menu-bar capture still shows the earlier icon and needs a fresh real-app capture; it is retained
 as documentary media rather than replaced with a synthetic screenshot.
