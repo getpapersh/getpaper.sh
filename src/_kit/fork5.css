@@ -33,7 +33,7 @@
 .way .lead { margin: 0 0 -8px; font-size: 14px; font-weight: 700; color: var(--on-dim); }
 .way .alt { align-self: stretch; display: flex; --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-cmd-lbl: #ffffff24; }
 .way .k-cmd { min-height: 84px; height: auto; align-items: stretch; }
-.way .k-cmd code { display: flex; align-items: center; text-align: left; padding: .8em 1.15em; overflow-wrap: anywhere; }
+.way .k-cmd code { display: block; align-content: center; text-align: left; padding: .8em 1.15em; overflow-wrap: anywhere; }
 .way .k-cmd .lbl { align-self: stretch; }
 .k-cmd:disabled { opacity: .45; cursor: default; transform: none; }
 .way .more-way { margin: 0; font-size: 14px; font-weight: 650; }

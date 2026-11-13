@@ -109,6 +109,17 @@ try {
         assert.deepEqual(truth.pro, ["macOS · Pro", "macOS · Pro"], "Limelight and snoozing must carry Pro tags");
         assert.equal(truth.facts, "Full-width windows. Scrolling Strips on macOS and Linux.");
         checks++;
+        const commandGaps = await evaluate(`(() => [...document.querySelectorAll('.way .k-cmd code')].map(code => {
+          const prefix = code.firstChild, tail = code.querySelector('.command-tail').firstChild;
+          const range = document.createRange();
+          range.setStart(prefix, prefix.textContent.trimEnd().length - 1); range.setEnd(prefix, prefix.textContent.trimEnd().length);
+          const end = range.getBoundingClientRect();
+          range.setStart(tail, 0); range.setEnd(tail, 1);
+          return range.getBoundingClientRect().left - end.right;
+        }))()`);
+        assert.equal(commandGaps.length, 2);
+        assert(commandGaps.every(gap => gap > 2), `Desktop install commands need a visible space: ${JSON.stringify(commandGaps)}`);
+        checks++;
         await verify('.trust', `home trust text, system ${scheme}`);
         await hover(".k-cmd");
         await verify(".k-cmd", `home Copy hover, system ${scheme}`);
