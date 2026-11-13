@@ -25,6 +25,12 @@ with tempfile.TemporaryDirectory() as directory:
             assert result.returncode == 0, result.stderr
             html = result.stdout
             assert '{{' not in html
+            assert '<div class="plain" role="list" aria-label="Purchase terms">\n      <div role="listitem"><strong>30-day refund, for any reason.</strong>' in html
+            assert 'within 30 days of purchase for a full refund. We won\'t ask why.' in html
+            assert html.count('<p class="to">Full refund within 30 days, for any reason.</p>') == (1 + (lifetime != 'off') if pro != 'off' else 0)
+            assert 'PaperMac is built by <a href="https://github.com/jsonMartin">Jason Martin</a>, an independent developer.' in html
+            assert 'Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.' in html
+
             assert '<s>' not in html
             assert html.count('<span class="was">Regular $39</span>') == 3
             assert html.count('<span class="was">Regular $79</span>') == (2 if lifetime != 'off' else 0)

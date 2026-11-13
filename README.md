@@ -214,15 +214,18 @@ rejects Lifetime checkout while Pro checkout is off.
 
 PaperMac 27 Pro lists at $39 and PaperMac 27 Lifetime at $79. Through Tue Dec 1
 2026 11:59 PM PT (2026-12-02T07:59:59Z), the founding prices are $19.50 for Pro
-(code BETABELIEVER) and $39.50 for Lifetime (code FOREVERFOUNDER). Buyers never
+(code FOUNDING) and $39.50 for Lifetime (code FOUNDINGLIFETIME). Buyers never
 type a code: each checkout URL carries its code, and the page shows founding
 prices and the deadline without naming either code. To turn a product on, write
 its Lemon Squeezy buy URL with the code prefilled into its file and rebuild,
 for example:
 
 ```text
-https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=BETABELIEVER
+https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=FOUNDING
 ```
+
+Before checkout opens, the Lemon Squeezy discount codes must match `FOUNDING`
+for Pro and `FOUNDINGLIFETIME` for Lifetime.
 
 A Pro URL enables Buy links and the inline Segno QR; with Pro on, a Lifetime URL
 adds Lifetime to the hero, buy panel and purchase terms. Use the verified live checkouts

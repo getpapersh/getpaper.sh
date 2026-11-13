@@ -78,7 +78,7 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
         check(href == 'mailto:' + email, (route, email, href))
     check('made by' not in ' '.join(page.texts).lower(), route)
     check('PaperMac Pro 27' not in ' '.join(' '.join(page.texts).split()), route)
-    if route not in ['terms/index.html', 'privacy/index.html', 'paperland/index.html']:
+    if route not in ['mac/index.html', 'terms/index.html', 'privacy/index.html', 'paperland/index.html']:
         check('Jason Martin' not in text, route)
     check(not re.search(r'(?:PAP|PAPER)-\d+', text), route)
     for tag, attributes in page.tags:
@@ -100,6 +100,11 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
         check('outline: 2px solid var(--brand-focus); outline-offset: 2px;' in text, route)
 
 product = (site / 'mac/index.html').read_text()
+refund_item = """<div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> within 30 days of purchase for a full refund. We won't ask why.</p></div>"""
+check(re.search(r'<div class="plain" role="list" aria-label="Purchase terms">\s*' + re.escape(refund_item), product), 'Refund must be the first purchase term')
+check(product.count('href="https://github.com/jsonMartin">Jason Martin</a>') == 1)
+check('<p class="txt">PaperMac is built by <a href="https://github.com/jsonMartin">Jason Martin</a>, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>' in product)
+
 check('A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product)
 check('Free forever' not in product)
 check('#activate=' not in product)
@@ -133,6 +138,7 @@ check(set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip'
 check('{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product)
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
 lifetime = (Path(__file__).resolve().parents[1] / 'src/mac/lifetime-checkout-url.txt').read_text().strip()
+check(product.count('<p class="to">Full refund within 30 days, for any reason.</p>') == (1 + (lifetime != 'off') if checkout != 'off' else 0))
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
 check(product.count(buy_notice) == (2 + 2 * (lifetime != 'off') if checkout != 'off' else 0))
 trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
@@ -200,6 +206,8 @@ for route in ['terms', 'privacy']:
     legal_html = (site / route / 'index.html').read_text()
     legal_body = re.search(r'<main\b[^>]*>(.*?)</main>', legal_html, re.S).group(1)
     legal_text = ' '.join(' '.join(Page(legal_body).texts).split())
+    check('<p>Effective November 13, 2026</p>' in legal_body)
+    check('Effective November 12, 2026' not in legal_body)
     check('Jason Martin' in legal_text)
     check(legal_text.count('Jason Martin') == 1)
     check('href="https://github.com/jsonMartin">Jason Martin</a>' in legal_body)
@@ -207,7 +215,7 @@ for route in ['terms', 'privacy']:
     check('PaperMac\'s developer' in identity)
     if route == 'terms':
         check(identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1])
-        check(legal_text.startswith('PaperMac Terms Effective November 12, 2026 These terms cover'))
+        check(legal_text.startswith('PaperMac Terms Effective November 13, 2026 These terms cover'))
         check('PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text)
     else:
         check(re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S))
