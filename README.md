@@ -193,7 +193,7 @@ bun src/_tools/og.ts http://127.0.0.1:8767/mac/ mac/og.png 0
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
 
-Stop the static server when finished. The home page is light-only by design;
+Stop the static server when finished. The home page follows the system light or dark theme;
 the Mac and legal pages keep their existing light/dark behavior.
 `tests/brand.py` also runs `bun tests/brand-states.ts site`, which uses the same
 installed Chrome as the OG tool to check computed hover and copy-state contrast.
