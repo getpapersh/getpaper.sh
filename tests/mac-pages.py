@@ -74,8 +74,10 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     # Split markers so the test source stays clear in repository-wide privacy scans.
     for marker in ('Seal' + ' Beach', '123' + '37'):
         check(marker not in text, route)
+    if route == 'mac/index.html':
+        check(page.emails.count(('billing@getpaper.sh', None)) == 1)
     for email, href in page.emails:
-        check(href == 'mailto:' + email, (route, email, href))
+        check(href == 'mailto:' + email or (route == 'mac/index.html' and email == 'billing@getpaper.sh' and href is None), (route, email, href))
     check('made by' not in ' '.join(page.texts).lower(), route)
     check('PaperMac Pro 27' not in ' '.join(' '.join(page.texts).split()), route)
     if route not in ['mac/index.html', 'terms/index.html', 'privacy/index.html', 'paperland/index.html']:
@@ -100,10 +102,10 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
         check('outline: 2px solid var(--brand-focus); outline-offset: 2px;' in text, route)
 
 product = (site / 'mac/index.html').read_text()
-refund_item = """<div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a> within 30 days of purchase for a full refund. We won't ask why.</p></div>"""
+refund_item = """<div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email billing@getpaper.sh within 30 days of purchase for a full refund. We won't ask why.</p></div>"""
 check(re.search(r'<div class="plain" role="list" aria-label="Purchase terms">\s*' + re.escape(refund_item), product), 'Refund must be the first purchase term')
-check(product.count('href="https://github.com/jsonMartin">Jason Martin</a>') == 1)
-check('<p class="txt">PaperMac is built by <a href="https://github.com/jsonMartin">Jason Martin</a>, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>' in product)
+check(product.count('Jason Martin') == 1)
+check('<p class="txt">PaperMac is built by Jason Martin, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>' in product)
 
 check('A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product)
 check('Free forever' not in product)
@@ -177,7 +179,7 @@ for tag, attrs in Page(product).tags:
     if tag == 'button' and 'cmd' in attrs.get('class', '').split():
         check('aria-label' not in attrs)
         check(f'id="{attrs["aria-describedby"]}"' in product)
-check('Also in Pro: Window groups (Lock as Group). Strip heights are independently adjustable in Free within two Strips; Pro adds three or more Strips.' in pro_column)
+check('Also in Pro: lock windows together as a group, and set custom heights inside a stack.' in pro_column)
 check('Everything in Free, plus:' in pro_column)
 check('Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column)
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
@@ -232,6 +234,8 @@ main = (site / 'index.html').read_text()
 check('href="/mac/">Mac</a>' not in main and 'href="/mac/">PaperMac</a>' in main)
 
 activation_text = (site / 'mac/activate/index.html').read_text()
+check('<title>Activate PaperMac 27</title>' in activation_text)
+check('<b>PaperMac 27</b><span>Pro &amp; Lifetime license · macOS 27</span>' in activation_text)
 check('Then open PaperMac › Settings › License and paste.' in activation_text)
 check('--hi:' not in activation_text and 'var(--hi)' not in activation_text)
 check('--brand-focus: #0965D0;' in activation_text and activation_text.count('--brand-focus: #79B6FF;') == 2)
@@ -278,7 +282,7 @@ for page in [main, product, terms]:
     check('href="https://github.com/jsonMartin/papermac' not in page)
 check('two Strips at independently adjustable heights' in free_column)
 check('adjustable-height Strips, even with only two' not in pro_column)
-check('three or more Strips, deeper stacks, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
+check('three or more Strips, deeper stacks, custom stack heights, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
 check('on("mac", true)' in main and main.count('on("mac", true)') == 2)
 check('Overview (Experimental)' in free_column)
 check('data-pic="lanes2"' in free_column and 'data-pic="uneven"' not in free_column)
