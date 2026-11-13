@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="no-js" data-theme="light" data-mode="light">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -244,7 +244,9 @@ body { margin: 0; background: var(--field); color: var(--on); font: 550 17px/1.5
 a { color: inherit; text-underline-offset: .22em; text-decoration-thickness: 1.5px; }
 :focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; border-radius: 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.skip { position: absolute; z-index: 30; left: 20px; top: 16px; font-size: 13px; font-weight: 700; color: var(--on-dim); }
+.skip { transform: translateY(-200%); position: absolute; z-index: 30; left: 20px; top: 16px; font-size: 13px; font-weight: 700; color: var(--on-dim); }
+
+.skip:focus, .skip:focus-visible { transform: none; padding: 12px; background: var(--brand-surface); color: var(--brand-ink); }
 
 /* ---------- story shell ---------- */
 .story { position: relative; height: calc(100lvh + var(--beats) * 45lvh); }
@@ -257,7 +259,7 @@ a { color: inherit; text-underline-offset: .22em; text-decoration-thickness: 1.5
 .cap.out { opacity: 0; transform: translateY(8px); }
 .pin { position: absolute; z-index: 8; right: 20px; top: 14px; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 0; border-radius: 99px; cursor: pointer;
   background: var(--on); color: var(--brand-paper); font: 750 14px/1 "Paper Sans"; box-shadow: 0 8px 24px -10px rgba(0,0,0,.5); }
-.pin svg { width: 15px; height: 15px; } .pin.done { background: var(--hi); }
+.pin svg { width: 15px; height: 15px; } .pin.done { background: var(--brand-accent); }
 .live { position: absolute; z-index: 7; right: 28px; bottom: 38px; display: flex; gap: 8px; opacity: 0; pointer-events: none; transition: opacity .3s; }
 .live.on { opacity: 1; pointer-events: auto; }
 .live button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 99px; cursor: pointer; background: rgba(255,255,255,.16); color: var(--on); font: 750 14px/1 "Paper Sans"; }
@@ -507,6 +509,34 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 .family-marks { display: flex; align-items: center; gap: 16px; margin: 0 0 16px; }
 .family-marks img { display: block; width: 56px; height: 56px; }
 .prod img { width: 48px; height: 48px; }
+
+.command-tail { white-space: nowrap; }
+.hero-facts { margin: 12px 0 20px; font-size: 16px; color: var(--brand-ink2); }
+.hero .bd { justify-content: flex-start; padding-top: clamp(24px, 3vw, 44px); }
+.hero h1, .hero .h1 { font-size: clamp(64px, 7.2vw, 112px); line-height: 1; white-space: nowrap; }
+.product-truth { width: min(1052px, calc(100% - 40px)); margin: 56px auto 0; }
+.product-truth h2 { font-size: clamp(36px, 5vw, 64px); line-height: 1.05; }
+.product-truth p { max-width: 72ch; line-height: 1.65; }
+.trust { color: var(--brand-accentText); font-weight: 700; }
+.tile figcaption { flex-wrap: wrap; }
+.links a { display: inline-flex; align-items: center; min-height: 44px; gap: 5px; }
+@media (max-width: 900px) {
+  .hero .bd { padding: 20px 24px; }
+  .family-marks { margin-bottom: 10px; }
+  .family-marks img { width: 40px; height: 40px; }
+  .hero .tag { font-size: 26px; }
+  .hero .links { gap: 0 14px; margin-top: 8px; }
+  .hero .k-after { margin-top: 0; min-height: 0; }
+  .hero-facts { margin: 10px 0 14px; font-size: 14px; }
+}
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .fork .k-cmd { flex-direction: column; }
+  .fork .k-cmd .lbl { min-height: 44px; border-radius: 0 0 14px 14px; }
+}
+
+@media (max-width: 1000px) { .fork .k-cmd code { display: block; } }
+.home-overview { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: 12px; }
 </style>
 <style>
 /* Viewfinder (round 7): windows land, a window is dragged wider and sent full width, the page's own edges
@@ -630,7 +660,6 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 :root {
   --paper: var(--brand-paper); --paper-2: var(--brand-raised); --slab: var(--brand-surface);
   --ink: var(--brand-ink); --ink-2: var(--brand-ink2); --line: var(--brand-border);
-  --hi: var(--brand-accent); --hi-text: var(--brand-accentText);
   --pro: var(--brand-accent); --pro-hover: var(--brand-accent); --pro-ink: var(--brand-onAccent); --pro-text: var(--brand-accentText);
   --done-bg: var(--brand-accent); --done-ink: var(--brand-onAccent);
   --sel: var(--brand-focus); --map-view: var(--brand-focus); --map-focus: var(--brand-accent);
@@ -639,6 +668,11 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 :focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; }
 a:hover { color: var(--brand-accentText); }
 </style>
+<link rel="canonical" href="https://getpaper.sh/">
+<meta property="og:url" content="https://getpaper.sh/">
+<meta name="twitter:title" content="Paper: a scrolling window manager for macOS and Linux">
+<meta name="twitter:description" content="PaperMac Beta for macOS. PaperLand Alpha for Linux. Scrolling windows with room to move.">
+<meta name="twitter:image" content="https://getpaper.sh/og.png">
 </head>
 <body>
 <a class="skip" href="#install">Skip to install</a>
@@ -1086,7 +1120,7 @@ window.LOGOS = {
 // Round 5 install fork. Needs kit.js (Paper.copy) and logos.js.
 (() => {
   const F = (window.Fork5 = {});
-  const CURL = "curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh";
+  const CURL = "curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span>";
   F.CURL = CURL;
   // disabled: a visible but inert box (no data-copy, so Paper.copy never wires it)
   F.cmd = (code, after, disabled) => disabled
@@ -1104,22 +1138,22 @@ window.LOGOS = {
         <div class="dev laptop" aria-hidden="true"><div class="scr">${screens.mac || ""}</div><div class="foot"></div></div>
         <div class="who"><h3 class="osname">${LOGOS.apple}macOS</h3><p class="prod"><img src="/brand/papermac/papermac-icon.svg" alt="" width="48" height="48"><a href="/mac/">PaperMac</a></p></div>
         <p class="req">Requires macOS 27 or newer.</p>
-        <div class="way"><p class="lead">On a Mac, it installs PaperMac</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.7.dmg">Or download the DMG</a></p></div>
+        <div class="way"><p class="lead">On a Mac, it installs PaperMac Beta</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.7.dmg">Or download the DMG</a></p></div>
         <p class="note">Verifies the checksum and signature and never asks for sudo.</p>
       </div>
       <div class="col" data-os="lin">
         <div class="dev monitor" aria-hidden="true"><div class="scr">${screens.lin || ""}</div><div class="foot"></div></div>
-        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod"><img src="/brand/paperland/paperland-icon.svg" alt="" width="48" height="48">PaperLand</p></div>
+        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod"><img src="/brand/paperland/paperland-icon.svg" alt="" width="48" height="48"><a href="/paperland/">PaperLand</a></p></div>
         <p class="req">Requires Omarchy 4 and Hyprland 0.56, or newer.</p>
-        <div class="way"><p class="lead">On Omarchy, it installs PaperLand</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
-        <p class="note">Pins and validates the plugin before it changes anything.</p>
+        <div class="way"><p class="lead">On Omarchy, it installs PaperLand Alpha</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
+        <p class="note">Pins and validates the plugin before it changes anything. When setup finishes, open the Minimap with Super+M, or follow any include instructions printed by the installer.</p>
       </div>
     </div>
     <div class="rejoin"><p>${c.rejoin}</p></div>
     <details class="undo" id="uninstall"><summary>Uninstall</summary>
-      <p class="os">macOS</p>${F.cmd("curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh -s -- --uninstall")}
+      <p class="os">macOS</p>${F.cmd("curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span> -s -- --uninstall")}
       <p>If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows.</p>
-      <p class="os">Linux</p>${F.cmd("curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh -s -- --uninstall")}
+      <p class="os">Linux</p>${F.cmd("curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span> -s -- --uninstall")}
     </details>
   </section>`;
 
@@ -1163,29 +1197,36 @@ window.LOGOS = {
   const cmd = Fork5.cmd, CURL = Fork5.CURL;
   V.COPIED = "Copied. Paste it in a terminal. It installs PaperMac on macOS or PaperLand on Omarchy.";
   V.MAC_EXTRA = " PaperMac will then ask for Accessibility access.";
-  V.LEDE = "Windows scroll together in a Strip, like ticker tape. On Omarchy, zoom out in Overview to scan your Desktop like a newspaper and jump to a window.";
+  V.LEDE = "Windows scroll together in a Strip, like ticker tape. In PaperMac Free, use Overview (Experimental) to browse the current canvas and jump to a window. PaperLand also offers Overview on Omarchy.";
   V.CAPS = ["New windows open beside your current one in the Strip.", "Nothing shrinks or overlaps.", "Four widths, no dragging.", "Scrolling Strips on macOS and Omarchy."];
 
   V.heroHTML = () => `
-    <p class="cat">A scrolling window manager for macOS and Linux</p>
     <div class="family-marks"><img src="/brand/papermac/papermac-icon.svg" alt="PaperMac" width="56" height="56"><img src="/brand/paperland/paperland-icon.svg" alt="PaperLand" width="56" height="56"></div>
     <h1 id="title">Paper</h1>
     <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
+    <p class="hero-facts">Full-width windows. Native Spaces. Mission Control intact.</p>
     ${cmd(CURL, "after-hero")}
     <p class="k-after" id="after-hero" data-mac-extra>${V.COPIED}</p>
-    <p class="links"><a href="/mac/">Mac</a><a href="/install">Read the script</a><a href="#uninstall">Uninstall</a><span class="alpha">Alpha</span></p>`;
+    <p class="links"><a href="/mac/">PaperMac <span>Beta</span></a><a href="/paperland/">Linux · PaperLand <span>Alpha</span></a><a href="/install">Read the script</a><a href="/mac/#changelog">Changelog</a></p>`;
 
   V.forkHTML = (screens) => Fork5.html({ title: "Install", copied: V.COPIED, trunk: "This command detects your system.", rejoin: "Open a few windows and watch them line up." }, screens);
 
   // a platform-only feature names its platform; the mark alone is too small to read
-  const on = (p) => `<span class="on">${LOGOS[p === "mac" ? "apple" : "omarchy"]}${p === "mac" ? "macOS" : "Omarchy"}</span>`;
+  const on = (p) => p === "both" ? '<span class="on">macOS + Linux</span>' : `<span class="on">${LOGOS[p === "mac" ? "apple" : "omarchy"]}${p === "mac" ? "macOS" : "Omarchy"}</span>`;
   V.GROUPS = [
-    ["Get around", [["minimap", "Minimap: the whole Strip at a glance", ""], ["pills", "Preview a Desktop from the bar", ""]]],
-    ["Find a window", [["overview", "Overview: see every window at once", on("om")], ["switcher", "Type to find any window", on("mac")]]],
+    ["Get around", [["minimap", "Minimap: the whole Strip at a glance", on("both")], ["pills", "Preview a Desktop from the bar", on("both")]]],
+    ["Find a window", [["overview", "Overview in PaperMac Free (Experimental)", on("mac")], ["switcher", "Type to find any window", on("mac")]]],
     ["Focus on one", [["limelight", "Dim everything else", on("mac")], ["snooze", "Snooze a window for later", on("mac")]]],
   ];
-  V.groupHTML = ([name, tiles], i) => `<div class="group"><h3><span class="no">0${i + 1}</span>${name}</h3><div class="tiles">${tiles.map(([k, cap, plat]) => `<figure class="tile" data-tile="${k}"><figcaption><span>${cap}</span>${plat}</figcaption></figure>`).join("")}</div></div>`;
+  V.groupHTML = ([name, tiles], i) => `<div class="group"><h3><span class="no">0${i + 1}</span>${name}</h3><div class="tiles">${tiles.map(([k, cap, plat]) => `<figure class="tile" ${k === "overview" ? '' : `data-tile="${k}"`}>${k === "overview" ? '<video class="home-overview" controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="/media/papermac/overview.jpg" aria-label="PaperMac Free Overview with synthetic document windows"><source src="/media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video>' : ''}<figcaption><span>${cap}</span>${plat}</figcaption></figure>`).join("")}</div></div>`;
   V.moreHTML = () => `
+  <section class="product-truth" aria-labelledby="truth-h">
+    <h2 id="truth-h">Room for your windows.</h2>
+    <p>Keep full-width windows instead of shrinking them to fit. PaperMac runs on native macOS Spaces, keeps Mission Control intact and needs no SIP disabling. Inspired by <a href="https://github.com/paperwm/PaperWM">PaperWM</a> and <a href="https://github.com/YaLTeR/niri">niri</a>.</p>
+    <p class="trust">Notarized PaperMac downloads · Checksum-verified installer · No sudo · No SIP changes · No telemetry</p>
+    <p><a href="/mac/#free">PaperMac Free</a> includes up to two Strips, full-height or half-and-half, stacks of two, multi-select and Arrange, and Overview (Experimental). <a href="/mac/#pro">Pro</a> adds adjustable-height Strips, more than two Strips, deeper stacks and Window groups (Lock as Group). <a href="/mac/#install">Try Pro free for 14 days</a>, starting in the app when you choose, with no automatic charge.</p>
+    <p>Paper is <b>GPL-3.0 open-core</b>. The open-source core powers PaperMac Free and PaperLand; PaperMac Pro adds paid features under <a href="/terms/">commercial license terms</a>. <a href="https://github.com/getpapersh">Read the source</a> · <a href="/mac/#changelog">Changelog</a>.</p>
+  </section>
   <section class="more" aria-labelledby="more-h">
     <h2 id="more-h">Beyond the arrow keys.</h2>
     <p class="lede">${V.LEDE}</p>
@@ -1195,7 +1236,7 @@ window.LOGOS = {
   V.closeHTML = () => `
   <section class="close" aria-label="Install">
     <div class="cmdw">${cmd(CURL, "after-close")}<p class="k-after" id="after-close" data-mac-extra>${V.COPIED}</p></div>
-    <p class="links"><a href="/install">Read the script</a><a href="https://github.com/getpapersh">GitHub</a><span class="alpha">Alpha</span></p>
+    <footer><p class="links"><a href="/mac/">PaperMac Beta</a><a href="/paperland/">PaperLand Alpha</a><a href="/install">Read the script</a><a href="https://github.com/getpapersh">GitHub</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a></p></footer>
   </section>`;
 
   V.APPS = (ids) => ids.map(([k, id, n]) => Paper.app(k, id, n)).join("");
@@ -1287,7 +1328,7 @@ const picture = (html) => html.replace(/<h1 id="title">/, '<p class="h1">').repl
 document.getElementById("lo").innerHTML = D6.om(`<div class="strip s2" inert>${picture(s1.innerHTML)}</div>`, 1);
 const s2 = document.querySelector(".s2");
 document.getElementById("after-pin").textContent = V5.COPIED;
-document.getElementById("trunk6").innerHTML = `${Fork5.cmd(Fork5.CURL, "after-trunk")}<p class="k-after" id="after-trunk" data-mac-extra style="color:var(--hi-text)">${V5.COPIED}</p><p>This command detects your system.</p>`;
+document.getElementById("trunk6").innerHTML = `${Fork5.cmd(Fork5.CURL, "after-trunk")}<p class="k-after" id="after-trunk" data-mac-extra style="color:var(--brand-accentText)">${V5.COPIED}</p><p>This command detects your system.</p>`;
 for (const n of document.querySelectorAll(".nm")) n.innerHTML = n.dataset.os === "mac" ? LOGOS.apple + "macOS" : LOGOS.linux + "Linux";
 document.querySelector(".swipe").innerHTML = D6.kc(["⌘", "⌥"]) + '<span class="plus">+</span><span class="pad"><i style="left:38px"></i><i style="left:60px"></i></span>';
 const stills = { mac: D6.still("mac", [["mu", .34], ["ph", .5], ["ch", .5]]), lin: D6.still("om", [["mu", .34], ["ph", .5], ["ch", .5]]) };
@@ -1337,7 +1378,7 @@ Paper.story({
     { zoom: "view", focus: "mu", say: "" },
   ],
   viewScale: VS, stillAt: 0,
-  heroW: (W) => Math.min(W * .84, Math.max(620, W * .5), 860),
+  heroW: (W) => Math.min(W * .94, Math.max(680, W * .55), 860),
   geom: (W, H) => { const top = W < 700 ? 60 : 72, bottom = W < 700 ? 150 : 126, h = H - top - bottom; return { cy: top + h / 2, h, zoomH: h * .8 }; },
   phoneScale: .8, gap: 18, hold: .38,
   cap: document.querySelector(".cap"),

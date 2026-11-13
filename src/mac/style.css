@@ -127,7 +127,7 @@ html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-t
 body { margin: 0; background: var(--paper); color: var(--ink); font: 550 17px/1.5 "Paper Sans", system-ui, sans-serif; overflow-x: clip; }
 ::selection { background: var(--done-bg); color: var(--done-ink); }
 a { color: inherit; text-underline-offset: .22em; text-decoration-thickness: 1.5px; }
-a:hover { text-decoration-color: var(--hi); }
+a:hover { text-decoration-color: var(--brand-accent); }
 :focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; border-radius: 6px; }
 img { display: block; max-width: 100%; height: auto; }
 code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
@@ -459,3 +459,14 @@ time { white-space: nowrap; }
 .video-play[hidden] { display: none; }
 
 .cmd:hover { background: var(--brand-accent); color: var(--brand-onAccent); }
+
+.maturity { margin: 12px 0; color: var(--brand-accentText); font-size: 17px; font-weight: 750; }
+.release-history { padding-block: 48px 72px; }
+.release-history p { max-width: 72ch; }
+.top nav a:not(.btn) { min-height: 44px; display: inline-flex; align-items: center; }
+@media (max-width: 700px) { .top nav > a:not(.btn) { display: none; } }
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .top nav > a:not(.btn) { display: none; }
+  .top nav > a[href="/paperland/"] { display: inline-flex; }
+}

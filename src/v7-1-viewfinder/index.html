@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="no-js" data-theme="light" data-mode="light">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -72,6 +72,11 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/brand/papermac/papermac-icon-180.png">
 <link rel="stylesheet" href="../_kit/brand.css">
+<link rel="canonical" href="https://getpaper.sh/">
+<meta property="og:url" content="https://getpaper.sh/">
+<meta name="twitter:title" content="Paper: a scrolling window manager for macOS and Linux">
+<meta name="twitter:description" content="PaperMac Beta for macOS. PaperLand Alpha for Linux. Scrolling windows with room to move.">
+<meta name="twitter:image" content="https://getpaper.sh/og.png">
 </head>
 <body>
 <a class="skip" href="#install">Skip to install</a>
@@ -122,7 +127,7 @@ const picture = (html) => html.replace(/<h1 id="title">/, '<p class="h1">').repl
 document.getElementById("lo").innerHTML = D6.om(`<div class="strip s2" inert>${picture(s1.innerHTML)}</div>`, 1);
 const s2 = document.querySelector(".s2");
 document.getElementById("after-pin").textContent = V5.COPIED;
-document.getElementById("trunk6").innerHTML = `${Fork5.cmd(Fork5.CURL, "after-trunk")}<p class="k-after" id="after-trunk" data-mac-extra style="color:var(--hi-text)">${V5.COPIED}</p><p>This command detects your system.</p>`;
+document.getElementById("trunk6").innerHTML = `${Fork5.cmd(Fork5.CURL, "after-trunk")}<p class="k-after" id="after-trunk" data-mac-extra style="color:var(--brand-accentText)">${V5.COPIED}</p><p>This command detects your system.</p>`;
 for (const n of document.querySelectorAll(".nm")) n.innerHTML = n.dataset.os === "mac" ? LOGOS.apple + "macOS" : LOGOS.linux + "Linux";
 document.querySelector(".swipe").innerHTML = D6.kc(["⌘", "⌥"]) + '<span class="plus">+</span><span class="pad"><i style="left:38px"></i><i style="left:60px"></i></span>';
 const stills = { mac: D6.still("mac", [["mu", .34], ["ph", .5], ["ch", .5]]), lin: D6.still("om", [["mu", .34], ["ph", .5], ["ch", .5]]) };
@@ -172,7 +177,7 @@ Paper.story({
     { zoom: "view", focus: "mu", say: "" },
   ],
   viewScale: VS, stillAt: 0,
-  heroW: (W) => Math.min(W * .84, Math.max(620, W * .5), 860),
+  heroW: (W) => Math.min(W * .94, Math.max(680, W * .55), 860),
   geom: (W, H) => { const top = W < 700 ? 60 : 72, bottom = W < 700 ? 150 : 126, h = H - top - bottom; return { cy: top + h / 2, h, zoomH: h * .8 }; },
   phoneScale: .8, gap: 18, hold: .38,
   cap: document.querySelector(".cap"),

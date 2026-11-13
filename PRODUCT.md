@@ -44,7 +44,7 @@ Shared concepts (both products): scrolling Strips within a Desktop; focus moves 
 
 PaperMac only or ahead today: Limelight (dims unfocused windows), optional focused-window border, typed search in the switcher across all Desktops, window snoozing, per-app rules, customizable shortcuts with a Ghost Keys overlay, a guided first-run lesson ("First Flow"), Sparkle updates.
 
-PaperLand only or ahead today: full-display Overview with Full/Icons/Timeline modes, Peek mode for the Minimap, scratchpad.
+PaperMac Free includes experimental Overview for browsing the current canvas on macOS 27. PaperLand only or ahead today: full-display Overview with Full/Icons/Timeline modes, Peek mode for the Minimap, scratchpad.
 
 ### Shared terminology
 
@@ -67,7 +67,7 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 ## Brand Commitments
 
 - Names: Paper (family), PaperMac (macOS), PaperLand (Hyprland). Domain getpaper.sh.
-- Voice: calm, technical, honest. PaperMac is in public beta (27.0.0-beta.7). The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
+- Voice: calm, technical, honest. PaperMac is in Beta; PaperLand is in Alpha. The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
 - Soft launch: no announcement copy, no analytics.
 - The earlier papermac-www site work (its layout, palette and headline) is explicitly not a reference for getpaper.sh.
 

@@ -1,8 +1,8 @@
 #!/bin/sh
-# Paperland installer. scripts/build-site.sh inlines it, built with release.env, into
+# PaperLand installer. scripts/build-site.sh inlines it, built with release.env, into
 # the served /install, which runs it on Linux; see README.md in this folder.
 #
-# Linux (Omarchy): installs or upgrades Paperland as the Omarchy plugin json.paperland.
+# Linux (Omarchy): installs or upgrades PaperLand as the Omarchy plugin json.paperland.
 # The pinned release is cloned and verified outside Omarchy's watched plugin folder,
 # then published into it with one rename, so omarchy-shell only ever sees verified code.
 #
@@ -36,7 +36,7 @@ cgit() (
 check_release_values() {
   [ -n "${PLUGIN_URL:-}" ] || die "This installer was not built: run scripts/build-site.sh and use site/install."
   [ "$PLUGIN_SHA" != PENDING ] ||
-    die "No Paperland release is pinned yet (PLUGIN_SHA=PENDING). Nothing was changed."
+    die "No PaperLand release is pinned yet (PLUGIN_SHA=PENDING). Nothing was changed."
   case "$PLUGIN_URL" in https://*) ;; *) die "Refusing a plugin URL that is not HTTPS: $PLUGIN_URL" ;; esac
   printf '%s\n' "$PLUGIN_SHA" | grep -Eq '^[0-9a-f]{40}$' ||
     die "Pinned plugin commit is not a 40-character hex SHA: $PLUGIN_SHA"
@@ -55,7 +55,7 @@ hyprland_version() {
 }
 
 # Prints PATH or the first of its parents that is a symlink, or nothing.
-# Paperland's setup never writes through one.
+# PaperLand's setup never writes through one.
 first_symlink() {
   p=$1
   while [ -n "$p" ]; do
@@ -68,49 +68,49 @@ owned_runtime() { [ -d "$RUNTIME" ] && [ ! -L "$RUNTIME" ] && [ "$(cat "$RUNTIME
 
 check_linux() {
   have omarchy-version ||
-    die "Paperland installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
+    die "PaperLand installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
   ov=$(omarchy-version 2>/dev/null || true)
   # A development checkout reports "dev"; the checkout's own version file says which.
   case "$ov" in
     dev*) dev=$ov ov=
           if [ -n "${OMARCHY_PATH:-}" ]; then ov=$(head -n 1 "${OMARCHY_PATH%/}/version" 2>/dev/null || true); fi
           [ -n "$ov" ] ||
-            die "This system runs a development build of Omarchy ($dev) whose version could not be read from \$OMARCHY_PATH/version. Paperland needs Omarchy 4 or newer." ;;
+            die "This system runs a development build of Omarchy ($dev) whose version could not be read from \$OMARCHY_PATH/version. PaperLand needs Omarchy 4 or newer." ;;
   esac
   ov_major=$(printf '%s\n' "$ov" | sed -n '1s/^\([0-9][0-9]*\)\..*/\1/p')
   [ -n "$ov_major" ] && [ "$ov_major" -ge 4 ] ||
-    die "Paperland needs Omarchy 4 or newer; this system has Omarchy ${ov:-of unknown version}."
+    die "PaperLand needs Omarchy 4 or newer; this system has Omarchy ${ov:-of unknown version}."
   for cmd in omarchy omarchy-shell omarchy-plugin-list omarchy-plugin-validate hyprctl quickshell python3 git jq; do
-    have "$cmd" || die "Paperland needs $cmd, which was not found on PATH."
+    have "$cmd" || die "PaperLand needs $cmd, which was not found on PATH."
   done
   hv=$(hyprland_version)
-  [ -n "$hv" ] || die "Could not read the Hyprland version. Paperland needs Hyprland $MIN_HYPRLAND or newer."
+  [ -n "$hv" ] || die "Could not read the Hyprland version. PaperLand needs Hyprland $MIN_HYPRLAND or newer."
   hv_major=${hv%%.*}; hv_minor=${hv#*.}
   min_major=${MIN_HYPRLAND%%.*}; min_minor=${MIN_HYPRLAND#*.}
   if [ "$hv_major" -lt "$min_major" ] || { [ "$hv_major" -eq "$min_major" ] && [ "$hv_minor" -lt "$min_minor" ]; }; then
-    die "Paperland needs Hyprland $MIN_HYPRLAND or newer; this system has Hyprland $hv."
+    die "PaperLand needs Hyprland $MIN_HYPRLAND or newer; this system has Hyprland $hv."
   fi
   omarchy-shell shell listPlugins >/dev/null 2>&1 ||
     die "omarchy-shell is not running. Run this from a terminal inside your Omarchy session."
 
   EXISTING=
   if [ -L "$PLUGIN_DIR" ]; then
-    die "$PLUGIN_DIR is a link left by an earlier Paperland setup. First run: $UNINSTALL_CMD"
+    die "$PLUGIN_DIR is a link left by an earlier PaperLand setup. First run: $UNINSTALL_CMD"
   elif [ -e "$PLUGIN_DIR" ]; then
     # Only a checkout of the pinned repo is replaced. --file reads exactly this config,
     # with no repository discovery and nothing executed from the checkout.
     [ -d "$PLUGIN_DIR/.git" ] && [ ! -L "$PLUGIN_DIR/.git" ] &&
       [ "$(cgit config --file "$PLUGIN_DIR/.git/config" --get remote.origin.url 2>/dev/null || true)" = "$PLUGIN_URL" ] ||
-      die "Paperland is already installed at $PLUGIN_DIR from somewhere else. To reinstall, first run: $UNINSTALL_CMD"
+      die "PaperLand is already installed at $PLUGIN_DIR from somewhere else. To reinstall, first run: $UNINSTALL_CMD"
     EXISTING=1
   fi
-  # Paperland's own installer refuses these; check before changing anything.
+  # PaperLand's own installer refuses these; check before changing anything.
   if [ -e "$RUNTIME" ] || [ -L "$RUNTIME" ]; then
-    owned_runtime || die "$RUNTIME exists and was not installed by Paperland. Move it aside, then rerun."
+    owned_runtime || die "$RUNTIME exists and was not installed by PaperLand. Move it aside, then rerun."
   fi
   if [ -e "$LAUNCHER" ] || [ -L "$LAUNCHER" ]; then
     [ -L "$LAUNCHER" ] && [ "$(readlink "$LAUNCHER")" = "$RUNTIME/paperland" ] ||
-      die "$LAUNCHER already exists and is not Paperland's launcher. Move it aside, then rerun."
+      die "$LAUNCHER already exists and is not PaperLand's launcher. Move it aside, then rerun."
   fi
 }
 
@@ -121,10 +121,10 @@ saved_setup() {
 
 setup_desc() {
   if saved_setup; then
-    SETUP_DESC="Your saved Paperland shortcut and autostart choices are applied again."
+    SETUP_DESC="Your saved PaperLand shortcut and autostart choices are applied again."
   else
     SETUP_DESC="SUPER + M opens the minimap, replacing any existing SUPER + M binding,
-     and Paperland starts hidden at login."
+     and PaperLand starts hidden at login."
   fi
 }
 
@@ -138,7 +138,7 @@ run_setup() {
 
 print_plan() {
   if [ -n "$EXISTING" ]; then
-    head_line="Paperland is already installed from $PLUGIN_URL. This will:"
+    head_line="PaperLand is already installed from $PLUGIN_URL. This will:"
     publish_line="Move the installed plugin to a backup folder in $OMARCHY_DIR (kept;
      its path is printed) and put the verified copy in its place."
   else
@@ -147,29 +147,29 @@ print_plan() {
      and enable it in your Omarchy bar."
   fi
   if [ -z "$NEEDS_SETUP" ]; then
-    setup_line="Keep your Paperland shortcut and autostart setup unchanged."
+    setup_line="Keep your PaperLand shortcut and autostart setup unchanged."
   elif [ -n "$MAIN_LINK" ] && [ -n "$EDIT_DOTFILES" ]; then
     setup_desc
     setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
-     $MAIN_LINK. With --edit-dotfiles, add Paperland's marked include to
+     $MAIN_LINK. With --edit-dotfiles, add PaperLand's marked include to
      that file in place (the link stays a link, and nothing else is written
-     there), then have Paperland check it.
+     there), then have PaperLand check it.
      $SETUP_DESC"
   elif [ -n "$MAIN_LINK" ]; then
     setup_desc
     setup_line="Write $GENERATED_DIR/paperland.lua. $HYPR_DIR/hyprland.lua resolves through a symlink to
-     $MAIN_LINK, which this installer does not edit by default: Paperland
+     $MAIN_LINK, which this installer does not edit by default: PaperLand
      prints the lines to paste there, and this run stops. Paste them and run it
      again, or rerun with --edit-dotfiles to have them added for you.
      $SETUP_DESC"
   else
     setup_desc
     setup_line="Write $GENERATED_DIR/paperland.lua and one marked include in
-     $HYPR_DIR/hyprland.lua (Paperland backs both up first).
+     $HYPR_DIR/hyprland.lua (PaperLand backs both up first).
      $SETUP_DESC"
   fi
   cat <<EOF
-Paperland installer (unannounced alpha; expect rough edges)
+PaperLand installer (unannounced alpha; expect rough edges)
 
 $head_line
   1. Clone $PLUGIN_URL
@@ -177,7 +177,7 @@ $head_line
        $PLUGIN_SHA
      into a private folder, and verify it before Omarchy can see it.
   2. $publish_line
-  3. Install the Paperland runtime to $RUNTIME
+  3. Install the PaperLand runtime to $RUNTIME
      with a launcher at $LAUNCHER (an older runtime is kept beside it).
   4. $setup_line
 
@@ -269,13 +269,13 @@ on_exit() {
     :
   elif [ -n "$RUNTIME_STARTED" ]; then
     if [ -z "$RUNTIME_DONE" ]; then
-      warn "The Paperland runtime may not have finished installing. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+      warn "The PaperLand runtime may not have finished installing. Run the same command again to finish, or remove PaperLand with: $UNINSTALL_CMD"
     elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ] && [ -n "$EDIT_DOTFILES" ]; then
-      warn "Fix what Paperland reported above, then run the same command again with --edit-dotfiles."
+      warn "Fix what PaperLand reported above, then run the same command again with --edit-dotfiles."
     elif [ -n "$MAIN_LINK" ] && [ -n "$SETUP_STARTED" ] && [ -z "$INCLUDE_ADDED" ]; then
-      warn "If Paperland printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
+      warn "If PaperLand printed lines to paste above, paste them into $MAIN_LINK. Then run the same command again to finish."
     else
-      warn "Paperland's plugin and runtime were installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+      warn "PaperLand's plugin and runtime were installed but setup did not finish. Run the same command again to finish, or remove PaperLand with: $UNINSTALL_CMD"
     fi
     if [ -n "$prev" ] && [ -e "$prev" ]; then
       warn "The replaced plugin is kept at $prev"
@@ -295,7 +295,7 @@ on_exit() {
       fi
     fi
   elif [ -z "$EXISTING" ] && [ -n "$tree" ] && absent "$tree" && [ -d "$PLUGIN_DIR" ]; then
-    warn "Paperland's plugin was installed but setup did not finish. Run the same command again to finish, or remove Paperland with: $UNINSTALL_CMD"
+    warn "PaperLand's plugin was installed but setup did not finish. Run the same command again to finish, or remove PaperLand with: $UNINSTALL_CMD"
   fi
   if [ -n "$STAGE_ROOT" ]; then rm -rf "$STAGE_ROOT"; fi
   if [ -n "$BACKUP" ]; then rmdir "$BACKUP" 2>/dev/null || true; fi
@@ -346,14 +346,14 @@ report_previous() {
   fi
 }
 
-# Paperland's preview checks an include that was added by hand or by --edit-dotfiles,
+# PaperLand's preview checks an include that was added by hand or by --edit-dotfiles,
 # without writing anything.
 check_symlinked_include() {
   "$LAUNCHER" setup --dry-run >/dev/null ||
-    die "Paperland's setup check failed; see its message above. If it names the include, fix it in $MAIN_LINK."
+    die "PaperLand's setup check failed; see its message above. If it names the include, fix it in $MAIN_LINK."
 }
 
-# --edit-dotfiles: appends the block Paperland's setup printed to the file hyprland.lua
+# --edit-dotfiles: appends the block PaperLand's setup printed to the file hyprland.lua
 # links to. Only for a plain "add these lines" request: anything else (a block to
 # replace, lines to remove, another error) stops with the file untouched.
 add_include_to_dotfiles() {
@@ -362,21 +362,21 @@ add_include_to_dotfiles() {
   if ! grep -qF 'Symlinked main config needs a manual include.' "$out" ||
      ! grep -qF 'Add these exact lines to its tracked target:' "$out" || grep -q '^Remove ' "$out" ||
      grep -qF -- '-- BEGIN Paperland setup' "$main"; then
-    die "Paperland's setup stopped for another reason (above), so $MAIN_LINK was not edited."
+    die "PaperLand's setup stopped for another reason (above), so $MAIN_LINK was not edited."
   fi
   block=$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$out")
   [ "$(printf '%s\n' "$block" | grep -c '^-- BEGIN Paperland setup$')" = 1 ] &&
     [ "$(printf '%s\n' "$block" | tail -n 1)" = '-- END Paperland setup' ] ||
-    die "Paperland's setup did not print one complete include, so $MAIN_LINK was not edited."
+    die "PaperLand's setup did not print one complete include, so $MAIN_LINK was not edited."
   [ -f "$main" ] && [ -w "$main" ] || die "$MAIN_LINK is not a writable file, so it was not edited."
   # Appending through the link edits the real file in place: same file, mode and owner,
-  # and the link stays a link. The layout matches what Paperland's setup appends.
+  # and the link stays a link. The layout matches what PaperLand's setup appends.
   sep=
   if [ -s "$main" ] && [ -n "$(tail -c 1 "$main")" ]; then sep='
 '; fi
   printf '%s\n%s\n' "$sep" "$block" >> "$main"
   INCLUDE_ADDED=1
-  say "Added Paperland's include to $MAIN_LINK."
+  say "Added PaperLand's include to $MAIN_LINK."
 }
 
 install_linux() {
@@ -403,7 +403,7 @@ install_linux() {
     MAIN_LINK=$(readlink -f "$HYPR_DIR/hyprland.lua" 2>/dev/null || readlink "$HYPR_DIR/hyprland.lua")
     case "$MAIN_LINK" in /*) ;; *) MAIN_LINK=$HYPR_DIR/$MAIN_LINK ;; esac
   elif [ -n "$EDIT_DOTFILES" ]; then
-    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua or a parent is a symlink, and here neither is; Paperland's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
+    die "--edit-dotfiles applies only when $HYPR_DIR/hyprland.lua or a parent is a symlink, and here neither is; PaperLand's setup edits it directly. Rerun without --edit-dotfiles. Nothing was changed."
   fi
   print_plan
   confirm
@@ -439,17 +439,17 @@ install_linux() {
 
   say ""
   if [ -n "$EXISTING" ]; then
-    say "Paperland is up to date at $PLUGIN_SHA."
-    # Paperland's install never restarts a running Paperland.
-    say "Restart Paperland to finish: paperland stop && paperland start-hidden"
+    say "PaperLand is up to date at $PLUGIN_SHA."
+    # PaperLand's install never restarts a running PaperLand.
+    say "Restart PaperLand to finish: paperland stop && paperland start-hidden"
   else
-    say "Paperland is installed at $PLUGIN_SHA. Open the minimap with your Paperland shortcut (SUPER + M by default)."
+    say "PaperLand is installed at $PLUGIN_SHA. Open the minimap with your PaperLand shortcut (SUPER + M by default)."
   fi
   if [ -n "$INCLUDE_ADDED" ]; then
     say "Hyprland loads the new include on its next config reload (hyprctl reload)."
   fi
   if [ -n "$WIDGET_OFF" ]; then
-    say "The Paperland bar widget is off. To add it to your bar: omarchy plugin enable $PLUGIN_ID && omarchy bar set $PLUGIN_ID executable $RUNTIME/paperland"
+    say "The PaperLand bar widget is off. To add it to your bar: omarchy plugin enable $PLUGIN_ID && omarchy bar set $PLUGIN_ID executable $RUNTIME/paperland"
   fi
   case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
@@ -463,9 +463,9 @@ usage() {
 Usage: curl --proto '=https' --tlsv1.2 -fsSL $SITE/install | sh -s -- [--edit-dotfiles]
 
   --edit-dotfiles  When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a dotfiles
-                   repository, say), add Paperland's marked include to the file it
+                   repository, say), add PaperLand's marked include to the file it
                    points to instead of printing the lines for you to paste. The link
-                   stays a link, and Paperland's generated files never go there.
+                   stays a link, and PaperLand's generated files never go there.
                    Generated files live under \$XDG_STATE_HOME/paperland/hypr
                    (default: ~/.local/state/paperland/hypr).
 EOF
@@ -484,9 +484,9 @@ main() {
   case "$(uname -s)" in
     Linux) install_linux ;;
     Darwin)
-      [ -z "$EDIT_DOTFILES" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
-      die "This Paperland installer does not handle macOS; the served /install installs PaperMac there." ;;
-    *) die "Unsupported system: $(uname -s). Paperland needs Linux with Omarchy; PaperMac needs macOS." ;;
+      [ -z "$EDIT_DOTFILES" ] || die "--edit-dotfiles applies only to PaperLand on Linux; PaperMac has no Hyprland config."
+      die "This PaperLand installer does not handle macOS; the served /install installs PaperMac there." ;;
+    *) die "Unsupported system: $(uname -s). PaperLand needs Linux with Omarchy; PaperMac needs macOS." ;;
   esac
 }
 

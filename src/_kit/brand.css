@@ -65,7 +65,6 @@
 :root {
   --paper: var(--brand-paper); --paper-2: var(--brand-raised); --slab: var(--brand-surface);
   --ink: var(--brand-ink); --ink-2: var(--brand-ink2); --line: var(--brand-border);
-  --hi: var(--brand-accent); --hi-text: var(--brand-accentText);
   --pro: var(--brand-accent); --pro-hover: var(--brand-accent); --pro-ink: var(--brand-onAccent); --pro-text: var(--brand-accentText);
   --done-bg: var(--brand-accent); --done-ink: var(--brand-onAccent);
   --sel: var(--brand-focus); --map-view: var(--brand-focus); --map-focus: var(--brand-accent);

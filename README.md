@@ -164,7 +164,7 @@ bundler and installer assembler fill `{{DMG_URL}}` from that file. When changing
 the pinned release, also update its version, SHA-256 and notarization fields in
 `install`; verify the downloaded DMG's hash before publishing.
 
-Rebuild the five self-contained pages after editing their sources:
+Rebuild the six self-contained pages after editing their sources:
 
 ```sh
 uvx --from fonttools python scripts/bundle-page.py src/v7-1-viewfinder/index.html > index.html
@@ -173,6 +173,7 @@ uvx --with segno --from fonttools python scripts/bundle-page.py src/mac/index.ht
 uvx --from fonttools python scripts/bundle-page.py src/mac-activate/index.html > mac/activate/index.html
 uvx --from fonttools python scripts/bundle-page.py src/terms/index.html > terms/index.html
 uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > privacy/index.html
+uvx --from fonttools python scripts/bundle-page.py src/paperland/index.html > paperland/index.html
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
 
@@ -198,7 +199,7 @@ the Mac and legal pages keep their existing light/dark behavior.
 installed Chrome as the OG tool to check computed hover and copy-state contrast.
 The full-palette check reports every failing pair before exiting nonzero.
 
-The preview output has 33 entries including directories. To test an uncommitted
+The preview output has 40 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
 Two files set the sales modes, and both committed defaults are `off`:
@@ -308,3 +309,18 @@ On the day the domain is ready:
 ## License
 
 GPL-3.0-or-later, the same as Paperland. See [LICENSE](LICENSE). The fonts and logos the page embeds keep their own licences, in `licenses/`.
+
+## Launch pages and routing
+
+`/paperland/` introduces PaperLand Alpha on Omarchy. Its bundled page and OG image
+share `paperland/` with installer sources; the site build copies only the two
+page artifacts. `_redirects` sends `/land`, `/land/`, `/linux` and `/linux/` there
+with 301 responses under Cloudflare Workers static assets. The local Python
+static server does not process `_redirects`; deployed redirects still need a
+hosting check after an authorized deployment. `sitemap.xml` lists the five public
+indexable pages and excludes the receipt activation page.
+
+PaperMac Free supports two Strips, full-height or half-and-half; Pro unlocks
+adjustable heights, more Strips and Window groups. The existing menu-bar capture
+still shows the earlier icon and needs a fresh real-app capture; it is retained
+as documentary media rather than replaced with a synthetic screenshot.

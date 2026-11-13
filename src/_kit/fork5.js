@@ -1,7 +1,7 @@
 // Round 5 install fork. Needs kit.js (Paper.copy) and logos.js.
 (() => {
   const F = (window.Fork5 = {});
-  const CURL = "curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh";
+  const CURL = "curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span>";
   F.CURL = CURL;
   // disabled: a visible but inert box (no data-copy, so Paper.copy never wires it)
   F.cmd = (code, after, disabled) => disabled
@@ -19,22 +19,22 @@
         <div class="dev laptop" aria-hidden="true"><div class="scr">${screens.mac || ""}</div><div class="foot"></div></div>
         <div class="who"><h3 class="osname">${LOGOS.apple}macOS</h3><p class="prod"><img src="/brand/papermac/papermac-icon.svg" alt="" width="48" height="48"><a href="/mac/">PaperMac</a></p></div>
         <p class="req">Requires macOS 27 or newer.</p>
-        <div class="way"><p class="lead">On a Mac, it installs PaperMac</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="{{DMG_URL}}">Or download the DMG</a></p></div>
+        <div class="way"><p class="lead">On a Mac, it installs PaperMac Beta</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="{{DMG_URL}}">Or download the DMG</a></p></div>
         <p class="note">Verifies the checksum and signature and never asks for sudo.</p>
       </div>
       <div class="col" data-os="lin">
         <div class="dev monitor" aria-hidden="true"><div class="scr">${screens.lin || ""}</div><div class="foot"></div></div>
-        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod"><img src="/brand/paperland/paperland-icon.svg" alt="" width="48" height="48">PaperLand</p></div>
+        <div class="who"><h3 class="osname">${LOGOS.linux}Linux</h3><p class="prod"><img src="/brand/paperland/paperland-icon.svg" alt="" width="48" height="48"><a href="/paperland/">PaperLand</a></p></div>
         <p class="req">Requires Omarchy 4 and Hyprland 0.56, or newer.</p>
-        <div class="way"><p class="lead">On Omarchy, it installs PaperLand</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
-        <p class="note">Pins and validates the plugin before it changes anything.</p>
+        <div class="way"><p class="lead">On Omarchy, it installs PaperLand Alpha</p><div class="alt">${F.cmd(CURL)}</div><p class="more-way"><a href="https://github.com/getpapersh/paperland">Or view it on GitHub</a></p></div>
+        <p class="note">Pins and validates the plugin before it changes anything. When setup finishes, open the Minimap with Super+M, or follow any include instructions printed by the installer.</p>
       </div>
     </div>
     <div class="rejoin"><p>${c.rejoin}</p></div>
     <details class="undo" id="uninstall"><summary>Uninstall</summary>
-      <p class="os">macOS</p>${F.cmd("curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh -s -- --uninstall")}
+      <p class="os">macOS</p>${F.cmd("curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span> -s -- --uninstall")}
       <p>If PaperMac crashed or was force-quit, open it once and quit it before uninstalling, so it can return any hidden windows.</p>
-      <p class="os">Linux</p>${F.cmd("curl -fsSL <wbr>https://getpaper.sh/install <wbr>| sh -s -- --uninstall")}
+      <p class="os">Linux</p>${F.cmd("curl -fsSL <wbr><span class='command-tail'>https://getpaper.sh/install | sh</span> -s -- --uninstall")}
     </details>
   </section>`;
 

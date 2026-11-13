@@ -76,6 +76,7 @@ try {
     checks++;
   };
   await send("Page.enable");
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Browser.grantPermissions", { origin: base, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   for (const scheme of ["light", "dark"]) {
@@ -84,8 +85,17 @@ try {
       await send("Page.navigate", { url: base + route });
       await Bun.sleep(650);
       await evaluate("document.fonts.ready.then(() => true)");
+      await evaluate("document.documentElement.style.scrollBehavior='auto';scrollTo({top:0,behavior:'instant'})");
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom <= 0"), `${route}: skip link must be hidden before focus`);
+      await evaluate("document.querySelector('.skip').focus()");
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top >= 0"), `${route}: skip link must be visible on focus`);
+      await evaluate("document.querySelector('.skip').blur()");
+      checks++;
       if (route === "/") {
-        assert.equal(await evaluate("getComputedStyle(document.body).backgroundColor"), "rgb(242, 239, 231)", "Home must stay light under both system schemes");
+        assert.equal(await evaluate("getComputedStyle(document.body).backgroundColor"), scheme === "light" ? "rgb(242, 239, 231)" : "rgb(18, 19, 23)", "Home must follow the system scheme");
+        const videoRatio = await evaluate("(() => {const r=document.querySelector('.home-overview').getBoundingClientRect();return r.width/r.height;})()");
+        assert(Math.abs(videoRatio - 1.6) < .01, `Home Overview recording aspect ratio: ${videoRatio}`);
+        checks++;
         await hover(".k-cmd");
         await verify(".k-cmd", `home Copy hover, system ${scheme}`);
       } else {
@@ -103,7 +113,7 @@ try {
       }
     }
   }
-  console.log(`PASS: ${checks} computed interaction contrast checks; no accent-on-accent text; home light-only in both system schemes`);
+  console.log(`PASS: ${checks} computed interaction and keyboard checks; no accent-on-accent text; home follows both system schemes`);
 } finally {
   ws?.close(); chrome.kill(); server.stop(true);
   await chrome.exited;

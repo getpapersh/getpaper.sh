@@ -16,3 +16,31 @@
 .family-marks { display: flex; align-items: center; gap: 16px; margin: 0 0 16px; }
 .family-marks img { display: block; width: 56px; height: 56px; }
 .prod img { width: 48px; height: 48px; }
+
+.command-tail { white-space: nowrap; }
+.hero-facts { margin: 12px 0 20px; font-size: 16px; color: var(--brand-ink2); }
+.hero .bd { justify-content: flex-start; padding-top: clamp(24px, 3vw, 44px); }
+.hero h1, .hero .h1 { font-size: clamp(64px, 7.2vw, 112px); line-height: 1; white-space: nowrap; }
+.product-truth { width: min(1052px, calc(100% - 40px)); margin: 56px auto 0; }
+.product-truth h2 { font-size: clamp(36px, 5vw, 64px); line-height: 1.05; }
+.product-truth p { max-width: 72ch; line-height: 1.65; }
+.trust { color: var(--brand-accentText); font-weight: 700; }
+.tile figcaption { flex-wrap: wrap; }
+.links a { display: inline-flex; align-items: center; min-height: 44px; gap: 5px; }
+@media (max-width: 900px) {
+  .hero .bd { padding: 20px 24px; }
+  .family-marks { margin-bottom: 10px; }
+  .family-marks img { width: 40px; height: 40px; }
+  .hero .tag { font-size: 26px; }
+  .hero .links { gap: 0 14px; margin-top: 8px; }
+  .hero .k-after { margin-top: 0; min-height: 0; }
+  .hero-facts { margin: 10px 0 14px; font-size: 14px; }
+}
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .fork .k-cmd { flex-direction: column; }
+  .fork .k-cmd .lbl { min-height: 44px; border-radius: 0 0 14px 14px; }
+}
+
+@media (max-width: 1000px) { .fork .k-cmd code { display: block; } }
+.home-overview { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: 12px; }

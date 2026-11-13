@@ -3,7 +3,7 @@
 # does, with a throwaway HOME and stub commands on a PATH that holds nothing else
 # but basic tools. The script's SYSTEM_APPLICATIONS line is pointed at a folder
 # inside the test, so no case can touch the real /Applications. Cases run the built
-# installer (install with the Paperland installer inlined), as served; the Paperland
+# installer (install with the PaperLand installer inlined), as served; the PaperLand
 # half has its own suite in paperland/tests.
 #
 #   sh tests/run.sh               all cases
@@ -745,26 +745,26 @@ check "uninstall without PaperMac still warns first" [ "$(head -n 1 "$case_dir/o
 
 # --- options, Linux and other systems ----------------------------------------------
 
-# Linux runs the inlined Paperland installer; paperland/tests covers it in full, also
+# Linux runs the inlined PaperLand installer; paperland/tests covers it in full, also
 # against this combined file. These cases check that each option reaches it. The
-# PaperMac stubs include no Omarchy, so Paperland's own first check stops it.
-paperland_needs_omarchy="Paperland installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
+# PaperMac stubs include no Omarchy, so PaperLand's own first check stops it.
+paperland_needs_omarchy="PaperLand installs as an Omarchy plugin and needs Omarchy 4 or newer (omarchy-version was not found on PATH)."
 only_os_checks() { [ "$(grep -Ecv '^(id|uname)( |$)' "$case_dir/log")" = 0 ]; }
 
 new_case linux
 run -- STUB_OS=Linux
-check "Linux runs the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux runs the PaperLand installer" says "$paperland_needs_omarchy"
 check "Linux without Omarchy fails" status 1
 check "Linux runs nothing of PaperMac's" only_os_checks
 
 new_case linux-edit-dotfiles
 run --edit-dotfiles -- STUB_OS=Linux
-check "Linux with --edit-dotfiles reaches the Paperland installer" says "$paperland_needs_omarchy"
+check "Linux with --edit-dotfiles reaches the PaperLand installer" says "$paperland_needs_omarchy"
 check "Linux accepts --edit-dotfiles" silent "Unknown option"
 
 new_case linux-uninstall
 run --uninstall -- STUB_OS=Linux
-check "Linux --uninstall runs the Paperland uninstaller" says "Paperland is not installed; nothing to do."
+check "Linux --uninstall runs the PaperLand uninstaller" says "PaperLand is not installed; nothing to do."
 check "Linux --uninstall with nothing installed succeeds" status 0
 check "Linux --uninstall runs nothing of PaperMac's" only_os_checks
 
@@ -781,19 +781,19 @@ check "Linux refuses root" says "Do not run this installer as root or with sudo"
 new_case macos-edit-dotfiles
 run --edit-dotfiles
 check "--edit-dotfiles is refused on macOS" status 1
-check "--edit-dotfiles on macOS says why" says "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+check "--edit-dotfiles on macOS says why" says "--edit-dotfiles applies only to PaperLand on Linux; PaperMac has no Hyprland config."
 check "--edit-dotfiles on macOS changes nothing" not_called curl
 
 new_case other-os
 run -- STUB_OS=FreeBSD
 check "another system is refused" status 1
-check "another system is named" says "Unsupported system: FreeBSD. Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (Paperland)."
+check "another system is named" says "Unsupported system: FreeBSD. Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (PaperLand)."
 check "another system runs nothing" only_os_checks
 
 new_case help
 run --help
 check "--help succeeds" status 0
-check "--help lists --uninstall" says "--uninstall      Remove PaperMac (macOS) or Paperland (Linux)."
+check "--help lists --uninstall" says "--uninstall      Remove PaperMac (macOS) or PaperLand (Linux)."
 check "--help lists --edit-dotfiles" says "--edit-dotfiles  Linux only."
 check "--help runs nothing" [ ! -s "$case_dir/log" ]
 
@@ -860,7 +860,7 @@ for file in _headers index.html install og.png; do check "site/ has $file" [ -f 
 for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 33 ]
+check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 40 ]
 check "Approved Paper brand, contrast and deterministic page bundles" python3 "$root/tests/brand.py" "$root/site"
 check "Mac pages, shared DMG links, local media and activation privacy contract" python3 "$root/tests/mac-pages.py" "$root/site"
 sales_modes() {
@@ -887,7 +887,7 @@ check "every DMG link is a PaperMac release on dl.getpaper.sh" \
   fails sh -c "grep -oiE 'href=\"[^\"]*\\.dmg\"' '$root/site/index.html' | grep -vxE 'href=\"https://dl\\.getpaper\\.sh/papermac/PaperMac-[0-9][0-9a-z.-]*\\.dmg\"'"
 check "the page shows no brew command" fails grep -qF 'brew install' "$root/site/index.html"
 # The page builds its command boxes in script, with <wbr> break hints inside the commands.
-page_text() { sed 's/<wbr>//g' "$root/site/index.html"; }
+page_text() { sed -e 's/<wbr>//g' -e "s/<span class='command-tail'>//g" -e 's#</span>##g' "$root/site/index.html"; }
 page_text_has() { page_text | grep -qF "$1"; }
 check "both platform panels have the uninstall command" \
   [ "$(page_text | grep -oF 'curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall' | wc -l | tr -d ' ')" = 2 ]
@@ -895,8 +895,8 @@ check "the page's install command is the universal one-liner" page_text_has 'con
 check "the Linux panel shows the install command" \
   sh -c "sed -n '/data-os=\"lin\"/,/class=\"rejoin\"/p' '$root/site/index.html' | grep -qF '\${F.cmd(CURL)}'"
 check "the page no longer calls PaperLand coming soon" fails grep -qiE 'PaperLand[^<]*coming soon' "$root/site/index.html"
-check "the served installer inlines the Paperland installer" grep -qx 'paperland_install() (' "$root/site/install"
-check "the served installer pins the Paperland release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
+check "the served installer inlines the PaperLand installer" grep -qx 'paperland_install() (' "$root/site/install"
+check "the served installer pins the PaperLand release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
 check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"
 check "the page's link preview is the served og.png" grep -qF '<meta property="og:image" content="https://getpaper.sh/og.png">' "$root/site/index.html"
 check "the page gives the link preview's size" \

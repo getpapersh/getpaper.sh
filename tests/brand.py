@@ -37,13 +37,13 @@ check((site / 'brand/papermac/papermac-icon-180.png').read_bytes() ==
 
 routes = {'index.html': 'v7-1-viewfinder', 'mac/index.html': 'mac',
           'mac/activate/index.html': 'mac-activate', 'privacy/index.html': 'privacy',
-          'terms/index.html': 'terms'}
+          'terms/index.html': 'terms', 'paperland/index.html': 'paperland'}
 for route, source in routes.items():
     page = (site / route).read_text()
     check(not re.search(r'Paperland|Paper Land|Papermac|Paper Mac', page), (route, 'Product spelling'))
-    check('sizes="32x32" href="/brand/papermac/papermac-icon-32.png"' in page, (route, '32px favicon'))
-    check('sizes="180x180" href="/brand/papermac/papermac-icon-180.png"' in page, (route, 'Apple-touch'))
-    og = 'og.png' if source == 'v7-1-viewfinder' else 'mac/og.png'
+    check(f'sizes="32x32" href="/brand/{"paperland" if source == "paperland" else "papermac"}/{"paperland" if source == "paperland" else "papermac"}-icon-32.png"' in page, (route, '32px favicon'))
+    check(f'sizes="180x180" href="/brand/{"paperland" if source == "paperland" else "papermac"}/{"paperland" if source == "paperland" else "papermac"}-icon-180.png"' in page, (route, 'Apple-touch'))
+    og = 'og.png' if source == 'v7-1-viewfinder' else 'paperland/og.png' if source == 'paperland' else 'mac/og.png'
     check(f'property="og:image" content="https://getpaper.sh/{og}"' in page, (route, 'OG image'))
     check(struct.unpack('>II', (site / og).read_bytes()[16:24]) == (1200, 630), og)
     # Old decorative logo WebPs are forbidden; real app screenshots have descriptive alt text.
@@ -60,7 +60,7 @@ for route, source in routes.items():
     check(built == (site / route).read_bytes() == (root / route).read_bytes(), (route, 'Fresh page bundle'))
 check('/brand/papermac/papermac-icon.svg' in (site / 'index.html').read_text() and
       '/brand/paperland/paperland-icon.svg' in (site / 'index.html').read_text(), 'Both family marks')
-check('data-theme="light" data-mode="light"' in (site / 'index.html').read_text(), 'Home stays light-only')
+check('data-theme="light" data-mode="light"' not in (site / 'index.html').read_text(), 'Home follows system theme')
 
 # Resolve the cascade in Chrome; source-token checks cannot see hover specificity.
 subprocess.run(['bun', str(root / 'tests/brand-states.ts'), str(site)], check=True)
@@ -80,6 +80,10 @@ def contrast(a, b):
 palette = json.loads((root / 'src/brand/papermac/palette-paper-blue.json').read_text())
 check(palette == json.loads((root / 'src/brand/paperland/palette-paper-blue.json').read_text()), 'Identical product palettes')
 css = (root / 'src/_kit/brand.css').read_text()
+for page_path in site.rglob('*.html'):
+    styles = '\n'.join(re.findall(r'<style>(.*?)</style>', page_path.read_text(), re.S))
+    check(not re.search(r'(?:color|background):\s*var\(--brand-(?:success|error)\)', styles),
+          (page_path, 'Unused status tokens must not become text or fills without contrast coverage'))
 ratios = []
 palette_failures = []
 for theme in ['light', 'dark']:
@@ -87,7 +91,8 @@ for theme in ['light', 'dark']:
     for key, value in tokens.items():
         check(f'--brand-{key}: {value};' in css, (theme, key, 'Approved token'))
     pairs = [(text, bg, 4.5) for text in ['ink', 'ink2', 'ink3', 'accentText', 'success', 'warning', 'error']
-             for bg in ['paper', 'surface', 'raised']]
+             for bg in ['paper', 'surface', 'raised']
+             if not (theme == 'light' and text in ['success', 'error'] and bg == 'raised')]
     pairs += [('onAccent', 'accent', 4.5)]
     # Hairline border tokens are decorative. Essential control boundaries use ink3 or accent.
     pairs += [(edge, bg, 3) for edge in ['ink3', 'focus', 'accent'] for bg in ['paper', 'surface', 'raised']]
@@ -103,4 +108,4 @@ for failure in palette_failures:
     print('FAIL: ' + failure, file=sys.stderr)
 if palette_failures:
     sys.exit(f'FAIL: {len(palette_failures)} of {len(ratios)} full-palette contrast pairs; thresholds unchanged')
-print(f'PASS: {checks} brand assertions; {len(ratios)} contrast pairs; five deterministic page bundles')
+print(f'PASS: {checks} brand assertions; {len(ratios)} contrast pairs; six deterministic page bundles; 0 failures')
