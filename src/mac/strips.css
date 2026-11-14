@@ -1,0 +1,70 @@
+.ls {
+  --shade: var(--brand-raised); --ring: var(--brand-focus); --map-view: var(--brand-viewport);
+  --code1: var(--brand-accentText); --code2: var(--brand-accent); --code3: var(--brand-ink2);
+  --peek: .48; --fade: 32px;
+  margin: 36px 0 48px;
+}
+:root:not([data-mode="dark"]) .ls {
+  --win: var(--brand-surface); --win-bar: var(--brand-paper); --win-line: var(--brand-border);
+  --win-soft: var(--brand-raised); --term: var(--brand-ink);
+}
+.ls .ls-lead { margin: 0 0 24px; max-width: 40ch; color: var(--ink-2); font-weight: 600; font-size: clamp(17px, 1.4vw, 20px); }
+.ls .pin { position: relative; }
+.ls .stick { margin: 0; padding: 18px 0; }
+.ls figcaption { margin: 0 0 14px; }
+.ls .label { display: block; max-width: 36ch; color: var(--ink); font-weight: 750; font-stretch: 110%; font-size: clamp(18px, 1.5vw, 22px); line-height: 1.25; letter-spacing: -.015em; text-wrap: balance; }
+.ls .note { display: block; margin-top: 4px; color: var(--ink-2); font-weight: 600; font-size: 17px; line-height: 1.4; }
+.ls .band { position: relative; height: min(300px, 42vh); background: var(--shade); border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+.ls .band::before, .ls .band::after { content: ""; position: absolute; left: 16px; right: 16px; height: 1px; background: var(--ink-2); opacity: .35; z-index: 6; pointer-events: none; }
+.ls .band::before { top: 0; } .ls .band::after { bottom: 0; }
+.ls .viewport { position: absolute; z-index: 5; inset: 10px 0; width: min(72%, 860px); margin-inline: auto; border-radius: 12px; box-shadow: 0 0 0 2px var(--ink); pointer-events: none; }
+.ls .trk, .ls .track { position: absolute; inset: 0; }
+.ls .trk.peek { z-index: 1; }
+.ls .trk.in { z-index: 3; }
+/* The peek mask ends under the frame; the two window copies never overlap. */
+.ls .trk.peek {
+  --mask: linear-gradient(to right, transparent 0, rgb(0 0 0 / var(--peek)) var(--fade), rgb(0 0 0 / var(--peek)) var(--a), transparent var(--a), transparent var(--b), rgb(0 0 0 / var(--peek)) var(--b), rgb(0 0 0 / var(--peek)) calc(var(--bw) - var(--fade)), transparent var(--bw));
+  -webkit-mask-image: var(--mask); mask-image: var(--mask);
+}
+.ls .win { border-radius: 10px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--win-ink) 22%, transparent), 0 8px 20px -12px rgb(20 21 26 / .4); }
+.ls .win.te > .tb { background: color-mix(in srgb, var(--term) 88%, var(--win-ink)); }
+.ls .win.te .ln i { background: #55585F; }
+.ls .win.te .ln i.g { background: var(--code1); }
+.ls .win.te .ln i.p { background: color-mix(in srgb, var(--code1) 40%, var(--win)); }
+.ls .win .photo { background: radial-gradient(circle at 78% 30%, var(--brand-surface) 0 7%, transparent 7.5%), linear-gradient(170deg, transparent 55%, #55585F 55.5% 70%, #14151A 70.5%), linear-gradient(195deg, transparent 48%, #8A8580 48.5%), linear-gradient(#C5D8F2, #EEF3FA); }
+.ls .win .art { background: linear-gradient(160deg, var(--brand-accent), var(--brand-accentText)); }
+.ls .trk.in .win.f::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--ring); pointer-events: none; }
+.ls .map { position: relative; width: min(280px, 60%); height: 22px; margin: 12px auto 0; }
+.ls .map b { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; background: var(--map-bar); }
+.ls .map b.f { background: var(--map-focus); }
+.ls .map u { position: absolute; top: 0; bottom: 0; border: 2px solid var(--map-view); border-radius: 6px; }
+.ls .duo { display: grid; gap: 10px; position: relative; }
+.ls .band.hi { height: min(168px, 23vh); } .ls .band.lo { height: min(220px, 30vh); }
+.ls [data-row="send"] .band { height: min(200px, 27vh); }
+.ls [data-row="overview"] .band { height: min(320px, 44vh); }
+.ls .lift-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.ls .win.lift { box-shadow: 0 0 0 3px var(--ring), 0 18px 32px -16px rgb(20 21 26 / .5); }
+.ls .swipe { display: none; position: absolute; inset: 0; z-index: 7; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
+.ls .swipe::-webkit-scrollbar { display: none; } .ls .swipe-inner { height: 1px; }
+.compare .feats { grid-column: 1 / -1; margin: 0; padding-left: 1.2em; font-size: 15.5px; font-weight: 700; line-height: 1.5; }
+.compare .feats li + li { margin-top: 10px; }
+@media (min-width: 701px) and (prefers-reduced-motion: no-preference) {
+  :root[data-mode] .ls .pin::after { content: ""; display: block; height: 100vh; }
+  :root[data-mode] .ls .stick { position: sticky; top: var(--pin-top, 24px); background: var(--paper); }
+}
+@media (max-width: 700px) {
+  .ls .label { font-size: 18px; }
+  .ls .band, .ls [data-row="overview"] .band, .ls [data-row="send"] .band { height: 240px; }
+  .ls .band.hi { height: 140px; } .ls .band.lo { height: 180px; }
+  .ls .viewport { width: 82%; max-width: none; }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: no-preference) { .ls .swipe { display: block; } }
+:root[data-mode="dark"] .ls { --peek: 1; }
+/* Dark peeks dim by luminance and fade toward terminal ink, so terminals never turn tray grey. */
+:root[data-mode="dark"] .ls .trk.peek { filter: brightness(.5); }
+:root[data-mode="dark"] .ls .band { background: linear-gradient(to right, var(--term) 8px, var(--shade) var(--fade), var(--shade) calc(100% - var(--fade)), var(--term) calc(100% - 8px)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) .ls { --peek: 1; }
+  :root:not([data-mode="light"]) .ls .trk.peek { filter: brightness(.5); }
+  :root:not([data-mode="light"]) .ls .band { background: linear-gradient(to right, var(--term) 8px, var(--shade) var(--fade), var(--shade) calc(100% - var(--fade)), var(--term) calc(100% - 8px)); }
+}

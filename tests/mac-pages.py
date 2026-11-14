@@ -2,6 +2,8 @@
 from html.parser import HTMLParser
 from pathlib import Path
 import re
+import gzip
+import subprocess
 import sys
 from urllib.parse import urlsplit
 
@@ -127,7 +129,7 @@ free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
 pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
 check('The core window manager is free to use, with no time limit.' in free_column)
 check('up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.' in free_column)
-check('data-pic="select"' in free_column and 'data-pic="select"' not in pro_column)
+check('<li>Select several windows and arrange them at once</li>' in free_column and 'Select several windows' not in pro_column)
 check('Three or more Strips</b> per Desktop.' in pro_column)
 check('Lanes of different heights' not in pro_column)
 check('with up to five activations at a time. Each macOS user account counts as a separate activation.' in product)
@@ -191,7 +193,8 @@ download_notice = '<p class="buy-notice download-notice">By downloading, you agr
 check(product.count(download_notice) == 2)
 check('Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product)
 # Checkout URLs carry the founding codes, so buyers never see or type one.
-visible = ' '.join(Page(product).texts)
+copy_html = re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', product, flags=re.S)
+visible = ' '.join(Page(copy_html).texts)
 for phrase in ['betabeliever', 'foreverfounder', 'coupon', 'discount code', 'promo', '$10 off']:
     check(phrase not in visible.lower(), phrase)
 check('EARLY' not in product)
@@ -297,7 +300,7 @@ for pro_copy in [home_pro_copy, mac_pro_copy]:
 check('three or more Strips, deeper stacks, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
 check('on("mac", true)' in main and main.count('on("mac", true)') == 2)
 check('Overview (Experimental)' in free_column)
-check('data-pic="lanes2"' in free_column and 'data-pic="uneven"' not in free_column)
+check('data-pic' not in product and 'data-row="heights"' in product)
 land = (site / 'paperland/index.html').read_text()
 check('PaperLand Alpha' in land and 'Omarchy 4+' in land and 'Hyprland 0.56+' in land)
 check('Accessibility' not in land)
@@ -312,4 +315,45 @@ check('Omarchy with Hyprland' in land_meta['twitter:description'])
 check('Paperland CLI installation v1' in (site / 'install').read_text())
 check('PaperLand installer (unannounced alpha; expect rough edges)' in (site / 'install').read_text())
 check('id="changelog"' in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)
+# Live Strips keeps the existing captions and introduces no new assets or sales claims.
+ls = product.split('class="ls"', 1)[1].split('class="cols"', 1)[0]
+check('<p class="ls-lead">The core window manager is free to use, with no time limit.</p>' in ls)
+labels = [
+    ('switch', 'Switch windows with Option-Tab'),
+    ('resize', 'Move between windows and resize them'),
+    ('heights', 'Up to two Strips at independently adjustable heights per Desktop'),
+    ('send', 'Send a window to another Desktop or display'),
+    ('overview', 'Zoom out to Overview (Experimental)'),
+]
+check(re.findall(r'data-row="(.*?)"', ls) == [kind for kind, _ in labels])
+for kind, label in labels:
+    row = ls.split(f'data-row="{kind}"', 1)[1].split('</figure>', 1)[0]
+    check(f'<span class="label">{label}</span>' in row, (kind, 'Exact existing caption'))
+check('<span class="note">The Minimap shows where you are</span>' in ls)
+for pattern in [r'\bPro\b', r'three or more', r'custom\s+heights?', r'heights?\s+(?:inside|in|within)\s+a\s+stack']:
+    check(not re.search(pattern, ls, re.I), ('No Pro height wording', pattern))
+copy_html = re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', product, flags=re.S)
+visible = ' '.join(Page(copy_html).texts)
+visible += ' '.join(a.get('aria-label', '') for _, a in Page(product).tags)
+check(not re.search(r'custom\s+heights?', visible, re.I))
+for block in re.findall(r'<(?:p|li|figcaption)\b[^>]*>(.*?)</(?:p|li|figcaption)>', copy_html, re.S):
+    copy = ' '.join(Page(block).texts)
+    check(not re.search(r'\bheights?\b[^.]{0,60}\bPro\b|\bPro\b[^.]{0,60}\bheights?\b', copy, re.I))
+root = Path(__file__).resolve().parents[1]
+section = [(root / 'src/mac' / name).read_bytes() for name in ['strips.js', 'strips.css']]
+sizes = [len(gzip.compress(data, 9)) for data in section]
+check(sum(sizes) <= 15 * 1024, ('Section gzip budget', sizes))
+print(f'PASS: section gzip -9 (no filename): JS {sizes[0]} B, CSS {sizes[1]} B, sum {sum(sizes)} B (limit 15360 B)')
+check(product.count('data:font/ttf') == 2 and product.count('data:image/') == 2 and product.count('url(') == 2)
+check(not re.search(r'<(?:img|video|svg)\b', ls))
+for data in section:
+    check(b'@font-face' not in data and b'url(' not in data)
+# These source and output files are frozen by the scope, independently of semantic assertions above.
+guards = ['src/mac/style.css', 'src/mac/init.js', 'src/mac/checkout-url.txt', 'src/mac/lifetime-checkout-url.txt',
+          'src/mac/dmg-url.txt', 'src/terms', 'src/privacy', 'src/paperland', 'src/_kit', 'terms', 'privacy',
+          'paperland', 'site/terms', 'site/privacy', 'site/paperland', 'install', 'site/install', 'scripts', '_headers']
+check(not subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--', *guards], cwd=root), 'B13 frozen files')
+added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '9d6b72c4'], cwd=root).decode().splitlines()
+added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
+check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'] for name in added), 'No added font or raster files')
 print(f'PASS: {checks} Mac-page assertions; 0 failures; exact site inventory, shared DMG links, local resources, recording controls, Mac links and activation link/header policy')

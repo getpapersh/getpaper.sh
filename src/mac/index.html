@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/brand/papermac/papermac-icon-180.png">
 <link rel="stylesheet" href="../_kit/brand.css">
+<link rel="stylesheet" href="strips.css">
 <meta property="og:image" content="https://getpaper.sh/mac/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -143,22 +144,32 @@
   <section class="compare wrap" id="editions" aria-labelledby="ed-h" data-page>
     <h2 id="ed-h">Free and Pro</h2>
     <p class="lede">PaperMac Free is free to use, with no time limit. Both Free and Pro are closed-source software under <a href="/terms/">PaperMac's proprietary Terms</a>. For Linux, <a href="https://github.com/getpapersh/paperland">PaperLand is GPL-3.0-or-later open source</a>.</p>
+    <div class="ls" data-live-strips>
+      <p class="ls-lead">The core window manager is free to use, with no time limit.</p>
+      <div class="pin" data-row="switch"><figure class="stick"><figcaption><span class="label">Switch windows with Option-Tab</span><span class="note">The Minimap shows where you are</span></figcaption><div class="band" aria-hidden="true"></div><div class="map" aria-hidden="true"></div></figure></div>
+      <div class="pin" data-row="resize"><figure class="stick"><figcaption><span class="label">Move between windows and resize them</span></figcaption><div class="band" aria-hidden="true"></div></figure></div>
+      <div class="pin" data-row="heights"><figure class="stick"><figcaption><span class="label">Up to two Strips at independently adjustable heights per Desktop</span></figcaption><div class="duo" aria-hidden="true"><div class="band hi"></div><div class="band lo"></div></div></figure></div>
+      <div class="pin" data-row="send"><figure class="stick"><figcaption><span class="label">Send a window to another Desktop or display</span></figcaption><div class="duo" aria-hidden="true"><div class="band"></div><div class="band"></div></div></figure></div>
+      <div class="pin" data-row="overview"><figure class="stick"><figcaption><span class="label">Zoom out to Overview (Experimental)</span></figcaption><div class="band" aria-hidden="true"></div></figure></div>
+    </div>
     <div class="cols">
       <div class="col" id="free">
         <div class="col-head"><h3>PaperMac Free</h3><b>$0</b></div>
         <p class="col-intro">The core window manager is free to use, with no time limit.</p>
         <p class="txt">Get scrollable tiling on every Desktop and display, with up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.</p>
         <div class="pics">
-          <figure class="pic" data-pic="lanes2"><div class="mini" aria-hidden="true"></div><figcaption>Up to <b>two Strips at independently adjustable heights</b> per Desktop</figcaption></figure>
-          <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 showing windows</b></figcaption></figure>
-          <figure class="pic" data-pic="strip"><div class="mini" aria-hidden="true"></div><figcaption>A Strip on every Desktop and display, in live motion</figcaption></figure>
-          <figure class="pic" data-pic="resize"><div class="mini" aria-hidden="true"></div><figcaption>Move between windows and resize them</figcaption></figure>
+          <ul class="feats">
+            <li>Up to <b>two Strips at independently adjustable heights</b> per Desktop</li>
+            <li>Stacks of up to <b>2 showing windows</b></li>
+            <li>A Strip on every Desktop and display, in live motion</li>
+            <li>Move between windows and resize them</li>
+            <li>The Minimap shows where you are</li>
+            <li>Switch windows with Option-Tab</li>
+            <li>Send a window to another Desktop or display</li>
+            <li>Every display scrolls on its own</li>
+            <li>Select several windows and arrange them at once</li>
+          </ul>
           <figure class="pic recording"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview (Experimental). Real app; synthetic documents.</figcaption></figure>
-          <figure class="pic" data-pic="minimap"><div class="mini" aria-hidden="true"></div><figcaption>The Minimap shows where you are</figcaption></figure>
-          <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
-          <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
-          <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
-          <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
           <p class="txt">Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.</p>
         </div>
         <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
@@ -168,12 +179,14 @@
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
           <figure class="pic recording"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three Strips and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>Three or more Strips</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
-          <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>three or more showing windows</b></figcaption></figure>
-          <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>
-          <figure class="pic" data-pic="previews"><div class="mini" aria-hidden="true"></div><figcaption>Window previews on hover</figcaption></figure>
-          <figure class="pic" data-pic="synced"><div class="mini" aria-hidden="true"></div><figcaption>Strips that stay in sync across displays</figcaption></figure>
-          <figure class="pic" data-pic="names"><div class="mini" aria-hidden="true"></div><figcaption>Desktops that name themselves</figcaption></figure>
-          <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Snooze a window until you need it</figcaption></figure>
+          <ul class="feats">
+            <li>Stacks of <b>three or more showing windows</b></li>
+            <li>Limelight dims everything but the focused window</li>
+            <li>Window previews on hover</li>
+            <li>Strips that stay in sync across displays</li>
+            <li>Desktops that name themselves</li>
+            <li>Snooze a window until you need it</li>
+          </ul>
         </div>
         <p class="txt">Also in Pro: lock windows together as a group.</p>
       </div>
@@ -270,5 +283,6 @@
 </footer>
 
 <script src="page.js"></script>
+<script src="strips.js"></script>
 </body>
 </html>
