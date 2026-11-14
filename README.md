@@ -159,7 +159,7 @@ stub on Macs without the Command Line Tools.
 ## Build and test
 
 `src/mac/dmg-url.txt` is the shared download URL for both `/mac` buttons,
-the home page's Mac fork and the built installer's pinned fallback. The page
+the built installer's pinned fallback. The page
 bundler and installer assembler fill `{{DMG_URL}}` from that file. When changing
 the pinned release, also update its version, SHA-256 and notarization fields in
 `install`; verify the downloaded DMG's hash before publishing.
@@ -205,30 +205,27 @@ running the suites below; the default build's committed-source guard stays intac
 Two files set the sales modes, and both committed defaults are `off`:
 `src/mac/checkout-url.txt` for PaperMac 27 Pro and
 `src/mac/lifetime-checkout-url.txt` for PaperMac 27 Lifetime. With the Pro file
-`off`, the header, hero and buy panel offer the manually started 14-day Pro trial
-and say buying opens soon. Buy links, buying Terms notices, the phone frame and
-its QR code are absent; download Terms notices remain. With the Lifetime file
-`off`, the page has no Lifetime offer. No Lemon Squeezy URL is emitted while both
-are `off`. The bundler accepts only `off` or an `https://` URL in either file and
+`off`, the pricing card offers the manually started 14-day Pro trial and says
+buying opens soon. Pro and Lifetime prices and their founding codes remain visible.
+Buy links and buying Terms notices are absent; download Terms notices remain.
+No Lemon Squeezy URL is emitted while both are `off`.
+The bundler accepts only `off` or an `https://` URL in either file and
 rejects Lifetime checkout while Pro checkout is off.
 
 PaperMac 27 Pro lists at $39 and PaperMac 27 Lifetime at $79. Through Tue Dec 1
 2026 11:59 PM PT (2026-12-02T07:59:59Z), the founding prices are $19.50 for Pro
-(code FOUNDING) and $39.50 for Lifetime (code FOUNDINGLIFETIME). Buyers never
-type a code: each checkout URL carries its code, and the page shows founding
-prices and the deadline without naming either code. To turn a product on, write
+(code BETABELIEVER) and $39.50 for Lifetime (code FOREVERFOUNDER). Each code is shown once by its matching price. Each checkout URL also carries its code, so buyers do not need to type it. To turn a product on, write
 its Lemon Squeezy buy URL with the code prefilled into its file and rebuild,
 for example:
 
 ```text
-https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=FOUNDING
+https://<store>.lemonsqueezy.com/checkout/buy/<variant-id>?checkout[discount_code]=BETABELIEVER
 ```
 
-Before checkout opens, the Lemon Squeezy discount codes must match `FOUNDING`
-for Pro and `FOUNDINGLIFETIME` for Lifetime.
+Pro uses `BETABELIEVER` (Pro-only); Lifetime uses `FOREVERFOUNDER` (Lifetime-only). Both discounts are 50% and expire at the deadline above.
 
-A Pro URL enables Buy links and the inline Segno QR; with Pro on, a Lifetime URL
-adds Lifetime to the hero, buy panel and purchase terms. Use the verified live checkouts
+A Pro URL enables the pricing card’s Buy Pro link; with Pro on, a Lifetime URL
+enables its Buy Lifetime link. No checkout URLs are changed by this rework. Use the verified live checkouts
 before taking payments. After the deadline the codes expire and checkout charges
 list price, but the page's founding copy is static: replace it with list prices
 and rebuild when founding ends. The license covers PaperMac 27 Pro on macOS 27
@@ -328,5 +325,42 @@ stacks of up to 2 showing windows. Pro adds three or more Strips, deeper stacks,
 Window groups, Limelight, snoozing, window previews, Desktop auto-naming and
 synced Strips across displays. Both PaperMac editions are closed source under
 PaperMac's proprietary Terms; PaperLand remains GPL-3.0-or-later open source.
-The existing menu-bar capture still shows the earlier icon and needs a fresh real-app capture; it is retained
-as documentary media rather than replaced with a synthetic screenshot.
+
+## Hero recordings
+
+The one-line media settings are on the hero figure in `src/mac/index.html`:
+
+```html
+<figure class="hero-film paper-frame" data-hero-film data-promo-src="" data-screencast-src="/media/papermac/strip.mp4">
+```
+
+The approved promo is missing. Keep the clearly marked TODO's `data-promo-src`
+empty until Jason supplies that exact cut. An empty source makes no promo media
+request, starts straight on the real screencast, and hides Replay promo.
+Put the unchanged approved file at `media/papermac/promo.mp4` and its poster at
+`media/papermac/promo.jpg`; the site build copies them to
+`site/media/papermac/promo.mp4` and `site/media/papermac/promo.jpg`.
+Change **only** `data-promo-src=""` to
+`data-promo-src="/media/papermac/promo.mp4"`. The matching `.jpg` poster is derived
+from that source attribute; no JavaScript edit is needed.
+
+The future takes go at `media/papermac/hero-cream.mp4` with `hero-cream.jpg`, and
+`media/papermac/hero-ink.mp4` with `hero-ink.jpg`. The build copies each to the same
+name under `site/media/papermac/`. To select a take, change **only**
+`data-screencast-src="/media/papermac/strip.mp4"` to
+`data-screencast-src="/media/papermac/hero-cream.mp4"` or
+`data-screencast-src="/media/papermac/hero-ink.mp4"`. The matching `.jpg` is derived
+from the selected source. The interim loop is the existing `strip.mp4`.
+The nested source and poster retain that existing recording as the no-JavaScript
+fallback; replacing that fallback is optional and separate from the one-line swap.
+
+Rebundle `/mac` and run `build-site.sh` after changing assets or attributes.
+Desktop plays the promo once, crossfades to the looping screencast, and offers
+Replay promo. Phones skip the promo. Reduced motion starts on the screencast
+poster with Play; scrolling past the promo skips it. Pause stops either video.
+No theme-based recording switch is implemented; cream or ink is a deliberate
+one-line choice for the current hero.
+
+The home page is a platform chooser; install commands and Mac pricing live on
+`/mac`. Both pages use `src/_kit/launch.css` and the existing brand palette.
+Two-strip height adjustment is Free. Pro adds 3+ strips.

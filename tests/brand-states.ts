@@ -1,7 +1,5 @@
 // Check the rendered cascade, including the theme selector and hover label overlays.
 import assert from "node:assert/strict";
-import { checkLightPeeks, readBezel, checkLightBezel } from "./strips-peeks";
-import { displayChrome, switchEnd, stillLayout, assertStill, heightsEdges, leadRemoved } from "./strips-states";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -10,7 +8,13 @@ const site = resolve(process.argv[2]);
 const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch(request) {
   const pathname = decodeURIComponent(new URL(request.url).pathname);
   const file = resolve(site, "." + pathname + (pathname.endsWith("/") ? "index.html" : ""));
-  return file.startsWith(site + sep) ? new Response(Bun.file(file)) : new Response(null, { status: 403 });
+  if (!file.startsWith(site + sep)) return new Response(null, { status: 403 });
+  // Exercise the promo state machine with an existing clip until the approved asset arrives.
+  if (new URL(request.url).searchParams.has('promo-test')) {
+    const source = new URL(request.url).searchParams.get('promo-test') === 'off' ? '' : '/media/papermac/strip.mp4';
+    return new Response(readFileSync(file, 'utf8').replace(/data-promo-src="[^"]*"/, `data-promo-src="${source}"`), {headers:{'Content-Type':'text/html'}});
+  }
+  return new Response(Bun.file(file));
 } });
 const base = `http://127.0.0.1:${server.port}`;
 const profile = mkdtempSync(resolve(tmpdir(), "paper-brand-states-"));
@@ -81,300 +85,123 @@ try {
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Browser.grantPermissions", { origin: base, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-  for (const scheme of ["light", "dark"]) {
-    await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] });
-    for (const route of ["/", "/mac/"]) {
-      await send("Page.navigate", { url: base + route });
-      await Bun.sleep(650);
-      await evaluate("document.fonts.ready.then(() => true)");
-      await evaluate("document.documentElement.style.scrollBehavior='auto';scrollTo({top:0,behavior:'instant'})");
-      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom <= 0"), `${route}: skip link must be hidden before focus`);
-      await evaluate("document.querySelector('.skip').focus()");
-      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top >= 0"), `${route}: skip link must be visible on focus`);
-      await evaluate("document.querySelector('.skip').blur()");
-      checks++;
-      if (route === "/") {
-        assert.equal(await evaluate("getComputedStyle(document.body).backgroundColor"), scheme === "light" ? "rgb(242, 239, 231)" : "rgb(18, 19, 23)", "Home must follow the system scheme");
-        const videoRatio = await evaluate("(() => {const r=document.querySelector('.home-overview').getBoundingClientRect();return r.width/r.height;})()");
-        assert(Math.abs(videoRatio - 1.6) < .01, `Home Overview recording aspect ratio: ${videoRatio}`);
-        checks++;
-        const truth = await evaluate(`(() => {
-          const section = document.querySelector('.product-truth'), rail = section.closest('.more');
-          const style = getComputedStyle(document.querySelector('.trust'));
-          return {color: style.color, neutral: getComputedStyle(document.querySelector('.hero-facts')).color,
-            rail: !!rail && getComputedStyle(rail, '::before').content !== 'none',
-            pro: [...document.querySelectorAll('[data-tile="limelight"] figcaption > .on, [data-tile="snooze"] figcaption > .on')].map(e => e.textContent.trim()),
-            facts: document.querySelector('.hero-facts').textContent};
-        })()`);
-        assert.equal(truth.color, truth.neutral, "Trust copy must use the neutral secondary text color");
-        assert(truth.rail, "The timeline rail must include the product truth section");
-        assert.deepEqual(truth.pro, ["macOS · Pro", "macOS · Pro"], "Limelight and snoozing must carry Pro tags");
-        assert.equal(truth.facts, "Full-width windows. Scrolling Strips on macOS and Linux.");
-        checks++;
-        const commandGaps = await evaluate(`(() => [...document.querySelectorAll('.way .k-cmd code')].map(code => {
-          const prefix = code.firstChild, tail = code.querySelector('.command-tail').firstChild;
-          const range = document.createRange();
-          range.setStart(prefix, prefix.textContent.trimEnd().length - 1); range.setEnd(prefix, prefix.textContent.trimEnd().length);
-          const end = range.getBoundingClientRect();
-          range.setStart(tail, 0); range.setEnd(tail, 1);
-          return range.getBoundingClientRect().left - end.right;
-        }))()`);
-        assert.equal(commandGaps.length, 2);
-        assert(commandGaps.every(gap => gap > 2), `Desktop install commands need a visible space: ${JSON.stringify(commandGaps)}`);
-        checks++;
-        await verify('.trust', `home trust text, system ${scheme}`);
-        await hover(".k-cmd");
-        await verify(".k-cmd", `home Copy hover, system ${scheme}`);
-      } else {
-        await hover(".top nav .btn.pro");
-        await verify(".top nav .btn.pro", `Mac header Pro hover, ${scheme}`);
-        const point = await hover("#install .cmd");
-        await verify("#install .cmd", `Mac Copy hover, ${scheme}`);
-        await send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...point });
-        await send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...point });
-        await Bun.sleep(200);
-        await verify("#install .cmd", `Mac Copied while hovered, ${scheme}`, true);
-        await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
-        await Bun.sleep(200);
-        await verify("#install .cmd", `Mac Copied after pointer leaves, ${scheme}`, true);
-      }
-    }
-  }
-  for (const scheme of ["light", "dark"]) {
-    await send("Emulation.setEmulatedMedia", {features: [{name: "prefers-color-scheme", value: scheme}]});
-    for (const width of [701, 768, 1000]) {
-      await send("Emulation.setDeviceMetricsOverride", {width, height: 1024, deviceScaleFactor: 1, mobile: false});
-      await send("Page.navigate", {url: base + "/paperland/"});
-      await Bun.sleep(250);
-      await evaluate("document.fonts.ready.then(() => true)");
-      const nav = await evaluate(`(() => [...document.querySelectorAll('.top nav a')].map(e => {
-        const r = e.getBoundingClientRect(); return {text: e.textContent, display: getComputedStyle(e).display,
-          visible: r.width > 0 && r.height >= 44 && r.left >= 0 && r.right <= innerWidth};
-      }))()`);
-      assert.equal(nav.length, 3);
-      assert(nav.every(link => link.display !== 'none' && link.visible), `PaperLand nav ${width}px ${scheme}: ${JSON.stringify(nav)}`);
-      console.log(`PASS: PaperLand navigation visible at ${width}x1024, ${scheme}`);
-      checks++;
-    }
-  }
-  for (const path of ['/robots.txt', '/favicon.ico', '/apple-touch-icon.png']) {
-    assert.equal((await fetch(base + path)).status, 200, path);
-    checks++;
-  }
-  for (const scheme of ['light', 'dark']) {
-    await send('Emulation.setEmulatedMedia', {features: [{name: 'prefers-color-scheme', value: scheme}]});
-    for (const [width, height] of [[1440, 900], [768, 1024], [390, 844]]) {
-      await send('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
-      await send('Page.navigate', {url: base + '/'});
-      await Bun.sleep(250);
-      await evaluate('document.fonts.ready.then(() => true)');
-      await evaluate("document.documentElement.style.scrollSnapType='none';document.documentElement.style.scrollBehavior='auto'");
-      let midVisible = 0;
-      for (const y of [0, 1200, 1800, 2419, 3600, ...Array.from({length: 16}, (_, i) => 1900 + i * 100)]) {
-        await evaluate(`scrollTo({top:${y},behavior:'instant'});new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))`);
-        const frameState = await evaluate(`(() => {
-          const frame=document.querySelector('.vf'), style=getComputedStyle(frame), f=frame.getBoundingClientRect();
-          const visible = +style.opacity >= .05 && style.visibility !== 'hidden';
-          const cuts = [...document.querySelectorAll('.hero h1,.hero .h1')].some(el=>{
-            if (!el.getBoundingClientRect().width || +getComputedStyle(el.closest('.lay')).opacity < .05) return false;
-            const range=document.createRange();range.selectNodeContents(el);const r=range.getBoundingClientRect();
-            return ([f.left,f.right].some(x=>x>=r.left&&x<=r.right)&&f.bottom>r.top&&f.top<r.bottom)||([f.top,f.bottom].some(y=>y>=r.top&&y<=r.bottom)&&f.right>r.left&&f.left<r.right);
-          });
-          return {visible, cuts: visible && cuts};
-        })()`);
-        if (y >= 1900 && y <= 3400 && (y - 1900) % 100 === 0 && frameState.visible) midVisible++;
-        assert(!frameState.cuts, `Viewfinder cuts headline at ${width}px, ${scheme}, scroll ${y}`);
-      }
-      if (width === 768) {
-        assert(midVisible >= 8, `Tablet viewfinder disappeared through the middle of the story: ${midVisible}/16`);
-        checks++;
-      }
-      checks++;
-    }
-    for (const [width, height] of [[1440, 900], [390, 844]]) {
-      await send('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
-      await send('Page.navigate', {url: base + '/mac/'});await Bun.sleep(250);
-      await evaluate('document.fonts.ready.then(() => true)');
-      const hierarchy = await evaluate(`(() => {
-        const price=getComputedStyle(document.querySelector('#pro .col-head b')), name=getComputedStyle(document.querySelector('#pro .col-head h3'));
-        return {priceSize:parseFloat(price.fontSize),nameSize:parseFloat(name.fontSize),priceWeight:+price.fontWeight,nameWeight:+name.fontWeight,priceColor:price.color,nameColor:name.color};
-      })()`);
-      assert(hierarchy.priceSize < hierarchy.nameSize && hierarchy.priceWeight < hierarchy.nameWeight && hierarchy.priceColor !== hierarchy.nameColor, `Sales-off comparison price hierarchy: ${JSON.stringify(hierarchy)}`);
-      checks++;
-    }
-    await send('Emulation.setDeviceMetricsOverride', {width: 390, height: 844, deviceScaleFactor: 1, mobile: false});
-    const standalone = 'a.btn, a.mobile-dmg, .top a, footer a, .links a, .way .more-way a, .prod a, .text-links a, .way-panel .sub a';
-    const targets = ['/', '/mac/', '/paperland/', '/terms/', '/privacy/', '/mac/activate/'].map(route => [route, standalone]);
-    for (const [route, selector] of targets) {
-      await send('Page.navigate', {url: base + route});await Bun.sleep(250);
-      await evaluate('document.fonts.ready.then(() => true)');
-      const short = await evaluate(`(() => [...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>!e.closest('[inert]')).map(e=>({text:e.textContent.trim(),box:e.getBoundingClientRect().toJSON()})).filter(e=>e.box.width>0&&e.box.height>0&&(e.box.width<43.9||e.box.height<43.9)))()`);
-      assert.deepEqual(short, [], `${route} ${scheme}: short mobile tap targets`);
-      const enlargedInline = await evaluate(`(() => [...document.querySelectorAll('p a, li a')].filter(e=>!e.matches(${JSON.stringify(standalone)})&&!e.closest('[inert]')&&e.getBoundingClientRect().width>0&&getComputedStyle(e).display!=='inline').map(e=>e.textContent.trim()))()`);
-      assert.deepEqual(enlargedInline, [], `${route} ${scheme}: in-sentence links must stay inline`);
-      if (route === '/terms/') {
-        const lineHeight = await evaluate(`(() => {
-          const p=document.querySelector('.legal p a[href="mailto:billing@getpaper.sh"]').closest('p'), copy=p.cloneNode(true);
-          p.after(copy);for(const a of copy.querySelectorAll('a'))Object.assign(a.style,{display:'inline',minHeight:'0',minWidth:'0',padding:'0'});
-          const heights=[p.getBoundingClientRect().height,copy.getBoundingClientRect().height];copy.remove();return heights;
-        })()`);
-        assert.equal(lineHeight[0], lineHeight[1], 'Terms billing link must not inflate paragraph line spacing');
-        checks++;
-      }
-      assert.equal(await evaluate('document.documentElement.scrollWidth'), 390, `${route}: mobile overflow`);
-      if (route === '/mac/') {
-        const closed = await evaluate(`(() => {const a=document.querySelector('.top .trial-cta').getBoundingClientRect(),b=document.getElementById('header-sales').getBoundingClientRect();return {gap:b.top-a.bottom,fonts:[...document.querySelectorAll('.decide .price b,.purchase .price b')].map(e=>parseFloat(getComputedStyle(e).fontSize))};})()`);
-        assert(closed.gap >= 6 && closed.fonts.every(size=>size<=28), 'Sales-off price hierarchy and header spacing');
-        checks++;
-      }
-      if (['/terms/', '/privacy/', '/mac/activate/'].includes(route)) {
-        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"), route+' skip hidden');
-        await evaluate("document.querySelector('.skip').focus()");
-        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"), route+' skip visible on focus');
-        checks++;
-      }
-      checks++;
-    }
-  }
   const settle = () => evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-  const loadStrips = async (width, height, scheme, reduced = false) => {
-    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width === 390 });
-    await send('Emulation.setEmulatedMedia', { features: [{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}] });
-    await send('Page.navigate', {url:base+'/mac/'}); await Bun.sleep(300);
-    await evaluate('document.fonts.ready'); await settle();
-    await evaluate(`document.documentElement.style.scrollBehavior='auto';window.lsRows=[...document.querySelectorAll('.ls .pin')];
-      window.lsY=(kind,p)=>{const pin=lsRows.find(e=>e.dataset.row===kind),s=pin.querySelector('.stick');return Math.round(scrollY+pin.getBoundingClientRect().top-parseFloat(getComputedStyle(s).top)+(pin.offsetHeight-s.offsetHeight)*p)};
-      window.lsRings=pin=>[...pin.querySelectorAll('.trk.in .win.f,.lift-layer .win.lift')].filter(e=>getComputedStyle(e).display!=='none').length;
-      window.lsTransforms=pin=>[...pin.querySelectorAll('.track,.win')].map(e=>e.style.transform);
-      window.lsTx=kind=>document.querySelector('.ls [data-row='+kind+'] .trk.in .track').style.transform.match(/[-.0-9]+/g).map(Number);`);
-    assert(await evaluate("document.querySelector('.ls').dataset.ready==='1'"), 'Live Strips initialized');
+  const load = async (route, width=1440, height=900, scheme='light', reduced=false) => {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}]});
+    await send('Page.navigate',{url:base+route}); await Bun.sleep(400);
+    await evaluate('document.fonts.ready.then(()=>true)'); await settle();
+    await evaluate("document.documentElement.style.scrollBehavior='auto'");
   };
-  const go = async (kind, p) => { await evaluate(`scrollTo({top:lsY('${kind}',${p}),behavior:'instant'})`); await settle(); };
+  const go = async (kind,p) => {
+    await evaluate(`(()=>{const e=document.querySelector('[data-row="${kind}"]'),r=e.getBoundingClientRect();scrollTo({top:scrollY+r.top-innerHeight*.9+${p}*(innerHeight*.8+r.height*.5),behavior:'instant'})})()`);
+    await settle();
+  };
+  const transforms = kind => evaluate(`[...document.querySelectorAll('[data-row="${kind}"] .track,[data-row="${kind}"] .win')].map(e=>e.style.transform)`);
   for (const scheme of ['light','dark']) {
-    await loadStrips(1440,900,scheme);
-    for (const kind of ['switch','resize','heights','send','overview']) {
-      for (const p of [0,.4,1]) { await go(kind,p); assert.equal(await evaluate(`lsRings(lsRows.find(e=>e.dataset.row==='${kind}'))`),1,`${scheme} ${kind} one ring at ${p}`); checks++; }
-    }
-    for (const kind of ['switch','resize','overview','send','heights']) {
-      await go(kind,.2); const first = await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`);
-      await go(kind,.7); const mid = await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`);
-      assert.notDeepEqual(mid,first,`${kind} responds to scroll`);
-      await go(kind,.2); assert.deepEqual(await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`), first, `${kind} exact reverse`); checks++;
-    }
-    for (const kind of ['switch','resize','overview']) {
-      const values = [];
-      const y = await evaluate(`lsY('${kind}',${kind==='switch'?.3:.2})`), k = kind==='switch'?68:225;
-      for (const top of [y,y+k,y+2*k]) { await evaluate(`scrollTo({top:${top},behavior:'instant'})`); await settle(); values.push(await evaluate(`lsTx('${kind}')`)); }
-      const i=kind==='overview'?1:0, tolerance=i?.001:.5;
-      assert(Math.abs(values[1][i]-(values[0][i]+values[2][i])/2)<=tolerance,`${kind} linear: ${JSON.stringify(values)}`); checks++;
-    }
-    assert(await evaluate("[...document.querySelectorAll('.ls .track,.ls .win,.ls .map u')].every(e=>getComputedStyle(e).transitionDuration==='0s')"),'No camera transitions');
-    await go('send',0);
-    assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='send'),a=p.querySelector('.lift').getBoundingClientRect(),b=p.querySelector('.viewport').getBoundingClientRect();return a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom})()"),'Send starts inside viewport');
-    await go('overview',1);
-    assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='overview'),v=p.querySelector('.viewport').getBoundingClientRect();return [...p.querySelectorAll('.trk.in .win')].every(e=>{const r=e.getBoundingClientRect();return r.left>=v.left-1&&r.right<=v.right+1&&r.top>=v.top-1&&r.bottom<=v.bottom+1})})()"),'Overview fits at p=1');
-    for (const [selector, min] of [['.ls .label',15],['.ls .note',5.5]]) {
-      const result = await state(selector); assert(result.ratio>=min,`${scheme} ${selector}: ${result.ratio}`); console.log(`PASS: Live Strips ${scheme} ${selector} contrast ${result.ratio.toFixed(4)}:1`); checks++;
-    }
-    if (scheme==='dark') assert(await evaluate("(()=>{const b=document.querySelector('.ls .band'),p=b.querySelector('.peek');return getComputedStyle(p).filter.includes('brightness(')&&getComputedStyle(p).getPropertyValue('--peek').trim()==='1'&&getComputedStyle(b).backgroundImage.includes('linear-gradient')})()"),'Dark terminal peeks dim by luminance with ink edges');
-    for (const [width,height] of [[1440,900],[1440,700],[768,1024]]) {
-      await loadStrips(width,height,scheme);
-      assert(await evaluate("lsRows.every(p=>{const s=p.querySelector('.stick');return getComputedStyle(s).position==='sticky'&&p.offsetHeight-s.offsetHeight<=innerHeight+1&&s.offsetHeight<=innerHeight-32})"),`Pin bounds ${width}x${height}`);
-      assert.equal(await evaluate('document.documentElement.scrollWidth'),width); checks++;
-    }
-  }
-  for (const width of [1440,390]) {
-    await loadStrips(width,width===390?844:900,'light',true);
-    assert(await evaluate("lsRows.every(p=>{const s=p.querySelector('.stick');return getComputedStyle(s).position!=='sticky'&&p.offsetHeight<=s.offsetHeight+1&&lsRings(p)===1})"),'Reduced motion: static and one ring');
-    assert(await evaluate("[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).display==='none'||e.scrollWidth<=e.clientWidth)"),'Reduced motion has no swipe');
-    const first=await evaluate('lsRows.map(lsTransforms)');
-    await evaluate("scrollTo({top:2000,behavior:'instant'})");await settle();
-    await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:width/2,y:400,deltaX:300,deltaY:0});await settle();
-    assert.deepEqual(await evaluate('lsRows.map(lsTransforms)'),first,'Reduced motion transforms stay fixed');
-    assert(await evaluate("!!document.querySelector('.ls .map b.f')"),'Static Minimap focus');
-    assert.equal(await evaluate('document.documentElement.scrollWidth'),width); checks+=5;
-  }
-  for (const scheme of ['light','dark']) {
-    await loadStrips(390,844,scheme);
-    assert(await evaluate("lsRows.every(p=>getComputedStyle(p.querySelector('.stick')).position==='static'&&lsRings(p)===1)"),'Phone no pins and one ring');
-    assert(await evaluate("[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).overflowX==='auto'&&e.clientHeight>=44&&e.scrollWidth>e.clientWidth&&getComputedStyle(e.parentElement).touchAction!=='pan-x')"),'Phone swipe surfaces and vertical page scroll');
-    await evaluate("document.querySelector('.ls [data-row=switch] .band').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
-    const first=await evaluate("document.querySelector('.ls [data-row=switch] .trk.in .win.f').dataset.id");
-    await evaluate("document.querySelector('.ls [data-row=switch] .swipe').scrollLeft+=240");await settle();
-    assert.notEqual(await evaluate("document.querySelector('.ls [data-row=switch] .trk.in .win.f').dataset.id"),first,'Focus follows native swipe');
-    // The media preferences can change without a reload.
-    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await settle();
-    assert(await evaluate("lsRows.every(p=>lsRings(p)===1)&&[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).display==='none')"),'Live reduced-motion change');
-    checks+=4;
-  }
-  for (const [width, height] of [[1440,900],[768,1024],[390,844]]) {
-    for (const reduced of [false,true]) {
-      await loadStrips(width,height,'light',reduced);
-      if (width > 700 && !reduced) await go('heights',.4);
-      else { await evaluate("document.querySelector('.ls [data-row=heights] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle(); }
-      const capture = async () => (await send('Page.captureScreenshot',{format:'png'})).data;
-      await checkLightPeeks(evaluate,capture,'heights',`Chrome ${width} light ${reduced?'reduce':'motion'} heights`); checks++;
-      if (width > 700 && !reduced) {
-        await go('send',0);
-        await checkLightPeeks(evaluate,capture,'send',`Chrome ${width} light motion send-start`); checks++;
+    for (const route of ['/','/mac/']) {
+      await load(route,1440,900,scheme);
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"),'Skip hidden before focus');
+      await evaluate("document.querySelector('.skip').focus()");
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"),'Skip visible on focus');
+      await evaluate("document.querySelector('.skip').blur()"); checks++;
+      assert.equal(await evaluate('getComputedStyle(document.body).backgroundColor'),scheme==='light'?'rgb(242, 239, 231)':'rgb(18, 19, 23)');
+      assert.equal(await evaluate('getComputedStyle(document.documentElement).scrollSnapType'),'none'); checks+=2;
+      if (route==='/') {
+        assert(await evaluate("document.querySelectorAll('.doors .door').length===2&&document.querySelectorAll('.shared article').length===3"),'Equal product doors and three shared cards');
+        const heights=await evaluate("[...document.querySelectorAll('.door')].map(e=>e.getBoundingClientRect().height)");
+        assert.equal(heights[0],heights[1]);
+        assert(!(await evaluate("document.querySelector('main').innerText")).includes('curl'));
+        await verify('.trust',`Chooser trust ${scheme}`); checks+=3;
+      } else {
+        await hover('.top .btn'); await verify('.top .btn',`Mac header download hover ${scheme}`);
+        const point=await hover('#install .cmd'); await verify('#install .cmd',`Mac Copy hover ${scheme}`);
+        await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});
+        await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point}); await Bun.sleep(200);
+        await verify('#install .cmd',`Mac Copied hover ${scheme}`,true);
+        await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
+        await verify('#install .cmd',`Mac Copied after leaving ${scheme}`,true);
+        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice']) await verify(selector,`${selector} ${scheme}`);
       }
+      await evaluate("document.querySelector('[data-theme-set=dark]').click()");
+      assert.equal(await evaluate('document.documentElement.dataset.mode'),'dark');
+      await evaluate("document.querySelector('[data-theme-set=light]').click()");
+      assert.equal(await evaluate('document.documentElement.dataset.mode'),'light');
+      await evaluate(`document.querySelector('[data-theme-set=""]').click()`); checks++;
     }
-  }
-  for (const scheme of ['light','dark']) {
     for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
-      for (const reduced of [false,true]) {
-        await loadStrips(width,height,scheme,reduced);
-        assert(await evaluate(displayChrome), `${width} ${scheme}: destination needs its own display bezel and menu bar`);
-        assert.equal(await evaluate("getComputedStyle(document.querySelector('.ls .map')).pointerEvents"),'none');
-        checks+=2;
-        await evaluate("document.querySelector('.ls [data-row=send] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
-        const capture=async()=>(await send('Page.captureScreenshot',{format:'png'})).data;
-        if (scheme==='dark') {
-          const b=await readBezel(evaluate,capture); console.log('BEZEL:',width,reduced,JSON.stringify(b));
-          assert(b.bezelRatio>=b.outlineRatio&&b.rimWidth===1&&b.rimRatio>=b.bezelRatio,'Dark bezel must be at least as visible as the normal outline, with a 1px highlight');
-        } else await checkLightBezel(evaluate,capture);
-        checks++;
-        if (!reduced) {
-          await evaluate("document.querySelector('.ls [data-row=heights] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
-          for (const p of [0,1]) {
-            if (width>700) await go('heights',p);
-            else { await evaluate(`document.querySelectorAll('.ls [data-row=heights] .swipe').forEach(e=>e.scrollLeft=${p?100000:0})`); await settle(); }
-            const edges=await evaluate(heightsEdges);
-            assert(edges.every(e=>e.emptyL<=.001&&e.emptyR<=.001),`${width} ${scheme} heights ${p}: ${JSON.stringify(edges)}`);
-            assert.equal(await evaluate("lsRings(lsRows.find(e=>e.dataset.row==='heights'))"),1); checks++;
-          }
-          if (width>700) {
-            const y=await evaluate("lsY('heights',.4)"),k=Math.round(height*.1),samples=[];
-            for (const top of [y,y+k,y+2*k]) { await evaluate(`scrollTo({top:${top},behavior:'instant'})`); await settle(); samples.push(await evaluate("[...document.querySelectorAll('.ls [data-row=heights] .trk.in .track')].map(e=>+e.style.transform.match(/[-.0-9]+/g)[0])")); }
-            assert(samples[1].every((tx,i)=>Math.abs(tx-(samples[0][i]+samples[2][i])/2)<=.5),'Heights cameras remain linear between the bounds'); checks++;
-          }
-        }
-        if (width>700&&!reduced) {
-          await go('switch',1); const end=await evaluate(switchEnd);
-          assert(end.emptyR<=.001&&end.neighbors>=2, `${width} ${scheme}: switch end ${JSON.stringify(end)}`); checks++;
-        }
+      await load('/mac/',width,height,scheme);
+      const geometry=await evaluate(`(()=>[...document.querySelectorAll('.ls .pin')].map(p=>{const s=p.querySelector('.stick'),m=p.querySelector('.media'),r=m.getBoundingClientRect();return {kind:p.dataset.row,fill:r.height/innerHeight,ratio:r.width/r.height,pin:p.offsetHeight-s.offsetHeight,position:getComputedStyle(s).position}}))()`);
+      assert.equal(geometry.length,4);
+      for (const row of geometry) {
+        const minimum=width===1440?.65:width===768?.515:.577;
+        assert(row.fill>=minimum&&row.fill<=.725,`Media fill ${width}: ${JSON.stringify(row)}`);
+        assert(Math.abs(row.ratio-(width===1440?1.6:width===768?4/3:4/5))<.01);
+        assert.equal(row.pin,0); assert.notEqual(row.position,'sticky'); checks++;
       }
-      await loadStrips(width,height,scheme,true);
-      const expected=await evaluate(stillLayout);
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width);
+      for (const kind of ['switch','resize','heights','send']) {
+        await go(kind,.2); const a=await transforms(kind);
+        await go(kind,.7); const b=await transforms(kind); assert.notDeepEqual(a,b,kind+' scroll changes transforms');
+        assert(await evaluate(`(()=>{const row=document.querySelector('[data-row="${kind}"]'),m=row.querySelector('.media').getBoundingClientRect();const rings=[...row.querySelectorAll('.win.f')].filter(e=>!e.hidden&&getComputedStyle(e).display!=='none');return rings.length===1&&rings.some(e=>{const r=e.getBoundingClientRect();return r.left<m.right&&r.right>m.left&&r.top<m.bottom&&r.bottom>m.top})})()`),kind+' keeps one visible focus ring');
+        await go(kind,.2); assert.deepEqual(await transforms(kind),a,kind+' scroll reverses'); checks+=2;
+      }
+      await evaluate(`window.layoutWrites=[];window.layoutObserver=new MutationObserver(records=>{for(const r of records){const old=document.createElement('i').style;old.cssText=r.oldValue||'';for(const key of ['width','height','top','font-size'])if(old.getPropertyValue(key)!==r.target.style.getPropertyValue(key))layoutWrites.push(key)}});layoutObserver.observe(document.querySelector('.ls'),{subtree:true,attributes:true,attributeFilter:['style'],attributeOldValue:true})`);
+      for (const kind of ['switch','resize','heights','send']) {await go(kind,.3);await go(kind,.6);}
+      assert.deepEqual(await evaluate('layoutWrites'),[],'Scroll must not mutate width, height, top or font-size');
+      await evaluate('layoutObserver.disconnect()');
+      assert(await evaluate("[...document.querySelectorAll('.ls .track')].every(e=>getComputedStyle(e).willChange==='transform')"),'Tracks have a compositor layer'); checks+=3;
+      await load('/mac/',width,height,scheme,true);
+      assert(await evaluate("document.querySelector('.hero-film').dataset.phase==='screencast'&&document.querySelector('.screencast').paused"),'Reduced motion starts on a still screencast');
+      const still=await evaluate("[...document.querySelectorAll('.ls .track,.ls .win')].map(e=>e.style.transform)");
+      await evaluate("scrollTo({top:2000,behavior:'instant'})");await settle();
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.ls .track,.ls .win')].map(e=>e.style.transform)"),still,'Reduced motion stays fixed');
+      const snapshot=`(()=>[...document.querySelectorAll('.ls .band')].map(b=>[...b.querySelectorAll('.win')].filter(e=>getComputedStyle(e).display!=='none').map(e=>{const r=e.getBoundingClientRect(),o=b.getBoundingClientRect();return [e.dataset.id,r.x-o.x,r.y-o.y,r.width,r.height]})))()`;
+      const expected=await evaluate(snapshot);
       await send('Emulation.setScriptExecutionDisabled',{value:true});
       try {
-        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:'no-preference'}]});
-        await send('Page.reload',{ignoreCache:true}); await Bun.sleep(350);
-        await evaluate('document.fonts.ready.then(()=>true)');
-        assertStill(await evaluate(stillLayout),expected,`${width} ${scheme} no-JS`); checks++;
-        await evaluate("document.documentElement.style.scrollBehavior='auto';document.querySelector('.ls [data-row=send] .stick').scrollIntoView({block:'center',behavior:'instant'})");
-        const capture=async()=>(await send('Page.captureScreenshot',{format:'png'})).data;
-        if (scheme==='dark') { const b=await readBezel(evaluate,capture); assert(b.bezelRatio>=b.outlineRatio&&b.rimWidth===1&&b.rimRatio>=b.bezelRatio,'No-JS dark bezel contrast and highlight'); }
-        else await checkLightBezel(evaluate,capture);
-        checks++;
-      } finally { await send('Emulation.setScriptExecutionDisabled',{value:false}); }
+        await send('Page.reload',{ignoreCache:true});await Bun.sleep(300);await evaluate('document.fonts.ready.then(()=>true)');
+        assert.deepEqual(await evaluate(snapshot),expected,'No-JavaScript diagrams match the reduced-motion first frame');
+        assert(await evaluate("document.querySelectorAll('.ls .band .win').length>10"),'Static windows exist without JS');
+        assert(await evaluate("getComputedStyle(document.querySelector('.screencast')).display!=='none'&&document.querySelector('.screencast').controls"),'No-JS hero keeps native playback controls');
+      } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=5;
+    }
+    for (const width of [701,768,1000]) {
+      await load('/paperland/',width,1024,scheme);
+      assert(await evaluate("[...document.querySelectorAll('.top nav a')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>=44&&r.left>=0&&r.right<=innerWidth})"),'PaperLand tablet nav stays visible');checks++;
+    }
+    for (const route of ['/','/mac/','/paperland/','/terms/','/privacy/','/mac/activate/']) {
+      await load(route,390,844,scheme);
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),390,route+' mobile overflow');
+      const selector='a.btn,a.mobile-dmg,.top a,footer nav a,footer .brand,.text-links a,button:not([hidden])';
+      const short=await evaluate(`(()=>[...document.querySelectorAll(${JSON.stringify(selector)})].map(e=>({text:e.textContent.trim(),r:e.getBoundingClientRect()})).filter(e=>e.r.width>0&&e.r.height>0&&(e.r.width<43.9||e.r.height<43.9)).map(e=>e.text))()`);
+      assert.deepEqual(short,[],route+' mobile target size'); checks+=2;
     }
   }
-  assert(await evaluate(leadRemoved),'Only the duplicate lead is removed; the Free intro remains once'); checks++;
-  console.log('PASS: dark bezel contrast, light preservation, bounded heights and approved lead removal');
-  console.log('PASS: destination display chrome, switch endpoints, no-JS stills and non-interactive Minimap');
-  console.log('PASS: Live Strips reverse, linearity, pin bounds, focus, send, Overview, phone swipe and reduced motion');
-  console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
+  await load('/mac/?promo-test=off');
+  assert(await evaluate("document.querySelector('.promo').currentSrc===''&&document.querySelector('[data-film-replay]').hidden&&document.querySelector('.hero-film').dataset.phase==='screencast'"),'Empty promo source starts the real loop with replay hidden');
+  assert(await evaluate("!performance.getEntriesByType('resource').some(e=>e.name.endsWith('/promo.mp4'))"),'Empty promo does not request a missing media file'); checks+=2;
+  await load('/mac/?promo-test=1');
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'promo','Desktop starts the promo');
+  assert(await evaluate("!document.querySelector('.promo').loop&&document.querySelector('.promo').muted&&document.querySelector('.promo').playsInline"));
+  await evaluate("document.querySelector('[data-film-pause]').click()");
+  assert(await evaluate("document.querySelector('.promo').paused"),'Pause stops the promo');
+  await evaluate("document.querySelector('[data-film-pause]').click();document.querySelector('.promo').dispatchEvent(new Event('ended'))");await Bun.sleep(700);
+  assert(await evaluate("document.querySelector('.hero-film').dataset.phase==='screencast'&&document.querySelector('.screencast').loop&&getComputedStyle(document.querySelector('.promo')).opacity==='0'"),'Promo ends in a crossfade to the loop');
+  await evaluate("document.querySelector('[data-film-replay]').click()");
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'promo');
+  await evaluate("scrollTo({top:2000,behavior:'instant'})");await Bun.sleep(250);
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Passing hero skips promo');
+  await evaluate("scrollTo({top:0,behavior:'instant'})");await Bun.sleep(250);
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Return does not replay the promo');
+  await evaluate("document.querySelector('[data-film-pause]').click()");
+  assert(await evaluate("document.querySelector('.screencast').paused"),'Pause stops loop'); checks+=8;
+  for (const [width,reduced] of [[390,false],[1440,true]]) {
+    await load('/mac/?promo-test=1',width,width===390?844:900,'light',reduced);
+    assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Phone and reduced motion skip promo'); checks++;
+  }
+  for (const path of ['/robots.txt','/favicon.ico','/apple-touch-icon.png']) { assert.equal((await fetch(base+path)).status,200); checks++; }
+  console.log(`PASS: ${checks} browser checks: both themes, three viewports, copy and focus, fixed geometry, reverse scrolling, no pins, no-JS first frames and hero playback states`);
 } finally {
   ws?.close(); chrome.kill(); server.stop(true);
   await chrome.exited;

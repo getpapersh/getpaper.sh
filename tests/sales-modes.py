@@ -25,23 +25,33 @@ with tempfile.TemporaryDirectory() as directory:
             assert result.returncode == 0, result.stderr
             html = result.stdout
             assert '{{' not in html
-            assert '<div class="plain" role="list" aria-label="Purchase terms">\n      <div role="listitem"><strong>30-day refund, for any reason.</strong>' in html
-            assert 'Email billing@getpaper.sh within 30 days of purchase for a full refund. We won\'t ask why.' in html
-            assert html.count('<p class="to">Full refund within 30 days, for any reason.</p>') == (1 + (lifetime != 'off') if pro != 'off' else 0)
+            assert html.count('30-day refund, for any reason.') == 1
             assert 'PaperMac is built by Jason Martin, an independent developer.' in html
             assert 'Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.' in html
-
-            assert '<s>' not in html
-            assert html.count('<span class="was">Regular $39</span>') == 3
-            assert html.count('<span class="was">Regular $79</span>') == (2 if lifetime != 'off' else 0)
-            assert html.count('class="btn quiet lifetime-cta"') == (2 if lifetime != 'off' else 0)
-            assert 'aria-label="Buy PaperMac 27 Pro or Lifetime"' in html if lifetime != 'off' else 'aria-label="Buy PaperMac 27 Pro"' in html
+            assert html.count('then $39<') == 1
+            assert html.count('$39.50') == 1 and html.count('then $79.') == 1
+            assert html.count('<code>BETABELIEVER</code>') == 1
+            assert html.count('<code>FOREVERFOUNDER</code>') == 1
+            assert html.count('class="btn quiet lifetime-cta"') == (1 if lifetime != 'off' else 0)
+            assert html.count('trial-cta" href="#install"') == 1
+            notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
+            assert html.count(notice) == int(pro != 'off') + int(lifetime != 'off')
+            assert html.count('class="sales-closed"') == int(pro == 'off')
             if pro != 'off':
-                assert 'QR code for the PaperMac 27 Pro checkout' in html
-                assert html.count('trial-cta" href="#install"') == 2
-                assert '<p class="sales-closed"' not in html
-                assert html.count('href="' + pro + '"') == 3
+                assert html.count('href="' + pro + '"') == 1
             else:
                 assert 'href="https://example.invalid/' not in html
-                assert 'class="segno"' not in html
-print('4 checkout combinations passed, 0 failed (3 valid states; invalid Lifetime-only state refused)')
+            if lifetime != 'off':
+                assert html.count('href="' + lifetime + '"') == 1
+            assert 'class="segno"' not in html
+    # Checkout URLs are passed through intact, including the auto-applied code.
+    for pro_code, lifetime_code in [('BETABELIEVER', 'FOREVERFOUNDER')]:
+        pro_url = 'https://example.invalid/pro?checkout[discount_code]=' + pro_code
+        lifetime_url = 'https://example.invalid/lifetime?checkout[discount_code]=' + lifetime_code
+        (page.parent / 'checkout-url.txt').write_text(pro_url + '\n')
+        (page.parent / 'lifetime-checkout-url.txt').write_text(lifetime_url + '\n')
+        result = subprocess.run([sys.executable, str(root / 'scripts/bundle-page.py'), str(page)], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert 'href="' + pro_url + '"' in result.stdout
+        assert 'href="' + lifetime_url + '"' in result.stdout
+print('4 checkout combinations and auto-applied founding codes passed, 0 failed (3 valid states; invalid Lifetime-only state refused)')

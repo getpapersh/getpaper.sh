@@ -860,7 +860,7 @@ for file in _headers index.html install og.png; do check "site/ has $file" [ -f 
 for file in OFL-monasans.txt OFL-jetbrainsmono.txt LOGOS-SOURCE.txt FONTS.txt; do
   check "site/licenses/ has $file" cmp -s "$root/licenses/$file" "$root/site/licenses/$file"
 done
-check "site/ has nothing else" [ "$(find "$root/site" -mindepth 1 | wc -l | tr -d ' ')" = 43 ]
+# mac-pages.py checks exact inventory against source media, including future hero takes.
 check "Approved Paper brand, contrast and deterministic page bundles" python3 "$root/tests/brand.py" "$root/site"
 check "Mac pages, shared DMG links, local media and activation privacy contract" python3 "$root/tests/mac-pages.py" "$root/site"
 sales_modes() {
@@ -878,26 +878,16 @@ check "wrangler.jsonc names the Worker getpaper-sh" grep -qF '"name": "getpaper-
 check "wrangler.jsonc serves site/" grep -qF '"directory": "./site"' "$root/wrangler.jsonc"
 check "wrangler.jsonc has no Worker script" fails grep -qF '"main"' "$root/wrangler.jsonc"
 check "the page has no external scripts" fails grep -Eq '<script[^>]+src=' "$root/site/index.html"
-check "the page shows the universal one-liner" grep -qF 'curl -fsSL https://getpaper.sh/install | sh</code>' "$root/site/index.html"
-# PaperMac is notarized from Alpha 5, so a browser-downloaded DMG opens; the page may link
-# one, but only a release on PaperMac's own download host.
-page_dmg_links() { grep -oiE 'href="[^"]*\.dmg"' "$root/site/index.html"; }
-check "the page links a DMG" page_dmg_links
-check "every DMG link is a PaperMac release on dl.getpaper.sh" \
-  fails sh -c "grep -oiE 'href=\"[^\"]*\\.dmg\"' '$root/site/index.html' | grep -vxE 'href=\"https://dl\\.getpaper\\.sh/papermac/PaperMac-[0-9][0-9a-z.-]*\\.dmg\"'"
-check "the page shows no brew command" fails grep -qF 'brew install' "$root/site/index.html"
-# The page builds its command boxes in script, with <wbr> break hints inside the commands.
-page_text() { sed -e 's/<wbr>//g' -e "s/<span class='command-tail'>//g" -e 's#</span>##g' "$root/site/index.html"; }
-page_text_has() { page_text | grep -qF "$1"; }
-check "both platform panels have the uninstall command" \
-  [ "$(page_text | grep -oF 'curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall' | wc -l | tr -d ' ')" = 2 ]
-check "the page's install command is the universal one-liner" page_text_has 'const CURL = "curl -fsSL https://getpaper.sh/install | sh";'
-check "the Linux panel shows the install command" \
-  sh -c "sed -n '/data-os=\"lin\"/,/class=\"rejoin\"/p' '$root/site/index.html' | grep -qF '\${F.cmd(CURL)}'"
+check "the chooser has no install commands" fails grep -qF 'curl -fsSL' "$root/site/index.html"
+check "the chooser points to PaperMac" grep -qF 'href="/mac/">See PaperMac</a>' "$root/site/index.html"
+check "the chooser points to PaperLand" grep -qF 'href="/paperland/">See PaperLand</a>' "$root/site/index.html"
+check "the chooser has no brew command" fails grep -qF 'brew install' "$root/site/index.html"
+check "Mac install keeps the universal one-liner" grep -qF 'curl -fsSL https://getpaper.sh/install | sh</code>' "$root/site/mac/index.html"
+check "uninstall instructions remain documented" grep -qF 'curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall' "$root/README.md"
 check "the page no longer calls PaperLand coming soon" fails grep -qiE 'PaperLand[^<]*coming soon' "$root/site/index.html"
 check "the served installer inlines the PaperLand installer" grep -qx 'paperland_install() (' "$root/site/install"
 check "the served installer pins the PaperLand release" grep -qx "$(grep '^PLUGIN_SHA=' "$root/paperland/release.env")" "$root/site/install"
-check "the page carries the uninstall warning" grep -qF "$warning" "$root/site/index.html"
+check "the installer carries the uninstall warning" grep -qF "$warning" "$root/site/install"
 check "the page's link preview is the served og.png" grep -qF '<meta property="og:image" content="https://getpaper.sh/og.png">' "$root/site/index.html"
 check "the page gives the link preview's size" \
   sh -c "grep -qF '<meta property=\"og:image:width\" content=\"1200\">' '$root/site/index.html' && grep -qF '<meta property=\"og:image:height\" content=\"630\">' '$root/site/index.html'"

@@ -28,8 +28,9 @@ expected.update(['brand', 'brand/papermac', 'brand/paperland',
                  '_redirects', 'sitemap.xml', 'robots.txt', 'favicon.ico', 'apple-touch-icon.png'])
 expected.update('licenses/' + name for name in
                 ['OFL-monasans.txt', 'OFL-jetbrainsmono.txt', 'LOGOS-SOURCE.txt', 'FONTS.txt'])
-expected.update('media/papermac/' + name + suffix
-                for name in ['strip', 'overview', 'pro-layout'] for suffix in ['.mp4', '.jpg'])
+# New hero takes only need their files and one source-attribute change.
+media_source = Path(__file__).resolve().parents[1] / 'media'
+expected.update('media/' + str(path.relative_to(media_source)) for path in media_source.rglob('*'))
 check({str(path.relative_to(site)) for path in site.rglob('*')} == expected)
 
 
@@ -41,8 +42,8 @@ for target in [*site.rglob('*.html'), site / 'install']:
     check('{{DMG_URL}}' not in text, target)
     for link in re.findall(r'https?://[^\s"\'<>]*\.dmg', text):
         check(link == dmg_url, (target, link))
-check((site / 'index.html').read_text().count('href="' + dmg_url + '"') == 1)
-check((site / 'mac/index.html').read_text().count('href="' + dmg_url + '"') == 4)
+check((site / 'index.html').read_text().count('href="' + dmg_url + '"') == 0)
+check((site / 'mac/index.html').read_text().count('href="' + dmg_url + '"') == 2)
 check('PAPERMAC_DMG_URL=' + dmg_url + '\n' in (site / 'install').read_text())
 
 
@@ -76,10 +77,8 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     # Split markers so the test source stays clear in repository-wide privacy scans.
     for marker in ('Seal' + ' Beach', '123' + '37'):
         check(marker not in text, route)
-    if route == 'mac/index.html':
-        check(page.emails.count(('billing@getpaper.sh', None)) == 1)
     for email, href in page.emails:
-        check(href == 'mailto:' + email or (route == 'mac/index.html' and email == 'billing@getpaper.sh' and href is None), (route, email, href))
+        check(href == 'mailto:' + email, (route, email, href))
     check('made by' not in ' '.join(page.texts).lower(), route)
     check('PaperMac Pro 27' not in ' '.join(' '.join(page.texts).split()), route)
     if route not in ['mac/index.html', 'terms/index.html', 'privacy/index.html', 'paperland/index.html']:
@@ -109,108 +108,80 @@ for route in ['terms/index.html', 'privacy/index.html', 'mac/activate/index.html
     check('id="main" tabindex="-1"' in page_html, (route, 'Skip target'))
 
 product = (site / 'mac/index.html').read_text()
-refund_item = """<div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email billing@getpaper.sh within 30 days of purchase for a full refund. We won't ask why.</p></div>"""
-check(re.search(r'<div class="plain" role="list" aria-label="Purchase terms">\s*' + re.escape(refund_item), product), 'Refund must be the first purchase term')
 check(product.count('Jason Martin') == 1)
-check('<p class="txt">PaperMac is built by Jason Martin, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>' in product)
-
-check('A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product)
-check('Free forever' not in product)
-check('#activate=' not in product)
-check('A PaperMac 27 Pro license covers PaperMac 27 Pro on macOS 27 Golden Gate.' in product and 'PaperMac Pro 27' not in product)
-check('No subscription. A PaperMac 27 Pro license never expires. Editions for later macOS versions are separate, optional purchases.' in product)
-check('discounted upgrades' not in product)
+check('PaperMac is built by Jason Martin, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.' in product)
+check('A scrolling window manager for macOS.' in product)
+check('Go beyond Mission Control' not in product)
+check('Free forever' not in product and '#activate=' not in product)
+check('Covers macOS 27 forever; later editions are optional. Up to five activations.' in product)
+check('Golden Gate' not in product and 'closed-source software' not in product)
 check('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product)
-check(product.count('The 14-day Pro trial starts inside the app, when you choose.') == 3)
-check('There is no automatic charge.' in product)
+check(product.count('Try Pro free for 14 days') == 1)
+check(product.count('Starts inside the app, when you choose. No automatic charge.') == 1)
+check(product.count('Free to use, with no time limit.') == 1)
+check(product.count('Real app; synthetic documents.') == 1)
+check(product.count('30-day refund, for any reason.') == 1)
 check('free week' not in product and 'starts automatically after setup' not in product)
-check('full-height or half-and-half' not in product)
 free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
 pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
-check('The core window manager is free to use, with no time limit.' in free_column)
-check('up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.' in free_column)
-check('<li>Select several windows and arrange them at once</li>' in free_column and 'Select several windows' not in pro_column)
-check('Three or more Strips</b> per Desktop.' in pro_column)
-check('Lanes of different heights' not in pro_column)
-check('with up to five activations at a time. Each macOS user account counts as a separate activation.' in product)
-check('<strong>Five activations.</strong><p>One license covers one person across all their Macs, with up to five activations at a time. Each macOS user account counts as a separate activation.</p>' in product)
-check('<strong>Try Pro.</strong><p>The 14-day Pro trial starts inside the app, when you choose. There is no automatic charge.</p>' in product)
-check(not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life']))
-videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
-check(len(videos) == 3)
+check('Stacks of up to 2 windows' in free_column and 'Select several windows and arrange them at once' in free_column)
+check('3+ strips' in pro_column and 'Stacks of 3+ windows' in pro_column)
+check('Lock windows as a group' in pro_column and 'Everything in Free, plus:' in pro_column)
+check('App rules, gestures, shortcuts, config file, CLI and crash recovery' in free_column)
+check(not re.search(r'heights?', pro_column, re.I), 'Height adjustment must not be marketed as Pro-only')
+check('Overview' not in product and 'computer-use agents' not in product.lower())
+check(not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life', 'discounted upgrades']))
+videos = [attrs for tag, attrs in Page(product).tags if tag == 'video']
+check(len(videos) == 2)
 for video in videos:
-    check(all(key in video for key in ('controls', 'controlslist', 'disablepictureinpicture', 'muted', 'playsinline', 'loop', 'poster', 'aria-label')))
-    check('autoplay' not in video)
-    check(video['controlslist'] == 'nodownload noplaybackrate')
-sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
-check(set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']})
+    check(all(key in video for key in ('muted', 'playsinline', 'poster', 'aria-label')))
+    check(video['preload'] == 'metadata' and 'autoplay' not in video)
+    check(video['width'] == '1920' and video['height'] == '1200')
+check('loop' in videos[0] and 'loop' not in videos[1])
+check(videos[0]['controlslist'] == 'nodownload noplaybackrate')
+hero = next(attrs for tag, attrs in Page(product).tags if 'data-hero-film' in attrs)
+for source in [hero['data-screencast-src'], hero['data-promo-src']]:
+    if source:
+        check(source.startswith('/media/papermac/') and source.endswith('.mp4'))
+        check((site / source.lstrip('/')).is_file())
+        check((site / source.lstrip('/')).with_suffix('.jpg').is_file())
 check('{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product)
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
 lifetime = (Path(__file__).resolve().parents[1] / 'src/mac/lifetime-checkout-url.txt').read_text().strip()
-check(product.count('<p class="to">Full refund within 30 days, for any reason.</p>') == (1 + (lifetime != 'off') if checkout != 'off' else 0))
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-check(product.count(buy_notice) == (2 + 2 * (lifetime != 'off') if checkout != 'off' else 0))
-trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
-check(len(trial_links) == (3 if checkout == 'off' else 2))
-check(all(attrs.get('href') == '#install' for attrs in trial_links))
+check(product.count(buy_notice) == (int(checkout != 'off') + int(lifetime != 'off')))
+trial_links = [a for tag, a in Page(product).tags if tag == 'a' and 'trial-cta' in a.get('class', '').split()]
+check(len(trial_links) == 1 and trial_links[0]['href'] == '#install')
 check(not any(tag == 'button' and 'disabled' in attrs for tag, attrs in Page(product).tags))
 if checkout == 'off':
     check(lifetime == 'off')
     check('lemonsqueezy' not in product.lower())
-    check('class="segno"' not in product and 'class="phone"' not in product)
-    check('qr-placeholder' not in product)
-    check('<p class="sales-closed" id="header-sales">Buying opens soon.</p>' in product)
-    check(product.count('Buying opens soon. Until then, try Pro free for 14 days.') == 2)
-    check(not any(tag == 'a' and attrs.get('href', '').startswith('https://') and 'pro' in attrs.get('class', '').split() for tag, attrs in Page(product).tags))
+    check(product.count('Buying opens soon.') == 1)
+    check('class="segno"' not in product and 'qr-placeholder' not in product)
 else:
-    check('class="segno"' in product)
-    check('<p class="sales-closed"' not in product)
-    check('Scan to buy PaperMac 27 Pro on your phone' in product)
-    buy_links = [attrs['href'] for tag, attrs in Page(product).tags
-                 if tag == 'a' and 'pro' in attrs.get('class', '').split() and 'trial-cta' not in attrs.get('class', '').split()]
-    check(buy_links == [checkout] * 3)
-lifetime_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'lifetime-cta' in attrs.get('class', '').split()]
-founding_until = '<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>'
-if lifetime == 'off':
-    check('Lifetime' not in product and '$79' not in product and '$39.50' not in product and lifetime_links == [])
-    check('aria-label="Buy PaperMac 27 Pro"' in product)
-else:
-    check(lifetime_links == [lifetime] * 2)
-    check('aria-label="Buy PaperMac 27 Pro or Lifetime"' in product)
-    check(product.count('Covers this and all future versions of PaperMac with a Pro license.') == 3)
-    check(product.count('$39.50') == 2)
-    check(product.count('<span class="was">Regular $79</span>') == 2)
-check('{{LIFETIME_' not in product and 'lifetime:' not in product)
-check('{{BUY_LABEL}}' not in product)
+    check('Buying opens soon.' not in product)
+buy_links = [a['href'] for tag, a in Page(product).tags if tag == 'a' and a.get('class') == 'btn pro']
+check(buy_links == ([] if checkout == 'off' else [checkout]))
+lifetime_links = [a['href'] for tag, a in Page(product).tags if tag == 'a' and 'lifetime-cta' in a.get('class', '').split()]
+check(lifetime_links == ([] if lifetime == 'off' else [lifetime]))
+check(product.count('$19.50') == 1 and product.count('then $39<') == 1)
+check(product.count('Or Lifetime, all future editions: $39.50 founding, then $79.') == 1)
+check('<code>BETABELIEVER</code>' in re.search(r'<p class="founding">(.*?)</p>', product, re.S)[1])
+check('<code>FOREVERFOUNDER</code>' in re.search(r'<p class="lifetime-price">(.*?)</p>', product, re.S)[1])
+check(product.count('<code>BETABELIEVER</code>') == 1 and product.count('<code>FOREVERFOUNDER</code>') == 1)
+check(product.count('<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>') == 1)
+check('{{LIFETIME_' not in product and '{{BUY_LABEL}}' not in product)
 for tag, attrs in Page(product).tags:
     if tag == 'button' and 'cmd' in attrs.get('class', '').split():
         check('aria-label' not in attrs)
         check(f'id="{attrs["aria-describedby"]}"' in product)
-check('Also in Pro: lock windows together as a group.' in pro_column)
-check('Everything in Free, plus:' in pro_column)
-check('Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column)
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 check(product.count(download_notice) == 2)
-check('Coming soon' not in product and 'Stack scrolling and stack height controls.' not in product)
-# Checkout URLs carry the founding codes, so buyers never see or type one.
-copy_html = re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', product, flags=re.S)
-visible = ' '.join(Page(copy_html).texts)
-for phrase in ['betabeliever', 'foreverfounder', 'coupon', 'discount code', 'promo', '$10 off']:
-    check(phrase not in visible.lower(), phrase)
-check('EARLY' not in product)
-pro_list = '<span class="was">Regular $39</span>'
-check('<h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b>' in product)
-check(f'<li>One-time purchase for macOS 27. Founding price through {founding_until}, then $39.</li>' in product)
-check('<h3>PaperMac 27 Pro</h3><b>$19.50 ' in product)
-check('<p class="coverage">PaperMac 27 Pro on macOS 27</p>' in product)
-check(f'<p class="to">Founding price through {founding_until}</p>' in product)
-check(product.count(founding_until) == 2 + (lifetime != 'off'))
-check(product.count('$19.50') == 3 and product.count(pro_list) == 3)
-check('<s>' not in product)
-check(len({video['aria-label'] for video in videos}) == 3)
-check('$29' not in product and not re.search(r'\$19(?!\.50)', product))
-check('beta price' not in product)
-check('built on private macOS APIs' in product)
+check('private macOS APIs change, so an update can break things.' in product)
+check('Coming soon' not in product and '$29' not in product and '<s>' not in product)
+check(len({video['aria-label'] for video in videos}) == 2)
+for stale in ['coupon', 'discount code', '$10 off', 'EARLY', 'Stack scrolling and stack height controls.']:
+    check(stale not in product)
 for route in ['terms', 'privacy']:
     check(any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags))
     legal_html = (site / route / 'index.html').read_text()
@@ -280,27 +251,16 @@ from xml.etree import ElementTree
 urls = ElementTree.parse(site / 'sitemap.xml').findall('{*}url/{*}loc')
 check([url.text for url in urls] == ['https://getpaper.sh' + route for route in ['/', '/mac/', '/paperland/', '/terms/', '/privacy/']])
 check('PaperMac Beta' in main and 'PaperLand Alpha' in main)
-check('PaperMac Free' in main and 'Overview (Experimental)' in main)
-check('PaperMac Free Overview with synthetic document windows' in main and '/media/papermac/overview.mp4' in main)
+check('See PaperMac' in main and 'See PaperLand' in main)
+check('Experimental on macOS.' in main)
+check('curl -fsSL' not in main and 'scroll-snap' not in main)
+check('Room for your windows' not in main and 'Beyond the arrow keys' not in main)
 terms = (site / 'terms/index.html').read_text()
+for phrase in ['closed-source software', 'licensed under these proprietary Terms', 'Each activated macOS user account counts as one installation.', 'macOS 27 Golden Gate', "You get a full refund, and we won't ask why."]:
+    check(phrase in terms, ('Retained legal detail', phrase))
 for page in [main, product, terms]:
-    check('closed-source software' in page)
-    check("PaperMac's proprietary Terms" in page or 'licensed under these proprietary Terms' in page)
     check('open-core' not in page)
     check('href="https://github.com/jsonMartin/papermac' not in page)
-check('two Strips at independently adjustable heights' in free_column)
-check('adjustable-height Strips, even with only two' not in pro_column)
-height_claim = re.compile(r'\bheights?\b', re.I)
-home_pro_copy = re.search(r'<a href="/mac/#pro">Pro</a> adds (.*?)<a href="/mac/#install">', main, re.S)[1]
-mac_pro_copy = ' '.join(' '.join(Page(pro_column).texts).split())
-mac_pro_copy += ' '.join(attrs.get('aria-label', '') for _, attrs in Page(pro_column).tags)
-for pro_copy in [home_pro_copy, mac_pro_copy]:
-    check(not height_claim.search(pro_copy), 'Height adjustment must not be marketed as Pro-only')
-
-check('three or more Strips, deeper stacks, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
-check('on("mac", true)' in main and main.count('on("mac", true)') == 2)
-check('Overview (Experimental)' in free_column)
-check('data-pic' not in product and 'data-row="heights"' in product)
 land = (site / 'paperland/index.html').read_text()
 check('PaperLand Alpha' in land and 'Omarchy 4+' in land and 'Hyprland 0.56+' in land)
 check('Accessibility' not in land)
@@ -314,59 +274,43 @@ check('native macOS Spaces' in mac_meta['twitter:description'])
 check('Omarchy with Hyprland' in land_meta['twitter:description'])
 check('Paperland CLI installation v1' in (site / 'install').read_text())
 check('PaperLand installer (unannounced alpha; expect rough edges)' in (site / 'install').read_text())
-check('id="changelog"' in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)
-# Live Strips keeps the existing captions and introduces no new assets or sales claims.
-ls = product.split('class="ls"', 1)[1].split('class="cols"', 1)[0]
-check('ls-lead' not in ls)
-check(product.count('The core window manager is free to use, with no time limit.') == 1)
-check('<p class="col-intro">The core window manager is free to use, with no time limit.</p>' in free_column)
-labels = [
-    ('switch', 'Switch windows with Option-Tab'),
-    ('resize', 'Move between windows and resize them'),
-    ('heights', 'Up to two Strips at independently adjustable heights per Desktop'),
-    ('send', 'Send a window to another Desktop or display'),
-    ('overview', 'Zoom out to Overview (Experimental)'),
-]
+check('id="changelog"' not in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)
+ls = product.split('class="ls"', 1)[1].split('</section>', 1)[0]
+labels = [('switch', 'Option-Tab to any window'), ('resize', 'Move and resize'),
+          ('heights', 'Two Strips per Desktop'), ('send', 'Send to Desktop or display')]
 check(re.findall(r'data-row="(.*?)"', ls) == [kind for kind, _ in labels])
 for kind, label in labels:
     row = ls.split(f'data-row="{kind}"', 1)[1].split('</figure>', 1)[0]
-    check(f'<span class="label">{label}</span>' in row, (kind, 'Exact existing caption'))
-check('<span class="note">The Minimap shows where you are</span>' in ls)
-for pattern in [r'\bPro\b', r'three or more', r'custom\s+heights?', r'heights?\s+(?:inside|in|within)\s+a\s+stack']:
-    check(not re.search(pattern, ls, re.I), ('No Pro height wording', pattern))
+    check(f'<span class="label">{label}</span>' in row, (kind, 'Approved shorter caption'))
+    if kind == 'heights':
+        check('<span class="badge">Free</span>' in row and 'Set each Strip’s height on its own.' in row)
+check('The Minimap shows where you are.' in ls)
+check(not re.search(r'\bPro\b', ls))
 copy_html = re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', product, flags=re.S)
 visible = ' '.join(Page(copy_html).texts)
 visible += ' '.join(a.get('aria-label', '') for _, a in Page(product).tags)
-check(not re.search(r'custom\s+heights?', visible, re.I))
-for block in re.findall(r'<(?:p|li|figcaption)\b[^>]*>(.*?)</(?:p|li|figcaption)>', copy_html, re.S):
-    copy = ' '.join(Page(block).texts)
-    check(not re.search(r'\bheights?\b[^.]{0,60}\bPro\b|\bPro\b[^.]{0,60}\bheights?\b', copy, re.I))
+check(not re.search(r'custom\s+(?:stack\s+)?heights?|heights you choose|adjustable height', visible, re.I))
 root = Path(__file__).resolve().parents[1]
 section = [(root / 'src/mac' / name).read_bytes() for name in ['strips.js', 'strips.css']]
 sizes = [len(gzip.compress(data, 9)) for data in section]
 check(sum(sizes) <= 15 * 1024, ('Section gzip budget', sizes))
 print(f'PASS: section gzip -9 (no filename): JS {sizes[0]} B, CSS {sizes[1]} B, sum {sum(sizes)} B (limit 15360 B)')
-check(product.count('data:font/ttf') == 2 and product.count('data:image/') == 2 and product.count('url(') == 2)
+check(product.count('data:font/ttf') == 2 and product.count('data:image/') == 0 and product.count('url(') == 2)
 check(not re.search(r'<(?:img|video|svg)\b', ls))
 for data in section:
     check(b'@font-face' not in data and b'url(' not in data)
-# These source and output files are frozen by the scope, independently of semantic assertions above.
+# The current brief permits a new shared stylesheet; installer, legal and sales switches stay frozen.
 guards = ['src/mac/style.css', 'src/mac/init.js', 'src/mac/checkout-url.txt', 'src/mac/lifetime-checkout-url.txt',
-          'src/mac/dmg-url.txt', 'src/terms', 'src/privacy', 'src/paperland', 'src/_kit', 'terms', 'privacy',
+          'src/mac/dmg-url.txt', 'src/terms', 'src/privacy', 'src/paperland', 'terms', 'privacy',
           'paperland', 'site/terms', 'site/privacy', 'site/paperland', 'install', 'site/install', 'scripts', '_headers']
-changed = subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--', *guards], cwd=root).decode().splitlines()
-legal_dates = {f'{prefix}{route}/index.html' for prefix in ['src/', '', 'site/'] for route in ['terms', 'privacy']}
-check(set(changed) <= legal_dates, 'B13 frozen files')
-for name in changed:
-    original = subprocess.check_output(['git', 'show', f'9d6b72c4:{name}'], cwd=root)
-    check((root / name).read_bytes() == original.replace(b'Effective November 13, 2026', b'Effective November 14, 2026'),
-          (name, 'Only the approved legal effective-date change'))
-added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '9d6b72c4'], cwd=root).decode().splitlines()
+changed = subprocess.check_output(['git', 'diff', '--name-only', '19caeace', '--', *guards], cwd=root).decode().splitlines()
+check(changed == [], ('Unchanged out-of-scope sources', changed))
+for source in (root / 'src/_kit').iterdir():
+    if source.name == 'launch.css':
+        continue
+    original = subprocess.check_output(['git', 'show', f'19caeace:src/_kit/{source.name}'], cwd=root)
+    check(source.read_bytes() == original, ('Unchanged existing shared kit', source.name))
+added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '19caeace'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
-check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'] for name in added), 'No added font or raster files')
-before_copy = subprocess.check_output(['git', 'show', '1b26911:mac/index.html'], cwd=root).decode()
-def copy_words(html):
-    return ' '.join(' '.join(Page(re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', html, flags=re.S)).texts).split())
-before_copy = before_copy.replace('<p class="ls-lead">The core window manager is free to use, with no time limit.</p>', '', 1)
-check(copy_words(product) == copy_words(before_copy), 'Only the approved duplicate lead is removed')
-print(f'PASS: {checks} Mac-page assertions; 0 failures; exact site inventory, shared DMG links, local resources, recording controls, Mac links and activation link/header policy')
+check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2'] for name in added), 'No added fonts')
+print(f'PASS: {checks} Mac-page assertions; 0 failures; inventory, local resources, legal detail, sales modes and launch copy')
