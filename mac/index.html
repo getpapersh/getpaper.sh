@@ -614,6 +614,14 @@ a:hover { color: var(--brand-accentText); }
   --mask: linear-gradient(to right, transparent 0, rgb(0 0 0 / var(--peek)) var(--fade), rgb(0 0 0 / var(--peek)) var(--a), transparent var(--a), transparent var(--b), rgb(0 0 0 / var(--peek)) var(--b), rgb(0 0 0 / var(--peek)) calc(var(--bw) - var(--fade)), transparent var(--bw));
   -webkit-mask-image: var(--mask); mask-image: var(--mask);
 }
+/* Light peeks keep their material; one scrim darkens every window continuously away from the frame. */
+:root[data-mode="light"] .ls .trk.peek {
+  --mask: linear-gradient(to right, #000 var(--a), transparent var(--a), transparent var(--b), #000 var(--b));
+}
+:root[data-mode="light"] .ls .trk.peek::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to right, rgb(0 0 0 / .5), transparent var(--a), transparent var(--b), rgb(0 0 0 / .5));
+}
 .ls .win { border-radius: 10px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--win-ink) 22%, transparent), 0 8px 20px -12px rgb(20 21 26 / .4); }
 .ls .win.te > .tb { background: color-mix(in srgb, var(--term) 88%, var(--win-ink)); }
 .ls .win.te .ln i { background: #55585F; }

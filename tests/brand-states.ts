@@ -1,5 +1,6 @@
 // Check the rendered cascade, including the theme selector and hover label overlays.
 import assert from "node:assert/strict";
+import { checkLightPeeks } from "./strips-peeks";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -304,6 +305,19 @@ try {
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await settle();
     assert(await evaluate("lsRows.every(p=>lsRings(p)===1)&&[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).display==='none')"),'Live reduced-motion change');
     checks+=4;
+  }
+  for (const [width, height] of [[1440,900],[768,1024],[390,844]]) {
+    for (const reduced of [false,true]) {
+      await loadStrips(width,height,'light',reduced);
+      if (width > 700 && !reduced) await go('heights',.4);
+      else { await evaluate("document.querySelector('.ls [data-row=heights] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle(); }
+      const capture = async () => (await send('Page.captureScreenshot',{format:'png'})).data;
+      await checkLightPeeks(evaluate,capture,'heights',`Chrome ${width} light ${reduced?'reduce':'motion'} heights`); checks++;
+      if (width > 700 && !reduced) {
+        await go('send',0);
+        await checkLightPeeks(evaluate,capture,'send',`Chrome ${width} light motion send-start`); checks++;
+      }
+    }
   }
   console.log('PASS: Live Strips reverse, linearity, pin bounds, focus, send, Overview, phone swipe and reduced motion');
   console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
