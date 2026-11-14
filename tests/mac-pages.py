@@ -179,7 +179,7 @@ for tag, attrs in Page(product).tags:
     if tag == 'button' and 'cmd' in attrs.get('class', '').split():
         check('aria-label' not in attrs)
         check(f'id="{attrs["aria-describedby"]}"' in product)
-check('Also in Pro: lock windows together as a group, and set custom heights inside a stack.' in pro_column)
+check('Also in Pro: lock windows together as a group. Any two-Strip layout can be resized to any height in Free or Pro; Pro is required for three or more Strips.' in pro_column)
 check('Everything in Free, plus:' in pro_column)
 check('Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column)
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
@@ -282,7 +282,15 @@ for page in [main, product, terms]:
     check('href="https://github.com/jsonMartin/papermac' not in page)
 check('two Strips at independently adjustable heights' in free_column)
 check('adjustable-height Strips, even with only two' not in pro_column)
-check('three or more Strips, deeper stacks, custom stack heights, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
+height_claim = re.compile(r'\b(?:(?:custom|adjustable)[\s-]+(?:(?:stack|strip)[\s-]+)?heights?|(?:stack|strip)[\s-]+heights?[\s-]+(?:adjustment|controls?))\b', re.I)
+home_pro_copy = re.search(r'<a href="/mac/#pro">Pro</a> adds (.*?)<a href="/mac/#install">', main, re.S)[1]
+mac_pro_copy = ' '.join(' '.join(Page(pro_column).texts).split())
+# The count-qualified caption describes the paid third Strip, not a paid height control.
+mac_pro_copy = mac_pro_copy.replace('Three or more Strips per Desktop, stacked, with adjustable heights.', '')
+for pro_copy in [home_pro_copy, mac_pro_copy]:
+    check(not height_claim.search(pro_copy), 'Height adjustment must not be marketed as Pro-only')
+
+check('three or more Strips, deeper stacks, Window groups (Lock as Group), Limelight, snoozing, window previews, Desktop auto-naming and synced Strips across displays' in main)
 check('on("mac", true)' in main and main.count('on("mac", true)') == 2)
 check('Overview (Experimental)' in free_column)
 check('data-pic="lanes2"' in free_column and 'data-pic="uneven"' not in free_column)
