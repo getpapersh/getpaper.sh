@@ -216,7 +216,7 @@ for route in ['terms', 'privacy']:
     legal_html = (site / route / 'index.html').read_text()
     legal_body = re.search(r'<main\b[^>]*>(.*?)</main>', legal_html, re.S).group(1)
     legal_text = ' '.join(' '.join(Page(legal_body).texts).split())
-    check('<p>Effective November 13, 2026</p>' in legal_body)
+    check('<p>Effective November 14, 2026</p>' in legal_body)
     check('Effective November 12, 2026' not in legal_body)
     check('Jason Martin' in legal_text)
     check(legal_text.count('Jason Martin') == 1)
@@ -225,7 +225,7 @@ for route in ['terms', 'privacy']:
     check('PaperMac\'s developer' in identity)
     if route == 'terms':
         check(identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1])
-        check(legal_text.startswith('PaperMac Terms Effective November 13, 2026 These terms cover'))
+        check(legal_text.startswith('PaperMac Terms Effective November 14, 2026 These terms cover'))
         check('PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text)
     else:
         check(re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S))
@@ -354,7 +354,13 @@ for data in section:
 guards = ['src/mac/style.css', 'src/mac/init.js', 'src/mac/checkout-url.txt', 'src/mac/lifetime-checkout-url.txt',
           'src/mac/dmg-url.txt', 'src/terms', 'src/privacy', 'src/paperland', 'src/_kit', 'terms', 'privacy',
           'paperland', 'site/terms', 'site/privacy', 'site/paperland', 'install', 'site/install', 'scripts', '_headers']
-check(not subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--', *guards], cwd=root), 'B13 frozen files')
+changed = subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--', *guards], cwd=root).decode().splitlines()
+legal_dates = {f'{prefix}{route}/index.html' for prefix in ['src/', '', 'site/'] for route in ['terms', 'privacy']}
+check(set(changed) <= legal_dates, 'B13 frozen files')
+for name in changed:
+    original = subprocess.check_output(['git', 'show', f'9d6b72c4:{name}'], cwd=root)
+    check((root / name).read_bytes() == original.replace(b'Effective November 13, 2026', b'Effective November 14, 2026'),
+          (name, 'Only the approved legal effective-date change'))
 added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '9d6b72c4'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
 check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'] for name in added), 'No added font or raster files')
