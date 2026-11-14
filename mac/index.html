@@ -317,6 +317,41 @@ a:hover { color: var(--brand-accentText); }
 }
 @media(prefers-reduced-motion:reduce) { .ls .track { will-change:auto; } }
 </style>
+<style>
+.demo { margin:48px 0 0; padding:24px 0; background:var(--brand-raised); border-block:1px solid var(--brand-border); }
+.demo .stage { position:relative; height:clamp(250px,41vh,440px); overflow:hidden; container-type:size;
+  --sw:min(90cqw,calc((100cqh - 16px)*1.6)); --sh:calc(var(--sw)/1.6);
+  --sx:calc((100cqw - var(--sw))/2); --sy:calc((100cqh - var(--sh))/2); --iw:calc(var(--sw) - 12px); --wh:calc(var(--sh) - 40px); }
+.demo .scr { position:absolute; z-index:2; left:var(--sx); top:var(--sy); width:var(--sw); height:var(--sh); border:6px solid var(--brand-ink3); border-radius:12px; background:var(--brand-paper); }
+.demo .scr::before { content:""; position:absolute; inset:0 0 auto; height:16px; background:var(--brand-surface); border-bottom:1px solid var(--brand-border); }
+.demo .trk,.demo .track { position:absolute; inset:0; }
+.demo .trk.out { z-index:1; opacity:.32; }
+.demo .trk.in { z-index:3; clip-path:inset(calc(var(--sy) + 24px) calc(var(--sx) + 6px) calc(var(--sy) + 6px) round 6px); }
+.demo .track { will-change:transform; transform:translateX(calc(50cqw - .7325*var(--iw))); transform-origin:0 50%; transition:transform .9s cubic-bezier(.22,.8,.2,1); }
+.demo .win { top:calc(var(--sy) + 26px); height:var(--wh); width:calc(var(--ww)*var(--iw)); transform:translateX(calc(var(--x)*var(--iw))); transform-origin:0 0; font-size:calc(var(--wh)/30); border-radius:8px; transition:transform .9s cubic-bezier(.22,.8,.2,1),opacity .4s; }
+.demo .trk.in .win.f::after { content:""; position:absolute; inset:0; border:3px solid var(--brand-focus); border-radius:inherit; }
+.demo .win .photo { display:block; margin:.8em .9em 0; height:34%; border-radius:.6em; background:linear-gradient(160deg,transparent 50%,var(--brand-ink2) 51% 70%,var(--brand-ink) 71%),var(--brand-accentTint); }
+.demo .win .art { display:block; width:56%; aspect-ratio:1; margin:1.6em auto .4em; border-radius:.8em; background:linear-gradient(140deg,var(--brand-accent),var(--brand-accentText)); }
+.demo .foot { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:24px; align-items:center; margin-top:14px; }
+.demo .cap { font-size:17px; font-weight:700; line-height:1.35; height:2.7em; max-width:32ch; }
+.demo .map { position:relative; width:clamp(140px,22vw,260px); height:22px; }
+.demo .map b { position:absolute; left:0; top:4px; bottom:4px; background:var(--brand-ink3); border-radius:3px; transform-origin:0 50%; transition:transform .9s cubic-bezier(.22,.8,.2,1),opacity .4s; }
+.demo .map b.f { background:var(--brand-accent); }
+.demo .map u { position:absolute; left:0; top:0; bottom:0; border:2px solid var(--brand-viewport); border-radius:6px; transform-origin:0 50%; will-change:transform; transition:transform .9s cubic-bezier(.22,.8,.2,1); }
+.demo .pause { justify-self:end; gap:8px; align-items:center; display:inline-flex; }
+.demo .pause svg { width:14px; height:14px; }
+.demo .pause[data-paused=true] .i-pause,.demo .pause:not([data-paused=true]) .i-play { display:none; }
+.demo.still .track,.demo.still .win,.demo.still .map b,.demo.still .map u { transition:none; }
+@media(max-width:700px) {
+ .demo { padding-block:18px; }
+ .demo .stage { height:220px; }
+ .demo .foot { grid-template-columns:1fr auto; grid-template-rows:44px auto; gap:12px; }
+ .demo .map { grid-row:1; grid-column:1; }
+ .demo .pause { grid-row:1; grid-column:2; }
+ .demo .cap { grid-row:2; grid-column:1/-1; max-width:none; }
+}
+@media(prefers-reduced-motion:reduce) { .demo .track,.demo .win,.demo .map b,.demo .map u { transition:none; } }
+</style>
 <meta property="og:image" content="https://getpaper.sh/mac/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -350,6 +385,20 @@ a:hover { color: var(--brand-accentText); }
       <div class="film-controls"><button class="pause" type="button" data-film-pause hidden>Pause</button><button class="pause" type="button" data-film-replay hidden>Replay promo</button></div>
     </figure>
   </section>
+    <figure class="demo" data-strip-demo aria-label="Animated picture: windows side by side on a Strip wider than the screen. Focus moves, a window opens and widens, and the view zooms out to the whole Strip."
+      data-rest="Your windows, side by side on one Strip."
+      data-beats='["Move focus and the Strip scrolls to it.","Windows sit side by side on the Strip.","Resize windows in the Strip.","Zoom out to see the whole Strip in Overview.","Pick any window and the Strip brings it back.","Your windows, side by side on one Strip."]'>
+      <div class="stage" id="strip-banner-stage" aria-hidden="true">
+        <div class="trk out"><div class="track"><div class="win ph" data-id="a" style="--x:0.00000000;--ww:0.47900000;"><i class="tb"></i><b class="url"></b><b class="photo"></b><b class="ln"><i style="--w:62%" class="h"></i><i style="--w:88%"></i><i style="--w:74%"></i></b></div><div class="win ed f" data-id="b" style="--x:0.49300000;--ww:0.47900000;"><i class="tb"></i><b class="gut"></b><b class="ln"><i style="--w:34%" class="k"></i><i style="--w:58%"></i><i style="--w:46%" class="f"></i><i style="--w:30%"></i><i style="--w:52%" class="s"></i><i style="--w:0"></i><i style="--w:40%" class="k"></i><i style="--w:62%"></i><i style="--w:36%" class="f"></i><i style="--w:48%"></i></b></div><div class="win te" data-id="c" style="--x:0.98600000;--ww:0.32124000;"><i class="tb"></i><b class="ln"><i style="--w:22%" class="p"></i><i style="--w:46%" class="g"></i><i style="--w:40%" class="g"></i><i style="--w:52%" class="g"></i><i style="--w:0"></i><i style="--w:28%" class="p"></i><i style="--w:54%"></i><i style="--w:12%" class="p"></i></b></div><div class="win dc" data-id="n" style="--x:1.32124000;--ww:0.47900000;opacity:0;"><i class="tb"></i><b class="ln"><i style="--w:56%" class="h"></i><i style="--w:90%"></i><i style="--w:84%"></i><i style="--w:70%"></i></b><b class="fig"></b></div><div class="win mu" data-id="d" style="--x:1.32124000;--ww:0.47900000;"><i class="tb"></i><b class="art"></b><b class="ln c"><i style="--w:44%" class="h"></i><i style="--w:30%"></i></b></div><div class="win dc" data-id="e" style="--x:1.81424000;--ww:0.64662000;"><i class="tb"></i><b class="ln"><i style="--w:56%" class="h"></i><i style="--w:90%"></i><i style="--w:84%"></i><i style="--w:70%"></i></b><b class="fig"></b></div><div class="win ed" data-id="f" style="--x:2.47486000;--ww:0.47900000;"><i class="tb"></i><b class="gut"></b><b class="ln"><i style="--w:34%" class="k"></i><i style="--w:58%"></i><i style="--w:46%" class="f"></i><i style="--w:30%"></i><i style="--w:52%" class="s"></i><i style="--w:0"></i><i style="--w:40%" class="k"></i><i style="--w:62%"></i><i style="--w:36%" class="f"></i><i style="--w:48%"></i></b></div></div></div>
+        <div class="scr"></div>
+        <div class="trk in"><div class="track"><div class="win ph" data-id="a" style="--x:0.00000000;--ww:0.47900000;"><i class="tb"></i><b class="url"></b><b class="photo"></b><b class="ln"><i style="--w:62%" class="h"></i><i style="--w:88%"></i><i style="--w:74%"></i></b></div><div class="win ed f" data-id="b" style="--x:0.49300000;--ww:0.47900000;"><i class="tb"></i><b class="gut"></b><b class="ln"><i style="--w:34%" class="k"></i><i style="--w:58%"></i><i style="--w:46%" class="f"></i><i style="--w:30%"></i><i style="--w:52%" class="s"></i><i style="--w:0"></i><i style="--w:40%" class="k"></i><i style="--w:62%"></i><i style="--w:36%" class="f"></i><i style="--w:48%"></i></b></div><div class="win te" data-id="c" style="--x:0.98600000;--ww:0.32124000;"><i class="tb"></i><b class="ln"><i style="--w:22%" class="p"></i><i style="--w:46%" class="g"></i><i style="--w:40%" class="g"></i><i style="--w:52%" class="g"></i><i style="--w:0"></i><i style="--w:28%" class="p"></i><i style="--w:54%"></i><i style="--w:12%" class="p"></i></b></div><div class="win dc" data-id="n" style="--x:1.32124000;--ww:0.47900000;opacity:0;"><i class="tb"></i><b class="ln"><i style="--w:56%" class="h"></i><i style="--w:90%"></i><i style="--w:84%"></i><i style="--w:70%"></i></b><b class="fig"></b></div><div class="win mu" data-id="d" style="--x:1.32124000;--ww:0.47900000;"><i class="tb"></i><b class="art"></b><b class="ln c"><i style="--w:44%" class="h"></i><i style="--w:30%"></i></b></div><div class="win dc" data-id="e" style="--x:1.81424000;--ww:0.64662000;"><i class="tb"></i><b class="ln"><i style="--w:56%" class="h"></i><i style="--w:90%"></i><i style="--w:84%"></i><i style="--w:70%"></i></b><b class="fig"></b></div><div class="win ed" data-id="f" style="--x:2.47486000;--ww:0.47900000;"><i class="tb"></i><b class="gut"></b><b class="ln"><i style="--w:34%" class="k"></i><i style="--w:58%"></i><i style="--w:46%" class="f"></i><i style="--w:30%"></i><i style="--w:52%" class="s"></i><i style="--w:0"></i><i style="--w:40%" class="k"></i><i style="--w:62%"></i><i style="--w:36%" class="f"></i><i style="--w:48%"></i></b></div></div></div>
+      </div>
+      <figcaption class="foot wrap">
+        <p class="cap" aria-hidden="true">Your windows, side by side on one Strip.</p>
+        <span class="map" aria-hidden="true"><b data-id="a" style="width:16.21606982%;transform:translateX(0.00000000%);"></b><b data-id="b" class="f" style="width:16.21606982%;transform:translateX(102.92275574%);"></b><b data-id="c" style="width:10.87526152%;transform:translateX(306.93562446%);"></b><b data-id="n" style="width:16.21606982%;transform:translateX(275.83298539%);opacity:0;"></b><b data-id="d" style="width:16.21606982%;transform:translateX(275.83298539%);"></b><b data-id="e" style="width:21.89067864%;transform:translateX(280.57282484%);"></b><b data-id="f" style="width:16.21606982%;transform:translateX(516.67223382%);"></b><u style="width:33.85400798%;transform:translateX(23.25%)"></u></span>
+        <button class="pause" type="button" aria-controls="strip-banner-stage" aria-label="Pause window animation" hidden><svg class="i-pause" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8.5" y="2" width="3" height="10" rx="1" fill="currentColor"/></svg><svg class="i-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 2.2v9.6L11.8 7z" fill="currentColor"/></svg><span class="lbl">Pause</span></button>
+      </figcaption>
+    </figure>
   <p class="trust wrap">Native macOS Spaces · Mission Control intact · No SIP changes · Notarized · No telemetry</p>
   <section class="features wrap" id="editions" aria-labelledby="features-h">
     <h2 id="features-h">Make room for your work.</h2>
@@ -465,6 +514,90 @@ a:hover { color: var(--brand-accentText); }
   }
 
 
+})();
+</script><script>
+(() => {
+  const figure = document.querySelector('[data-strip-demo]');
+  if (!figure) return;
+  const stage = figure.querySelector('.stage'), tracks = [...figure.querySelectorAll('.track')];
+  const map = figure.querySelector('.map'), view = map.querySelector('u');
+  const button = figure.querySelector('.pause'), caption = figure.querySelector('.cap');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const beats = JSON.parse(figure.dataset.beats), order = ['a','b','c','n','d','e','f'];
+  const wins = order.map(id => {
+    const pair = tracks.map(t => t.querySelector(`[data-id="${id}"]`));
+    return {id,pair,bar:map.querySelector(`[data-id="${id}"]`),w:parseFloat(pair[0].style.getPropertyValue('--ww'))};
+  });
+  // Strip positions and widths use inset-screen fractions; pixel sizes change only on resize.
+  const baseTotal = 2.95386;
+  let G, focus='b', opened=false, wide=false, zoom=false, beat=-1;
+  let playing=!reduced.matches, visible=false, timer;
+  function measure() {
+    G = {width:stage.clientWidth,iw:parseFloat(getComputedStyle(wins[0].pair[0]).width)/wins[0].w,mapWidth:map.clientWidth};
+  }
+  function layout() {
+    let x=0;
+    const positions=wins.filter(w=>w.id!=='n'||opened).map(w=>{
+      const width=w.id==='n' && wide ? .972 : w.w, position={...w,x,width};
+      x+=width+.014; return position;
+    });
+    const total=x-.014, target=positions.find(w=>w.id===focus), scale=zoom?Math.min(1,.972/total):1;
+    const tx=G.width/2-(zoom?scale*total/2:target.x+target.width/2)*G.iw;
+    for (const track of tracks) track.style.transform=`translate3d(${tx}px,0,0) scale(${scale})`;
+    for (const win of wins) {
+      const position=positions.find(p=>p.id===win.id);
+      for (const el of win.pair) {
+        el.style.opacity=position?'1':'0'; el.classList.toggle('f',win.id===focus);
+        if (position) el.style.transform=`translate3d(${position.x*G.iw}px,0,0) scaleX(${position.width/win.w})`;
+      }
+      win.bar.style.opacity=position?'1':'0'; win.bar.classList.toggle('f',win.id===focus);
+      if (position) win.bar.style.transform=`translate3d(${position.x/total*G.mapWidth}px,0,0) scaleX(${position.width/win.w*baseTotal/total})`;
+    }
+    const v0=Math.max(0,(G.width/2-G.iw/2-tx)/scale/G.iw),v1=Math.min(total,(G.width/2+G.iw/2-tx)/scale/G.iw);
+    view.style.transform=`translate3d(${v0/total*G.mapWidth}px,0,0) scaleX(${(v1-v0)*baseTotal/total})`;
+  }
+  function step() {
+    beat=(beat+1)%beats.length;
+    if (beat===0) focus='c';
+    else if (beat===1) {opened=true;focus='n';}
+    else if (beat===2) wide=true;
+    else if (beat===3) zoom=true;
+    else if (beat===4) {zoom=false;focus='e';}
+    else {opened=false;wide=false;zoom=false;focus='b';}
+    caption.textContent=beats[beat]; layout();
+  }
+  function schedule() {
+    clearInterval(timer);
+    if (playing&&visible&&!document.hidden) timer=setInterval(step,2700);
+    button.dataset.paused=String(!playing);
+    button.setAttribute('aria-label',playing?'Pause window animation':'Play window animation');
+    button.querySelector('.lbl').textContent=playing?'Pause':'Play';
+  }
+  button.hidden=false;
+  button.addEventListener('click',()=>{
+    playing=!playing;
+    if (!playing) {
+      const elements=[...tracks,...wins.flatMap(w=>w.pair),...wins.map(w=>w.bar),view];
+      const frames=elements.map(el=>({el,transform:getComputedStyle(el).transform,opacity:getComputedStyle(el).opacity}));
+      figure.classList.add('still');
+      for (const frame of frames) Object.assign(frame.el.style,{transform:frame.transform,opacity:frame.opacity});
+    } else {figure.classList.remove('still');layout();}
+    schedule();
+  });
+  new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;schedule();}).observe(figure);
+  document.addEventListener('visibilitychange',schedule);
+  reduced.addEventListener('change',()=>{
+    playing=!reduced.matches;
+    if (reduced.matches) {opened=false;wide=false;zoom=false;focus='b';beat=-1;caption.textContent=figure.dataset.rest;layout();}
+    schedule();
+  });
+  function resize() {
+    figure.classList.add('still');measure();layout();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>figure.classList.remove('still')));
+  }
+  addEventListener('resize',resize);
+  document.fonts.ready.then(resize);
+  resize(); schedule();
 })();
 </script><script>
 (() => {

@@ -364,3 +364,12 @@ one-line choice for the current hero.
 The home page is a platform chooser; install commands and Mac pricing live on
 `/mac`. Both pages use `src/_kit/launch.css` and the existing brand palette.
 Two-strip height adjustment is Free. Pro adds 3+ strips.
+
+
+The original illustrated Strip banner remains a full-width band directly after
+the split `/mac` hero and before the trust line and features. Its editable markup
+is `figure.demo[data-strip-demo]` in `src/mac/index.html`; `src/mac/banner.css`
+fixes its geometry, and `src/mac/banner.js` moves only compositor transforms.
+Pause also freezes an in-flight transition. Keyboard Space/Enter use the native
+button, with an action label and `aria-controls`. Reduced motion and no JavaScript
+show the same static first frame; the inactive no-JavaScript control is hidden.

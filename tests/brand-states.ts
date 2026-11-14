@@ -168,6 +168,7 @@ try {
     }
     for (const width of [701,768,1000]) {
       await load('/paperland/',width,1024,scheme);
+      assert.equal(await evaluate("document.querySelectorAll('.top nav a').length"),3);
       assert(await evaluate("[...document.querySelectorAll('.top nav a')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>=44&&r.left>=0&&r.right<=innerWidth})"),'PaperLand tablet nav stays visible');checks++;
     }
     for (const route of ['/','/mac/','/paperland/','/terms/','/privacy/','/mac/activate/']) {
@@ -175,7 +176,19 @@ try {
       assert.equal(await evaluate('document.documentElement.scrollWidth'),390,route+' mobile overflow');
       const selector='a.btn,a.mobile-dmg,.top a,footer nav a,footer .brand,.text-links a,button:not([hidden])';
       const short=await evaluate(`(()=>[...document.querySelectorAll(${JSON.stringify(selector)})].map(e=>({text:e.textContent.trim(),r:e.getBoundingClientRect()})).filter(e=>e.r.width>0&&e.r.height>0&&(e.r.width<43.9||e.r.height<43.9)).map(e=>e.text))()`);
-      assert.deepEqual(short,[],route+' mobile target size'); checks+=2;
+      assert.deepEqual(short,[],route+' mobile target size');
+      const enlargedInline=await evaluate(`(()=>[...document.querySelectorAll('p a,li a')].filter(e=>!e.matches(${JSON.stringify(selector)})&&!e.closest('[inert]')&&e.getBoundingClientRect().width>0&&getComputedStyle(e).display!=='inline').map(e=>e.textContent.trim()))()`);
+      assert.deepEqual(enlargedInline,[],route+' in-sentence links stay inline');
+      if (route==='/terms/') {
+        const heights=await evaluate(`(()=>{const p=document.querySelector('.legal p a[href="mailto:billing@getpaper.sh"]').closest('p'),copy=p.cloneNode(true);p.after(copy);for(const a of copy.querySelectorAll('a'))Object.assign(a.style,{display:'inline',minHeight:'0',minWidth:'0',padding:'0'});const result=[p.getBoundingClientRect().height,copy.getBoundingClientRect().height];copy.remove();return result})()`);
+        assert.equal(heights[0],heights[1],'Terms billing link preserves paragraph line spacing');
+      }
+      if (['/terms/','/privacy/','/mac/activate/'].includes(route)) {
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"),route+' skip hidden');
+        await evaluate("document.querySelector('.skip').focus()");
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"),route+' skip visible on focus');
+      }
+      checks+=3;
     }
   }
   await load('/mac/?promo-test=off');
@@ -200,6 +213,39 @@ try {
     await load('/mac/?promo-test=1',width,width===390?844:900,'light',reduced);
     assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Phone and reduced motion skip promo'); checks++;
   }
+  const bannerFrame = `(()=>{const f=document.querySelector('[data-strip-demo]'),s=f.querySelector('.stage').getBoundingClientRect();return {width:f.getBoundingClientRect().width,height:f.getBoundingClientRect().height,stage:s.height,transforms:[...f.querySelectorAll('.track,.win,.map b,.map u')].map(e=>[e.style.transform,e.style.opacity]),caption:f.querySelector('.cap').textContent}})()`;
+  for (const scheme of ['light','dark']) for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
+    await load('/mac/',width,height,scheme,true);
+    await evaluate("document.querySelector('[data-strip-demo]').scrollIntoView({block:'center',behavior:'instant'})");await settle();
+    const fixed=await evaluate(bannerFrame);
+    assert.equal(fixed.width,width,'Banner fills the viewport width');
+    assert(await evaluate("document.querySelector('[data-strip-demo] .pause').getAttribute('aria-label')==='Play window animation'"),'Reduced-motion banner starts paused');
+    await evaluate('scrollBy(0,80)');await settle();
+    assert.deepEqual((await evaluate(bannerFrame)).transforms,fixed.transforms,'Reduced-motion banner stays fixed');
+    assert(await evaluate("[...document.querySelectorAll('[data-strip-demo] .track')].every(e=>getComputedStyle(e).willChange==='transform')"),'Banner tracks use their own compositor layer');
+    await send('Emulation.setScriptExecutionDisabled',{value:true});
+    try {
+      await send('Page.reload',{ignoreCache:true});await Bun.sleep(250);await evaluate('document.fonts.ready.then(()=>true)');
+      assert(await evaluate("document.querySelectorAll('[data-strip-demo] .track .win').length===14&&document.querySelector('[data-strip-demo] .pause').hidden"),'No-JS banner keeps its static windows and hides the inert control');
+      const staticSize=await evaluate("(()=>{const f=document.querySelector('[data-strip-demo]'),s=f.querySelector('.stage');return [f.getBoundingClientRect().width,f.getBoundingClientRect().height,s.getBoundingClientRect().height]})()");
+      assert.deepEqual(staticSize,[fixed.width,fixed.height,fixed.stage]);
+    } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=6;
+  }
+  await load('/mac/');
+  await evaluate("document.querySelector('[data-strip-demo]').scrollIntoView({block:'center',behavior:'instant'});document.querySelector('[data-strip-demo] .pause').focus()");await settle();
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  assert(await evaluate("document.querySelector('[data-strip-demo] .pause').dataset.paused==='true'"),'Space pauses the banner');
+  const pausedBanner=await evaluate(bannerFrame);await Bun.sleep(2900);
+  assert.deepEqual(await evaluate(bannerFrame),pausedBanner,'Pause freezes both in-flight transforms and beats');
+  await evaluate(`window.bannerLayoutWrites=[];window.bannerObserver=new MutationObserver(records=>{for(const r of records){const old=document.createElement('i').style;old.cssText=r.oldValue||'';for(const key of ['width','height','top','font-size'])if(old.getPropertyValue(key)!==r.target.style.getPropertyValue(key))bannerLayoutWrites.push(key)}});bannerObserver.observe(document.querySelector('[data-strip-demo]'),{subtree:true,attributes:true,attributeFilter:['style'],attributeOldValue:true})`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await Bun.sleep(2900);
+  assert.notEqual((await evaluate(bannerFrame)).caption,pausedBanner.caption,'Enter resumes the looping beats');
+  assert.deepEqual(await evaluate('bannerLayoutWrites'),[],'Banner never changes width, height, top or font-size during animation');
+  assert(await evaluate("[...document.querySelectorAll('[data-strip-demo] .track,[data-strip-demo] .win')].every(e=>getComputedStyle(e).transitionProperty.split(',').every(p=>['transform','opacity'].includes(p.trim())))"),'Banner CSS transitions only transform and opacity');
+  await evaluate('bannerObserver.disconnect()');checks+=4;
   for (const path of ['/robots.txt','/favicon.ico','/apple-touch-icon.png']) { assert.equal((await fetch(base+path)).status,200); checks++; }
   console.log(`PASS: ${checks} browser checks: both themes, three viewports, copy and focus, fixed geometry, reverse scrolling, no pins, no-JS first frames and hero playback states`);
 } finally {

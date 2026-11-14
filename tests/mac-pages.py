@@ -129,7 +129,7 @@ check('3+ strips' in pro_column and 'Stacks of 3+ windows' in pro_column)
 check('Lock windows as a group' in pro_column and 'Everything in Free, plus:' in pro_column)
 check('App rules, gestures, shortcuts, config file, CLI and crash recovery' in free_column)
 check(not re.search(r'heights?', pro_column, re.I), 'Height adjustment must not be marketed as Pro-only')
-check('Overview' not in product and 'computer-use agents' not in product.lower())
+check('Overview' not in free_column and 'Overview' not in pro_column and 'computer-use agents' not in product.lower())
 check(not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life', 'discounted upgrades']))
 videos = [attrs for tag, attrs in Page(product).tags if tag == 'video']
 check(len(videos) == 2)
@@ -275,6 +275,12 @@ check('Omarchy with Hyprland' in land_meta['twitter:description'])
 check('Paperland CLI installation v1' in (site / 'install').read_text())
 check('PaperLand installer (unannounced alpha; expect rough edges)' in (site / 'install').read_text())
 check('id="changelog"' not in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)
+banner = re.search(r'<figure class="demo" data-strip-demo.*?</figure>', product, re.S)[0]
+check('Pick any window and the Strip brings it back.' in banner)
+check('id="strip-banner-stage"' in banner and 'class="map"' in banner and 'class="pause"' in banner)
+check('aria-controls="strip-banner-stage"' in banner and 'aria-label="Pause window animation"' in banner)
+check(banner.count('class="track"') == 2 and banner.count('data-id="b"') == 3)
+check(product.index(banner) > product.index('class="hero wrap"') and product.index(banner) < product.index('class="trust wrap"'))
 ls = product.split('class="ls"', 1)[1].split('</section>', 1)[0]
 labels = [('switch', 'Option-Tab to any window'), ('resize', 'Move and resize'),
           ('heights', 'Two Strips per Desktop'), ('send', 'Send to Desktop or display')]
