@@ -1,5 +1,7 @@
 // Check the rendered cascade, including the theme selector and hover label overlays.
 import assert from "node:assert/strict";
+import { checkLightPeeks } from "./strips-peeks";
+import { displayChrome, switchEnd, stillLayout, assertStill } from "./strips-states";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -234,6 +236,115 @@ try {
       checks++;
     }
   }
+  const settle = () => evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  const loadStrips = async (width, height, scheme, reduced = false) => {
+    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width === 390 });
+    await send('Emulation.setEmulatedMedia', { features: [{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}] });
+    await send('Page.navigate', {url:base+'/mac/'}); await Bun.sleep(300);
+    await evaluate('document.fonts.ready'); await settle();
+    await evaluate(`document.documentElement.style.scrollBehavior='auto';window.lsRows=[...document.querySelectorAll('.ls .pin')];
+      window.lsY=(kind,p)=>{const pin=lsRows.find(e=>e.dataset.row===kind),s=pin.querySelector('.stick');return Math.round(scrollY+pin.getBoundingClientRect().top-parseFloat(getComputedStyle(s).top)+(pin.offsetHeight-s.offsetHeight)*p)};
+      window.lsRings=pin=>[...pin.querySelectorAll('.trk.in .win.f,.lift-layer .win.lift')].filter(e=>getComputedStyle(e).display!=='none').length;
+      window.lsTransforms=pin=>[...pin.querySelectorAll('.track,.win')].map(e=>e.style.transform);
+      window.lsTx=kind=>document.querySelector('.ls [data-row='+kind+'] .trk.in .track').style.transform.match(/[-.0-9]+/g).map(Number);`);
+    assert(await evaluate("document.querySelector('.ls').dataset.ready==='1'"), 'Live Strips initialized');
+  };
+  const go = async (kind, p) => { await evaluate(`scrollTo({top:lsY('${kind}',${p}),behavior:'instant'})`); await settle(); };
+  for (const scheme of ['light','dark']) {
+    await loadStrips(1440,900,scheme);
+    for (const kind of ['switch','resize','heights','send','overview']) {
+      for (const p of [0,.4,1]) { await go(kind,p); assert.equal(await evaluate(`lsRings(lsRows.find(e=>e.dataset.row==='${kind}'))`),1,`${scheme} ${kind} one ring at ${p}`); checks++; }
+    }
+    for (const kind of ['switch','resize','overview','send','heights']) {
+      await go(kind,.2); const first = await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`);
+      await go(kind,.7); const mid = await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`);
+      assert.notDeepEqual(mid,first,`${kind} responds to scroll`);
+      await go(kind,.2); assert.deepEqual(await evaluate(`lsTransforms(lsRows.find(e=>e.dataset.row==='${kind}'))`), first, `${kind} exact reverse`); checks++;
+    }
+    for (const kind of ['switch','resize','overview']) {
+      const values = [];
+      const y = await evaluate(`lsY('${kind}',${kind==='switch'?.3:.2})`), k = kind==='switch'?68:225;
+      for (const top of [y,y+k,y+2*k]) { await evaluate(`scrollTo({top:${top},behavior:'instant'})`); await settle(); values.push(await evaluate(`lsTx('${kind}')`)); }
+      const i=kind==='overview'?1:0, tolerance=i?.001:.5;
+      assert(Math.abs(values[1][i]-(values[0][i]+values[2][i])/2)<=tolerance,`${kind} linear: ${JSON.stringify(values)}`); checks++;
+    }
+    assert(await evaluate("[...document.querySelectorAll('.ls .track,.ls .win,.ls .map u')].every(e=>getComputedStyle(e).transitionDuration==='0s')"),'No camera transitions');
+    await go('send',0);
+    assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='send'),a=p.querySelector('.lift').getBoundingClientRect(),b=p.querySelector('.viewport').getBoundingClientRect();return a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom})()"),'Send starts inside viewport');
+    await go('overview',1);
+    assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='overview'),v=p.querySelector('.viewport').getBoundingClientRect();return [...p.querySelectorAll('.trk.in .win')].every(e=>{const r=e.getBoundingClientRect();return r.left>=v.left-1&&r.right<=v.right+1&&r.top>=v.top-1&&r.bottom<=v.bottom+1})})()"),'Overview fits at p=1');
+    for (const [selector, min] of [['.ls .label',15],['.ls .note',5.5],['.ls .ls-lead',5.5]]) {
+      const result = await state(selector); assert(result.ratio>=min,`${scheme} ${selector}: ${result.ratio}`); console.log(`PASS: Live Strips ${scheme} ${selector} contrast ${result.ratio.toFixed(4)}:1`); checks++;
+    }
+    if (scheme==='dark') assert(await evaluate("(()=>{const b=document.querySelector('.ls .band'),p=b.querySelector('.peek');return getComputedStyle(p).filter.includes('brightness(')&&getComputedStyle(p).getPropertyValue('--peek').trim()==='1'&&getComputedStyle(b).backgroundImage.includes('linear-gradient')})()"),'Dark terminal peeks dim by luminance with ink edges');
+    for (const [width,height] of [[1440,900],[1440,700],[768,1024]]) {
+      await loadStrips(width,height,scheme);
+      assert(await evaluate("lsRows.every(p=>{const s=p.querySelector('.stick');return getComputedStyle(s).position==='sticky'&&p.offsetHeight-s.offsetHeight<=innerHeight+1&&s.offsetHeight<=innerHeight-32})"),`Pin bounds ${width}x${height}`);
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width); checks++;
+    }
+  }
+  for (const width of [1440,390]) {
+    await loadStrips(width,width===390?844:900,'light',true);
+    assert(await evaluate("lsRows.every(p=>{const s=p.querySelector('.stick');return getComputedStyle(s).position!=='sticky'&&p.offsetHeight<=s.offsetHeight+1&&lsRings(p)===1})"),'Reduced motion: static and one ring');
+    assert(await evaluate("[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).display==='none'||e.scrollWidth<=e.clientWidth)"),'Reduced motion has no swipe');
+    const first=await evaluate('lsRows.map(lsTransforms)');
+    await evaluate("scrollTo({top:2000,behavior:'instant'})");await settle();
+    await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:width/2,y:400,deltaX:300,deltaY:0});await settle();
+    assert.deepEqual(await evaluate('lsRows.map(lsTransforms)'),first,'Reduced motion transforms stay fixed');
+    assert(await evaluate("!!document.querySelector('.ls .map b.f')"),'Static Minimap focus');
+    assert.equal(await evaluate('document.documentElement.scrollWidth'),width); checks+=5;
+  }
+  for (const scheme of ['light','dark']) {
+    await loadStrips(390,844,scheme);
+    assert(await evaluate("lsRows.every(p=>getComputedStyle(p.querySelector('.stick')).position==='static'&&lsRings(p)===1)"),'Phone no pins and one ring');
+    assert(await evaluate("[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).overflowX==='auto'&&e.clientHeight>=44&&e.scrollWidth>e.clientWidth&&getComputedStyle(e.parentElement).touchAction!=='pan-x')"),'Phone swipe surfaces and vertical page scroll');
+    await evaluate("document.querySelector('.ls [data-row=switch] .band').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
+    const first=await evaluate("document.querySelector('.ls [data-row=switch] .trk.in .win.f').dataset.id");
+    await evaluate("document.querySelector('.ls [data-row=switch] .swipe').scrollLeft+=240");await settle();
+    assert.notEqual(await evaluate("document.querySelector('.ls [data-row=switch] .trk.in .win.f').dataset.id"),first,'Focus follows native swipe');
+    // The media preferences can change without a reload.
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await settle();
+    assert(await evaluate("lsRows.every(p=>lsRings(p)===1)&&[...document.querySelectorAll('.ls .swipe')].every(e=>getComputedStyle(e).display==='none')"),'Live reduced-motion change');
+    checks+=4;
+  }
+  for (const [width, height] of [[1440,900],[768,1024],[390,844]]) {
+    for (const reduced of [false,true]) {
+      await loadStrips(width,height,'light',reduced);
+      if (width > 700 && !reduced) await go('heights',.4);
+      else { await evaluate("document.querySelector('.ls [data-row=heights] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle(); }
+      const capture = async () => (await send('Page.captureScreenshot',{format:'png'})).data;
+      await checkLightPeeks(evaluate,capture,'heights',`Chrome ${width} light ${reduced?'reduce':'motion'} heights`); checks++;
+      if (width > 700 && !reduced) {
+        await go('send',0);
+        await checkLightPeeks(evaluate,capture,'send',`Chrome ${width} light motion send-start`); checks++;
+      }
+    }
+  }
+  for (const scheme of ['light','dark']) {
+    for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
+      for (const reduced of [false,true]) {
+        await loadStrips(width,height,scheme,reduced);
+        assert(await evaluate(displayChrome), `${width} ${scheme}: destination needs its own display bezel and menu bar`);
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.ls .map')).pointerEvents"),'none');
+        checks+=2;
+        if (width>700&&!reduced) {
+          await go('switch',1); const end=await evaluate(switchEnd);
+          assert(end.emptyR<=.001&&end.neighbors>=2, `${width} ${scheme}: switch end ${JSON.stringify(end)}`); checks++;
+        }
+      }
+      await loadStrips(width,height,scheme,true);
+      const expected=await evaluate(stillLayout);
+      await send('Emulation.setScriptExecutionDisabled',{value:true});
+      try {
+        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:'no-preference'}]});
+        await send('Page.reload',{ignoreCache:true}); await Bun.sleep(350);
+        await evaluate('document.fonts.ready.then(()=>true)');
+        assertStill(await evaluate(stillLayout),expected,`${width} ${scheme} no-JS`); checks++;
+      } finally { await send('Emulation.setScriptExecutionDisabled',{value:false}); }
+    }
+  }
+  console.log('PASS: destination display chrome, switch endpoints, no-JS stills and non-interactive Minimap');
+  console.log('PASS: Live Strips reverse, linearity, pin bounds, focus, send, Overview, phone swipe and reduced motion');
   console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
 } finally {
   ws?.close(); chrome.kill(); server.stop(true);
