@@ -87,10 +87,10 @@
           <tr data-feature="heights"><th scope="row">Strip heights</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="stacks"><th scope="row">Windows per stack</th><td aria-label="2">2</td><td aria-label="3+">3+</td></tr>
           <tr data-feature="limelight"><th scope="row">Limelight</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
-          <tr data-feature="previews"><th scope="row" title="Window previews on hover in Minimap and Option-Tab">Minimap/Option-Tab hover previews</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="previews"><th scope="row" title="Window previews on hover in Minimap and Option-Tab">Hover window previews</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="synced"><th scope="row">Strips synced across displays</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="auto-names"><th scope="row">Automatic Desktop names</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
-          <tr data-feature="ai"><th scope="row" title="AI Desktop names and summaries, on-device with Apple Intelligence" aria-describedby="ai-note">On-device AI Desktop names/summaries<sup aria-hidden="true">*</sup></th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="ai"><th scope="row" title="AI Desktop names and summaries, on-device with Apple Intelligence" aria-describedby="ai-note">AI names and summaries<sup aria-hidden="true">*</sup></th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
         </tbody>
       </table>
       <p class="matrix-note" id="ai-note">* Needs Apple Intelligence on a supported Mac; otherwise names come from your projects.</p>
@@ -108,7 +108,7 @@
           <tr data-feature="switcher"><th scope="row">Option-Tab fuzzy search</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="minimap"><th scope="row">Minimap</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="resize"><th scope="row">Move, resize, width presets</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
-          <tr data-feature="send"><th scope="row" title="Send or drag windows to another Desktop or display">Send/drag across Desktops/displays</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="send"><th scope="row" title="Send or drag windows to another Desktop or display">Desktop and display moves</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="select"><th scope="row">Multi-select and Arrange</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="manual-names"><th scope="row">Manual Desktop names</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
           <tr data-feature="scratchpad-windows"><th scope="row">Scratchpad windows</th><td aria-label="2">2</td><td aria-label="Unlimited">∞</td></tr>
@@ -127,7 +127,13 @@
           <h3 id="pro-price-h">PaperMac 27 Pro</h3>
           <p class="price"><b>$19.50</b> <span class="was">then $39</span> · One time.</p>
           <p class="founding">Founding through <time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>. Code <code>BETABELIEVER</code>.</p>
+<!-- Keep the prelaunch offer visible; after sales open, show it only with its checkout. -->
+<!-- sales:off -->
           <p class="lifetime-price">Or Lifetime, all future editions: $39.50 founding, then $79. Code <code>FOREVERFOUNDER</code>.</p>
+<!-- /sales:off -->
+<!-- lifetime:url -->
+          <p class="lifetime-price">Or Lifetime, all future editions: $39.50 founding, then $79. Code <code>FOREVERFOUNDER</code>.</p>
+<!-- /lifetime:url -->
 <!-- sales:url -->
           <a class="btn pro" href="{{CHECKOUT_URL}}">Buy Pro</a>
           <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>

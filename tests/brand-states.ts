@@ -33,7 +33,14 @@ try {
   await new Promise((done) => ws.onopen = done);
   let id = 0;
   const pending = new Map();
-  ws.onmessage = (event) => { const message = JSON.parse(event.data as string); pending.get(message.id)?.(message); pending.delete(message.id); };
+  let mediaRequests: any[] = [], mediaFailures: any[] = [];
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data as string);
+    if (message.method === 'Network.requestWillBeSent' && /\.mp4(?:\?|$)/.test(message.params.request.url))
+      mediaRequests.push({id:message.params.requestId,url:message.params.request.url});
+    if (message.method === 'Network.loadingFailed') mediaFailures.push(message.params);
+    pending.get(message.id)?.(message); pending.delete(message.id);
+  };
   const send = async (method, params = {}) => {
     const message: any = await new Promise((done) => { const next = ++id; pending.set(next, done); ws.send(JSON.stringify({ id: next, method, params })); });
     assert(!message.error, JSON.stringify(message.error));
@@ -82,6 +89,7 @@ try {
     checks++;
   };
   await send("Page.enable");
+  await send("Network.enable");
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Browser.grantPermissions", { origin: base, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
@@ -206,7 +214,15 @@ try {
       checks+=3;
     }
   }
+  await send('Network.setCacheDisabled',{cacheDisabled:true});
+  mediaRequests=[];mediaFailures=[];
   await load('/mac/?promo-test=off');
+  const heroRequests=mediaRequests.filter(e=>e.url.endsWith('/strip.mp4'));
+  assert.equal(heroRequests.length,1,'Hero requests its HTML fallback recording once');
+  assert.equal(mediaRequests.length,1,'Empty promo makes no video request');
+  assert(!mediaFailures.some(e=>heroRequests.some(r=>r.id===e.requestId)),'Hero recording does not abort');
+  console.log('PASS: 1440x900 hero network:',JSON.stringify({requests:mediaRequests,failures:mediaFailures.filter(e=>heroRequests.some(r=>r.id===e.requestId))}));
+  await send('Network.setCacheDisabled',{cacheDisabled:false});checks+=3;
   assert(await evaluate("document.querySelector('.promo').currentSrc===''&&document.querySelector('[data-film-replay]').hidden&&document.querySelector('.hero-film').dataset.phase==='screencast'"),'Empty promo source starts the real loop with replay hidden');
   assert(await evaluate("!performance.getEntriesByType('resource').some(e=>e.name.endsWith('/promo.mp4'))"),'Empty promo does not request a missing media file'); checks+=2;
   await load('/mac/?promo-test=1');

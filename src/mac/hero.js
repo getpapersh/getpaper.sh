@@ -5,7 +5,8 @@
   const pause = frame.querySelector('[data-film-pause]'), replay = frame.querySelector('[data-film-replay]');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)'), phone = matchMedia('(max-width: 700px)');
   const promoSource = frame.dataset.promoSrc;
-  cast.src = frame.dataset.screencastSrc;
+  // Preserve the parser's in-flight request when the selected clip is the HTML fallback.
+  if (frame.dataset.screencastSrc !== cast.querySelector('source').getAttribute('src')) cast.src = frame.dataset.screencastSrc;
   cast.poster = frame.dataset.screencastSrc.replace(/\.mp4$/, '.jpg');
   let current = cast, visible = true, paused = reduced.matches, finished = false;
   const label = () => { pause.textContent = current.paused ? 'Play' : 'Pause'; };

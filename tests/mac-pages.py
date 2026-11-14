@@ -121,7 +121,8 @@ check('>Start free</a>' in product)
 check(product.count('Free to use, with no time limit.') == 1)
 check(product.count('Real app; synthetic documents.') == 1)
 check(product.count('30-day refund, for any reason.') == 1)
-check('Try Pro free for 14 days' not in product and 'Starts inside the app' not in product)
+check('try pro free for 14 days' not in product.lower())
+check('starts inside the app' not in product.lower())
 matrix = product.split('data-feature-matrix>', 1)[1].split('</div>', 1)[0]
 purchase = product.split('class="paper-frame purchase"', 1)[1].split('</aside>', 1)[0]
 check(product.index('data-feature-matrix') < product.index('class="paper-frame purchase"'))
@@ -135,7 +136,7 @@ check(len(rows) == 27 and matrix.split('<details', 1)[0].count('data-feature=') 
 for name, row in rows:
     label = ' '.join(Page(re.search(r'<th\b[^>]*>(.*?)</th>', row, re.S)[1]).texts).replace('*', '').strip()
     cells = [''.join(Page(cell).texts) for cell in re.findall(r'<td\b[^>]*>(.*?)</td>', row, re.S)]
-    check(len(label.split()) <= 4, (name, label))
+    check(len(label.split()) <= 4 and '/' not in label, (name, label))
     expected_cells = ['2', '3+'] if name in {'strips', 'stacks'} else ['2', '∞'] if name == 'scratchpad-windows' else ['—', '✓'] if name in expected_pro else ['✓', '✓']
     check(cells == expected_cells, (name, cells))
     check(row.count('scope="row"') == 1)
@@ -184,10 +185,14 @@ check(buy_links == ([] if checkout == 'off' else [checkout]))
 lifetime_links = [a['href'] for tag, a in Page(product).tags if tag == 'a' and 'lifetime-cta' in a.get('class', '').split()]
 check(lifetime_links == ([] if lifetime == 'off' else [lifetime]))
 check(product.count('$19.50') == 1 and product.count('then $39<') == 1)
-check(product.count('Or Lifetime, all future editions: $39.50 founding, then $79.') == 1)
+lifetime_shown = checkout == 'off' or lifetime != 'off'
+check(product.count('Or Lifetime, all future editions: $39.50 founding, then $79.') == int(lifetime_shown))
 check('<code>BETABELIEVER</code>' in re.search(r'<p class="founding">(.*?)</p>', product, re.S)[1])
-check('<code>FOREVERFOUNDER</code>' in re.search(r'<p class="lifetime-price">(.*?)</p>', product, re.S)[1])
-check(product.count('<code>BETABELIEVER</code>') == 1 and product.count('<code>FOREVERFOUNDER</code>') == 1)
+if lifetime_shown:
+    check('<code>FOREVERFOUNDER</code>' in re.search(r'<p class="lifetime-price">(.*?)</p>', product, re.S)[1])
+else:
+    check('lifetime-price' not in re.sub(r'<style>.*?</style>', '', product, flags=re.S))
+check(product.count('<code>BETABELIEVER</code>') == 1 and product.count('<code>FOREVERFOUNDER</code>') == int(lifetime_shown))
 check(product.count('<time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>') == 1)
 check('{{LIFETIME_' not in product and '{{BUY_LABEL}}' not in product)
 for tag, attrs in Page(product).tags:
@@ -336,13 +341,12 @@ new_trial = 'Pro starts automatically after setup for 7 days. You can choose one
 for path in ['src/terms/index.html', 'terms/index.html', 'site/terms/index.html']:
     original = subprocess.check_output(['git', 'show', f'19caeace:{path}'], cwd=root).decode()
     check((root / path).read_text() == original.replace(old_trial, new_trial), ('Only approved trial change in Terms', path))
+check(not (root / 'src/_kit/v5.js').exists(), 'Unreferenced legacy copy helper removed')
 for source in (root / 'src/_kit').iterdir():
     if source.name == 'launch.css':
         continue
     original = subprocess.check_output(['git', 'show', f'19caeace:src/_kit/{source.name}'], cwd=root)
-    if source.name == 'v5.js':
-        original = original.replace(b' <a href="/mac/#install">Try Pro free for 14 days</a>, starting in the app when you choose, with no automatic charge.', b'')
-    check(source.read_bytes() == original, ('Unchanged existing shared kit except obsolete trial helper', source.name))
+    check(source.read_bytes() == original, ('Unchanged existing shared kit', source.name))
 added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '19caeace'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
 check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2'] for name in added), 'No added fonts')

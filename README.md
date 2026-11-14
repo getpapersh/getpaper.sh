@@ -206,7 +206,9 @@ Two files set the sales modes, and both committed defaults are `off`:
 `src/mac/checkout-url.txt` for PaperMac 27 Pro and
 `src/mac/lifetime-checkout-url.txt` for PaperMac 27 Lifetime. With the Pro file
 `off`, the pricing card offers a download and says
-buying opens soon. Pro and Lifetime prices and their founding codes remain visible.
+buying opens soon. Pro and Lifetime prices and their founding codes remain visible
+while both sales switches are off. With Pro on and Lifetime off, the Lifetime
+price and code are hidden; a Lifetime URL enables its offer and buy link.
 Buy links and buying Terms notices are absent; download Terms notices remain.
 No Lemon Squeezy URL is emitted while both are `off`.
 The bundler accepts only `off` or an `https://` URL in either file and

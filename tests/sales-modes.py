@@ -29,16 +29,20 @@ with tempfile.TemporaryDirectory() as directory:
             assert 'PaperMac is built by Jason Martin, an independent developer.' in html
             assert 'Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.' in html
             assert html.count('then $39<') == 1
-            assert html.count('$39.50') == 1 and html.count('then $79.') == 1
+            lifetime_shown = pro == 'off' or lifetime != 'off'
+            assert html.count('$39.50') == int(lifetime_shown) and html.count('then $79.') == int(lifetime_shown)
             assert html.count('<code>BETABELIEVER</code>') == 1
-            assert html.count('<code>FOREVERFOUNDER</code>') == 1
+            assert html.count('<code>FOREVERFOUNDER</code>') == int(lifetime_shown)
             assert html.count('class="btn quiet lifetime-cta"') == (1 if lifetime != 'off' else 0)
             assert html.count('trial-cta" href="#install">Start free</a>') == 1
             assert html.count('14 days of Pro: your first 7 days start automatically after setup. Extend once for 7 more days when you choose. No card. No automatic charge.') == 1
-            assert 'Try Pro free for 14 days' not in html and 'Starts inside the app' not in html
+            assert 'try pro free for 14 days' not in html.lower()
+            assert 'starts inside the app' not in html.lower()
             notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
             assert html.count(notice) == int(pro != 'off') + int(lifetime != 'off')
             assert html.count('class="sales-closed"') == int(pro == 'off')
+            if pro != 'off' and lifetime == 'off':
+                assert 'class="lifetime-price"' not in html and 'FOREVERFOUNDER' not in html
             if pro != 'off':
                 assert html.count('href="' + pro + '"') == 1
             else:
