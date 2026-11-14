@@ -167,28 +167,58 @@ try {
       await Bun.sleep(250);
       await evaluate('document.fonts.ready.then(() => true)');
       await evaluate("document.documentElement.style.scrollSnapType='none';document.documentElement.style.scrollBehavior='auto'");
-      for (const y of [0, 1200, 1800, 2419, 3000, 3600]) {
+      let midVisible = 0;
+      for (const y of [0, 1200, 1800, 2419, 3600, ...Array.from({length: 16}, (_, i) => 1900 + i * 100)]) {
         await evaluate(`scrollTo({top:${y},behavior:'instant'});new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))`);
-        const cuts = await evaluate(`(() => {
+        const frameState = await evaluate(`(() => {
           const frame=document.querySelector('.vf'), style=getComputedStyle(frame), f=frame.getBoundingClientRect();
-          if (+style.opacity < .05 || style.visibility === 'hidden') return false;
-          return [...document.querySelectorAll('.hero h1,.hero .h1')].some(el=>{
+          const visible = +style.opacity >= .05 && style.visibility !== 'hidden';
+          const cuts = [...document.querySelectorAll('.hero h1,.hero .h1')].some(el=>{
             if (!el.getBoundingClientRect().width || +getComputedStyle(el.closest('.lay')).opacity < .05) return false;
             const range=document.createRange();range.selectNodeContents(el);const r=range.getBoundingClientRect();
             return ([f.left,f.right].some(x=>x>=r.left&&x<=r.right)&&f.bottom>r.top&&f.top<r.bottom)||([f.top,f.bottom].some(y=>y>=r.top&&y<=r.bottom)&&f.right>r.left&&f.left<r.right);
           });
+          return {visible, cuts: visible && cuts};
         })()`);
-        assert(!cuts, `Viewfinder cuts headline at ${width}px, ${scheme}, scroll ${y}`);
+        if (y >= 1900 && y <= 3400 && (y - 1900) % 100 === 0 && frameState.visible) midVisible++;
+        assert(!frameState.cuts, `Viewfinder cuts headline at ${width}px, ${scheme}, scroll ${y}`);
+      }
+      if (width === 768) {
+        assert(midVisible >= 8, `Tablet viewfinder disappeared through the middle of the story: ${midVisible}/16`);
+        checks++;
       }
       checks++;
     }
+    for (const [width, height] of [[1440, 900], [390, 844]]) {
+      await send('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
+      await send('Page.navigate', {url: base + '/mac/'});await Bun.sleep(250);
+      await evaluate('document.fonts.ready.then(() => true)');
+      const hierarchy = await evaluate(`(() => {
+        const price=getComputedStyle(document.querySelector('#pro .col-head b')), name=getComputedStyle(document.querySelector('#pro .col-head h3'));
+        return {priceSize:parseFloat(price.fontSize),nameSize:parseFloat(name.fontSize),priceWeight:+price.fontWeight,nameWeight:+name.fontWeight,priceColor:price.color,nameColor:name.color};
+      })()`);
+      assert(hierarchy.priceSize < hierarchy.nameSize && hierarchy.priceWeight < hierarchy.nameWeight && hierarchy.priceColor !== hierarchy.nameColor, `Sales-off comparison price hierarchy: ${JSON.stringify(hierarchy)}`);
+      checks++;
+    }
     await send('Emulation.setDeviceMetricsOverride', {width: 390, height: 844, deviceScaleFactor: 1, mobile: false});
-    const targets = ['/', '/mac/', '/paperland/', '/terms/', '/privacy/', '/mac/activate/'].map(route => [route, 'a:not(.skip)']);
+    const standalone = 'a.btn, a.mobile-dmg, .top a, footer a, .links a, .way .more-way a, .prod a, .text-links a, .way-panel .sub a';
+    const targets = ['/', '/mac/', '/paperland/', '/terms/', '/privacy/', '/mac/activate/'].map(route => [route, standalone]);
     for (const [route, selector] of targets) {
       await send('Page.navigate', {url: base + route});await Bun.sleep(250);
       await evaluate('document.fonts.ready.then(() => true)');
       const short = await evaluate(`(() => [...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>!e.closest('[inert]')).map(e=>({text:e.textContent.trim(),box:e.getBoundingClientRect().toJSON()})).filter(e=>e.box.width>0&&e.box.height>0&&(e.box.width<43.9||e.box.height<43.9)))()`);
       assert.deepEqual(short, [], `${route} ${scheme}: short mobile tap targets`);
+      const enlargedInline = await evaluate(`(() => [...document.querySelectorAll('p a, li a')].filter(e=>!e.matches(${JSON.stringify(standalone)})&&!e.closest('[inert]')&&e.getBoundingClientRect().width>0&&getComputedStyle(e).display!=='inline').map(e=>e.textContent.trim()))()`);
+      assert.deepEqual(enlargedInline, [], `${route} ${scheme}: in-sentence links must stay inline`);
+      if (route === '/terms/') {
+        const lineHeight = await evaluate(`(() => {
+          const p=document.querySelector('.legal p a[href="mailto:billing@getpaper.sh"]').closest('p'), copy=p.cloneNode(true);
+          p.after(copy);for(const a of copy.querySelectorAll('a'))Object.assign(a.style,{display:'inline',minHeight:'0',minWidth:'0',padding:'0'});
+          const heights=[p.getBoundingClientRect().height,copy.getBoundingClientRect().height];copy.remove();return heights;
+        })()`);
+        assert.equal(lineHeight[0], lineHeight[1], 'Terms billing link must not inflate paragraph line spacing');
+        checks++;
+      }
       assert.equal(await evaluate('document.documentElement.scrollWidth'), 390, `${route}: mobile overflow`);
       if (route === '/mac/') {
         const closed = await evaluate(`(() => {const a=document.querySelector('.top .trial-cta').getBoundingClientRect(),b=document.getElementById('header-sales').getBoundingClientRect();return {gap:b.top-a.bottom,fonts:[...document.querySelectorAll('.decide .price b,.purchase .price b')].map(e=>parseFloat(getComputedStyle(e).fontSize))};})()`);

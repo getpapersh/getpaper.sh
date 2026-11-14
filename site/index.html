@@ -537,7 +537,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 .home-overview { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: 12px; }
 
 @media (max-width: 700px) {
-  .links a, .way .more-way a, .prod a, .product-truth a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .links a, .way .more-way a, .prod a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
   .hero .links a { min-width: 55px; min-height: 55px; }
 }
 </style>
@@ -1460,7 +1460,10 @@ Paper.story({
     // Keep the screen border off headline type while windows pass the viewfinder.
     const frame = vf.getBoundingClientRect();
     const cutsTitle = [...stage.querySelectorAll('.hero h1, .hero .h1')].some(el => {
-      const r = el.getBoundingClientRect();
+      if (+getComputedStyle(el.closest('.lay')).opacity === 0) return false;
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const r = range.getBoundingClientRect();
       const vertical = (frame.left >= r.left && frame.left <= r.right) || (frame.right >= r.left && frame.right <= r.right);
       const horizontal = (frame.top >= r.top && frame.top <= r.bottom) || (frame.bottom >= r.top && frame.bottom <= r.bottom);
       return (vertical && frame.bottom > r.top && frame.top < r.bottom) || (horizontal && frame.right > r.left && frame.left < r.right);

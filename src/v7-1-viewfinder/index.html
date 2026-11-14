@@ -255,7 +255,10 @@ Paper.story({
     // Keep the screen border off headline type while windows pass the viewfinder.
     const frame = vf.getBoundingClientRect();
     const cutsTitle = [...stage.querySelectorAll('.hero h1, .hero .h1')].some(el => {
-      const r = el.getBoundingClientRect();
+      if (+getComputedStyle(el.closest('.lay')).opacity === 0) return false;
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const r = range.getBoundingClientRect();
       const vertical = (frame.left >= r.left && frame.left <= r.right) || (frame.right >= r.left && frame.right <= r.right);
       const horizontal = (frame.top >= r.top && frame.top <= r.bottom) || (frame.bottom >= r.top && frame.bottom <= r.bottom);
       return (vertical && frame.bottom > r.top && frame.top < r.bottom) || (horizontal && frame.right > r.left && frame.left < r.right);

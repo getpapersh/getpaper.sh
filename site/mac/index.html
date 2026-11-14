@@ -487,9 +487,10 @@ time { white-space: nowrap; }
 }
 
 [data-sales="off"] .decide .price b, [data-sales="off"] .purchase .price b { font-size: 26px; color: var(--ink-2); }
+[data-sales="off"] .pro .col-head b { font-size: 20px; font-weight: 650; color: var(--ink-2); }
 [data-sales="off"] .slip .sales-closed { color: var(--ink); font-weight: 750; font-size: 16px; }
 @media (max-width: 700px) {
-  main a:not(.btn):not(.mobile-dmg), footer a, .land p a, .legal p a, .legal li a, .compare > .txt a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .text-links a, .way-panel .sub a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
   .top nav a:not(.btn) { min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 4px; }
 }
 </style>
@@ -504,10 +505,6 @@ a[href^="mailto:"] {
 a[href^="mailto:"]:focus-visible {
   outline: 2px solid var(--brand-focus);
   outline-offset: 2px;
-}
-
-@media (max-width: 700px) {
-  a[href^="mailto:"] { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
 }
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
@@ -783,7 +780,7 @@ a:hover { color: var(--brand-accentText); }
       <div>
         <h3>Script</h3>
         <button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh" data-after="Copied: paste it in Terminal to install PaperMac." aria-describedby="copy-install-script-2"><code>curl -fsSL https://getpaper.sh/install | sh</code><span class="lbl">Copy</span></button><span class="sr-only" id="copy-install-script-2">Copies the install script command</span>
-        <p><a href="https://getpaper.sh/install">Read the script</a></p>
+        <p class="text-links"><a href="https://getpaper.sh/install">Read the script</a></p>
       </div>
     </div>
     <p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>
@@ -793,7 +790,7 @@ a:hover { color: var(--brand-accentText); }
     <h2 id="changelog-h">Changelog</h2>
     <h3>PaperMac 27 Beta 7 · Build 22</h3>
     <p>Computer-use agents can work with windows scrolled off screen. The Minimap adds a Hidden group for apps hidden with Command-H, and Settings can install the papermac command on your PATH.</p>
-    <p><a href="https://dl.getpaper.sh/papermac/appcast-27.xml">Full release notes in the official update feed</a></p>
+    <p class="text-links"><a href="https://dl.getpaper.sh/papermac/appcast-27.xml">Full release notes in the official update feed</a></p>
   </section>
 </main>
 

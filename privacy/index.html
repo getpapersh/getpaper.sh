@@ -487,9 +487,10 @@ time { white-space: nowrap; }
 }
 
 [data-sales="off"] .decide .price b, [data-sales="off"] .purchase .price b { font-size: 26px; color: var(--ink-2); }
+[data-sales="off"] .pro .col-head b { font-size: 20px; font-weight: 650; color: var(--ink-2); }
 [data-sales="off"] .slip .sales-closed { color: var(--ink); font-weight: 750; font-size: 16px; }
 @media (max-width: 700px) {
-  main a:not(.btn):not(.mobile-dmg), footer a, .land p a, .legal p a, .legal li a, .compare > .txt a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .text-links a, .way-panel .sub a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
   .top nav a:not(.btn) { min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 4px; }
 }
 </style>
@@ -504,10 +505,6 @@ a[href^="mailto:"] {
 a[href^="mailto:"]:focus-visible {
   outline: 2px solid var(--brand-focus);
   outline-offset: 2px;
-}
-
-@media (max-width: 700px) {
-  a[href^="mailto:"] { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
 }
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
