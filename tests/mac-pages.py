@@ -317,7 +317,9 @@ check('PaperLand installer (unannounced alpha; expect rough edges)' in (site / '
 check('id="changelog"' in product and 'https://dl.getpaper.sh/papermac/appcast-27.xml' in product)
 # Live Strips keeps the existing captions and introduces no new assets or sales claims.
 ls = product.split('class="ls"', 1)[1].split('class="cols"', 1)[0]
-check('<p class="ls-lead">The core window manager is free to use, with no time limit.</p>' in ls)
+check('ls-lead' not in ls)
+check(product.count('The core window manager is free to use, with no time limit.') == 1)
+check('<p class="col-intro">The core window manager is free to use, with no time limit.</p>' in free_column)
 labels = [
     ('switch', 'Switch windows with Option-Tab'),
     ('resize', 'Move between windows and resize them'),
@@ -356,8 +358,9 @@ check(not subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--
 added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '9d6b72c4'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
 check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'] for name in added), 'No added font or raster files')
-before_copy = subprocess.check_output(['git', 'show', '414eb23:mac/index.html'], cwd=root).decode()
+before_copy = subprocess.check_output(['git', 'show', '1b26911:mac/index.html'], cwd=root).decode()
 def copy_words(html):
     return ' '.join(' '.join(Page(re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', html, flags=re.S)).texts).split())
-check(copy_words(product) == copy_words(before_copy), 'No visible copy changes in the final fix round')
+before_copy = before_copy.replace('<p class="ls-lead">The core window manager is free to use, with no time limit.</p>', '', 1)
+check(copy_words(product) == copy_words(before_copy), 'Only the approved duplicate lead is removed')
 print(f'PASS: {checks} Mac-page assertions; 0 failures; exact site inventory, shared DMG links, local resources, recording controls, Mac links and activation link/header policy')

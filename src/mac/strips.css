@@ -9,7 +9,6 @@
   --win: var(--brand-surface); --win-bar: var(--brand-paper); --win-line: var(--brand-border);
   --win-soft: var(--brand-raised); --term: var(--brand-ink);
 }
-.ls .ls-lead { margin: 0 0 24px; max-width: 40ch; color: var(--ink-2); font-weight: 600; font-size: clamp(17px, 1.4vw, 20px); }
 .ls .pin { position: relative; }
 .ls .stick { margin: 0; padding: 18px 0; }
 .ls figcaption { margin: 0 0 14px; }
@@ -102,4 +101,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-mode]) .ls { --win: inherit; --win-bar: inherit; --win-line: inherit; --win-soft: inherit; --term: inherit; }
+}
+
+:root[data-mode="dark"] .ls .display::before { border-color: #3A3D46; outline: 1px solid var(--brand-borderStrong); outline-offset: -1px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) .ls .display::before { border-color: #3A3D46; outline: 1px solid var(--brand-borderStrong); outline-offset: -1px; }
 }

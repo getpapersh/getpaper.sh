@@ -1,7 +1,7 @@
 // Check the rendered cascade, including the theme selector and hover label overlays.
 import assert from "node:assert/strict";
-import { checkLightPeeks } from "./strips-peeks";
-import { displayChrome, switchEnd, stillLayout, assertStill } from "./strips-states";
+import { checkLightPeeks, readBezel, checkLightBezel } from "./strips-peeks";
+import { displayChrome, switchEnd, stillLayout, assertStill, heightsEdges, leadRemoved } from "./strips-states";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -273,7 +273,7 @@ try {
     assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='send'),a=p.querySelector('.lift').getBoundingClientRect(),b=p.querySelector('.viewport').getBoundingClientRect();return a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom})()"),'Send starts inside viewport');
     await go('overview',1);
     assert(await evaluate("(()=>{const p=lsRows.find(e=>e.dataset.row==='overview'),v=p.querySelector('.viewport').getBoundingClientRect();return [...p.querySelectorAll('.trk.in .win')].every(e=>{const r=e.getBoundingClientRect();return r.left>=v.left-1&&r.right<=v.right+1&&r.top>=v.top-1&&r.bottom<=v.bottom+1})})()"),'Overview fits at p=1');
-    for (const [selector, min] of [['.ls .label',15],['.ls .note',5.5],['.ls .ls-lead',5.5]]) {
+    for (const [selector, min] of [['.ls .label',15],['.ls .note',5.5]]) {
       const result = await state(selector); assert(result.ratio>=min,`${scheme} ${selector}: ${result.ratio}`); console.log(`PASS: Live Strips ${scheme} ${selector} contrast ${result.ratio.toFixed(4)}:1`); checks++;
     }
     if (scheme==='dark') assert(await evaluate("(()=>{const b=document.querySelector('.ls .band'),p=b.querySelector('.peek');return getComputedStyle(p).filter.includes('brightness(')&&getComputedStyle(p).getPropertyValue('--peek').trim()==='1'&&getComputedStyle(b).backgroundImage.includes('linear-gradient')})()"),'Dark terminal peeks dim by luminance with ink edges');
@@ -327,6 +327,28 @@ try {
         assert(await evaluate(displayChrome), `${width} ${scheme}: destination needs its own display bezel and menu bar`);
         assert.equal(await evaluate("getComputedStyle(document.querySelector('.ls .map')).pointerEvents"),'none');
         checks+=2;
+        await evaluate("document.querySelector('.ls [data-row=send] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
+        const capture=async()=>(await send('Page.captureScreenshot',{format:'png'})).data;
+        if (scheme==='dark') {
+          const b=await readBezel(evaluate,capture); console.log('BEZEL:',width,reduced,JSON.stringify(b));
+          assert(b.bezelRatio>=b.outlineRatio&&b.rimWidth===1&&b.rimRatio>=b.bezelRatio,'Dark bezel must be at least as visible as the normal outline, with a 1px highlight');
+        } else await checkLightBezel(evaluate,capture);
+        checks++;
+        if (!reduced) {
+          await evaluate("document.querySelector('.ls [data-row=heights] .stick').scrollIntoView({block:'center',behavior:'instant'})"); await settle();
+          for (const p of [0,1]) {
+            if (width>700) await go('heights',p);
+            else { await evaluate(`document.querySelectorAll('.ls [data-row=heights] .swipe').forEach(e=>e.scrollLeft=${p?100000:0})`); await settle(); }
+            const edges=await evaluate(heightsEdges);
+            assert(edges.every(e=>e.emptyL<=.001&&e.emptyR<=.001),`${width} ${scheme} heights ${p}: ${JSON.stringify(edges)}`);
+            assert.equal(await evaluate("lsRings(lsRows.find(e=>e.dataset.row==='heights'))"),1); checks++;
+          }
+          if (width>700) {
+            const y=await evaluate("lsY('heights',.4)"),k=Math.round(height*.1),samples=[];
+            for (const top of [y,y+k,y+2*k]) { await evaluate(`scrollTo({top:${top},behavior:'instant'})`); await settle(); samples.push(await evaluate("[...document.querySelectorAll('.ls [data-row=heights] .trk.in .track')].map(e=>+e.style.transform.match(/[-.0-9]+/g)[0])")); }
+            assert(samples[1].every((tx,i)=>Math.abs(tx-(samples[0][i]+samples[2][i])/2)<=.5),'Heights cameras remain linear between the bounds'); checks++;
+          }
+        }
         if (width>700&&!reduced) {
           await go('switch',1); const end=await evaluate(switchEnd);
           assert(end.emptyR<=.001&&end.neighbors>=2, `${width} ${scheme}: switch end ${JSON.stringify(end)}`); checks++;
@@ -340,9 +362,16 @@ try {
         await send('Page.reload',{ignoreCache:true}); await Bun.sleep(350);
         await evaluate('document.fonts.ready.then(()=>true)');
         assertStill(await evaluate(stillLayout),expected,`${width} ${scheme} no-JS`); checks++;
+        await evaluate("document.documentElement.style.scrollBehavior='auto';document.querySelector('.ls [data-row=send] .stick').scrollIntoView({block:'center',behavior:'instant'})");
+        const capture=async()=>(await send('Page.captureScreenshot',{format:'png'})).data;
+        if (scheme==='dark') { const b=await readBezel(evaluate,capture); assert(b.bezelRatio>=b.outlineRatio&&b.rimWidth===1&&b.rimRatio>=b.bezelRatio,'No-JS dark bezel contrast and highlight'); }
+        else await checkLightBezel(evaluate,capture);
+        checks++;
       } finally { await send('Emulation.setScriptExecutionDisabled',{value:false}); }
     }
   }
+  assert(await evaluate(leadRemoved),'Only the duplicate lead is removed; the Free intro remains once'); checks++;
+  console.log('PASS: dark bezel contrast, light preservation, bounded heights and approved lead removal');
   console.log('PASS: destination display chrome, switch endpoints, no-JS stills and non-interactive Minimap');
   console.log('PASS: Live Strips reverse, linearity, pin bounds, focus, send, Overview, phone swipe and reduced motion');
   console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);

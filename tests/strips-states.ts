@@ -34,3 +34,8 @@ export function assertStill(actual,expected,label) {
     assert(a.every((x,j)=>Math.abs(x-b[j])<=1),`${label}: ${row.kind} differs from reduced motion by over 1px: ${JSON.stringify({actual:a,expected:b})}`);
   });
 }
+export const heightsEdges = `(() => [...document.querySelectorAll('.ls [data-row=heights] .band')].map(b=>{
+  const v=b.querySelector('.viewport').getBoundingClientRect(),wins=[...b.querySelectorAll('.trk.in .win')].map(e=>e.getBoundingClientRect());
+  return {emptyL:Math.max(0,Math.min(...wins.map(r=>r.left))-v.left)/v.width,emptyR:Math.max(0,v.right-Math.max(...wins.map(r=>r.right)))/v.width};
+}))()`;
+export const leadRemoved = `!document.querySelector('.ls-lead') && [...document.querySelectorAll('p')].filter(e=>e.textContent.trim()==='The core window manager is free to use, with no time limit.').length===1 && document.querySelector('#free .col-intro').textContent.trim()==='The core window manager is free to use, with no time limit.'`;

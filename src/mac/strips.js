@@ -75,6 +75,10 @@
       tx = opts.overview ? G.vpCenter - scale * T / 2 - b.swipe.scrollLeft : G.vpCenter - min - b.swipe.scrollLeft;
       focus = nearest(pos, (G.vpCenter - tx) / scale).id;
     }
+    if (b.row === 'heights') {
+      tx = Math.min(G.ix, Math.max(G.ix + G.iw - T, tx));
+      if (mode() === 'swipe') focus = nearest(pos, G.vpCenter - tx).id;
+    }
     camera(b, tx, scale); place(b, pos, opts.ring === false ? null : focus);
     if (b.map) {
       const k = b.mapWidth / T;

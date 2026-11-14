@@ -39,3 +39,24 @@ export async function checkLightPeeks(evaluate, capture, kind, label) {
   console.log(`PASS: ${label}: terminal material, frame step <=4 and monotonic outward dim`);
   return result;
 }
+export async function readBezel(evaluate,capture) {
+  const sample=await evaluate(`(()=>{const [s,d]=document.querySelectorAll('.ls [data-row=send] .band'),a=s.getBoundingClientRect(),b=d.getBoundingClientRect();return {points:[[a.left-6,a.top+a.height/2],[a.left-1,a.top+a.height/2],[b.left+3,b.top+b.height/2],[b.left,b.top+b.height/2]].map(p=>p.map(Math.round)),rim:parseFloat(getComputedStyle(d,'::before').outlineWidth)}})()`);
+  const png=await capture();
+  const pixels=await evaluate(`(async()=>{const img=new Image();img.src='data:image/png;base64,'+${JSON.stringify(png)};await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);return ${JSON.stringify(sample.points)}.map(([x,y])=>[...ctx.getImageData(x,y,1,1).data].slice(0,3))})()`);
+  const lum=rgb=>rgb.map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((a,x,i)=>a+x*[.2126,.7152,.0722][i],0);
+  const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+  return {page:pixels[0],outline:pixels[1],bezel:pixels[2],rim:pixels[3],outlineRatio:ratio(pixels[1],pixels[0]),bezelRatio:ratio(pixels[2],pixels[0]),rimRatio:ratio(pixels[3],pixels[0]),rimWidth:sample.rim};
+}
+export async function sendBandHash(evaluate,capture) {
+  const r=await evaluate("(()=>{const r=document.querySelector('.ls .display').getBoundingClientRect();return [Math.round(r.left)-2,Math.round(r.top)-2,Math.round(r.width)+4,Math.round(r.height)+4]})()");
+  const png=await capture();
+  return evaluate(`(async()=>{const img=new Image();img.src='data:image/png;base64,'+${JSON.stringify(png)};await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const bytes=ctx.getImageData(...${JSON.stringify(r)}).data;return [...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('')})()`);
+}
+export async function checkLightBezel(evaluate,capture) {
+  const actual=await sendBandHash(evaluate,capture);
+  await evaluate(`(()=>{const s=document.createElement('style');s.id='old-light-bezel';s.textContent=':root .ls .display::before{border-color:var(--term);outline:none}';document.head.append(s);return true})()`);
+  const original=await sendBandHash(evaluate,capture);
+  await evaluate("(document.getElementById('old-light-bezel').remove(),true)");
+  assert.equal(actual,original,'Light send pixels must match the original bezel policy');
+  return actual;
+}
