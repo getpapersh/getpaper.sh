@@ -77,17 +77,54 @@
   </section>
   <section class="pricing wrap" id="pricing" aria-labelledby="pricing-h">
     <h2 id="pricing-h">Free to start. Pro for more.</h2>
-    <div class="cols">
-      <div class="paper-frame edition" id="free">
-        <h3>PaperMac Free <span class="edition-price">$0</span></h3>
-        <p>Free to use, with no time limit.</p>
-        <ul class="feats"><li>Stacks of up to 2 windows</li><li>Select several windows and arrange them at once</li><li>App rules, gestures, shortcuts, config file, CLI and crash recovery</li></ul>
-      </div>
-      <div class="paper-frame edition pro" id="pro">
-        <h3>PaperMac 27 Pro</h3>
-        <p>Everything in Free, plus:</p>
-        <ul class="feats"><li>3+ strips · Stacks of 3+ windows</li><li>Limelight dims everything but your work</li><li>Window previews on hover</li><li>Strips in sync across displays</li><li>Desktops that name themselves</li><li>Snooze windows · Lock windows as a group</li></ul>
-        <div class="purchase" aria-label="PaperMac pricing">
+    <p class="free-line">Free to use, with no time limit.</p>
+    <div class="paper-frame feature-matrix" data-feature-matrix>
+      <table class="feature-table" aria-label="PaperMac Free and Pro features">
+        <colgroup><col><col><col></colgroup>
+        <thead><tr><th scope="col">Feature</th><th scope="col" id="free">Free</th><th scope="col" id="pro">Pro</th></tr></thead>
+        <tbody>
+          <tr data-feature="strips"><th scope="row">Strips per Desktop</th><td aria-label="2">2</td><td aria-label="3+">3+</td></tr>
+          <tr data-feature="heights"><th scope="row">Strip heights</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="stacks"><th scope="row">Windows per stack</th><td aria-label="2">2</td><td aria-label="3+">3+</td></tr>
+          <tr data-feature="limelight"><th scope="row">Limelight</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="previews"><th scope="row" title="Window previews on hover in Minimap and Option-Tab">Minimap/Option-Tab hover previews</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="synced"><th scope="row">Strips synced across displays</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="auto-names"><th scope="row">Automatic Desktop names</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="ai"><th scope="row" title="AI Desktop names and summaries, on-device with Apple Intelligence" aria-describedby="ai-note">On-device AI Desktop names/summaries<sup aria-hidden="true">*</sup></th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+        </tbody>
+      </table>
+      <p class="matrix-note" id="ai-note">* Needs Apple Intelligence on a supported Mac; otherwise names come from your projects.</p>
+      <details data-feature-details open>
+        <summary>See all features</summary>
+      <table class="feature-table" aria-label="PaperMac Free and Pro features">
+        <colgroup><col><col><col></colgroup>
+        <thead><tr><th scope="col">Feature</th><th scope="col">Free</th><th scope="col">Pro</th></tr></thead>
+        <tbody>
+          <tr data-feature="suggest-name"><th scope="row">Suggest a name</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="name-all"><th scope="row">Name All Desktops</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="snooze"><th scope="row">Snooze windows</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="groups"><th scope="row">Window groups</th><td aria-label="Not included">—</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="every-display"><th scope="row" title="A scrolling Strip on every Desktop and display">Every Desktop and display</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="switcher"><th scope="row">Option-Tab fuzzy search</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="minimap"><th scope="row">Minimap</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="resize"><th scope="row">Move, resize, width presets</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="send"><th scope="row" title="Send or drag windows to another Desktop or display">Send/drag across Desktops/displays</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="select"><th scope="row">Multi-select and Arrange</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="manual-names"><th scope="row">Manual Desktop names</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="scratchpad-windows"><th scope="row">Scratchpad windows</th><td aria-label="2">2</td><td aria-label="Unlimited">∞</td></tr>
+          <tr data-feature="scratchpad-controls"><th scope="row">Scratchpad toggle, S, CLI</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="rules"><th scope="row">App rules</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="gestures"><th scope="row">Gestures</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="shortcuts"><th scope="row">Custom shortcuts</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="config"><th scope="row">Config file</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="cli"><th scope="row">CLI</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+          <tr data-feature="recovery"><th scope="row">Crash recovery</th><td aria-label="Included">✓</td><td aria-label="Included">✓</td></tr>
+        </tbody>
+      </table>
+      </details>
+    </div>
+    <aside class="paper-frame purchase" aria-labelledby="pro-price-h">
+          <h3 id="pro-price-h">PaperMac 27 Pro</h3>
           <p class="price"><b>$19.50</b> <span class="was">then $39</span> · One time.</p>
           <p class="founding">Founding through <time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>. Code <code>BETABELIEVER</code>.</p>
           <p class="lifetime-price">Or Lifetime, all future editions: $39.50 founding, then $79. Code <code>FOREVERFOUNDER</code>.</p>
@@ -99,16 +136,14 @@
           <a class="btn quiet lifetime-cta" href="{{LIFETIME_CHECKOUT_URL}}">Buy Lifetime</a>
           <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
 <!-- /lifetime:url -->
-          <a class="btn ink trial-cta" href="#install">Try Pro free for 14 days</a>
+          <a class="btn ink trial-cta" href="#install">Start free</a>
 <!-- sales:off -->
           <p class="sales-closed">Buying opens soon.</p>
 <!-- /sales:off -->
-          <p class="trial">Starts inside the app, when you choose. No automatic charge.</p>
+          <p class="trial">14 days of Pro: your first 7 days start automatically after setup. Extend once for 7 more days when you choose. No card. No automatic charge.</p>
           <p class="terms-short">30-day refund, for any reason.</p>
           <p class="terms-short">Covers macOS 27 forever; later editions are optional. Up to five activations.</p>
-        </div>
-      </div>
-    </div>
+        </aside>
     <p class="beta">Beta: private macOS APIs change, so an update can break things.</p>
     <p class="maker">PaperMac is built by Jason Martin, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>
   </section>

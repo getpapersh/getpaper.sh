@@ -205,7 +205,7 @@ running the suites below; the default build's committed-source guard stays intac
 Two files set the sales modes, and both committed defaults are `off`:
 `src/mac/checkout-url.txt` for PaperMac 27 Pro and
 `src/mac/lifetime-checkout-url.txt` for PaperMac 27 Lifetime. With the Pro file
-`off`, the pricing card offers the manually started 14-day Pro trial and says
+`off`, the pricing card offers a download and says
 buying opens soon. Pro and Lifetime prices and their founding codes remain visible.
 Buy links and buying Terms notices are absent; download Terms notices remain.
 No Lemon Squeezy URL is emitted while both are `off`.
@@ -363,7 +363,10 @@ one-line choice for the current hero.
 
 The home page is a platform chooser; install commands and Mac pricing live on
 `/mac`. Both pages use `src/_kit/launch.css` and the existing brand palette.
-Two-strip height adjustment is Free. Pro adds 3+ strips.
+Two-strip height adjustment is Free. Pro adds 3+ strips. The feature matrix shows
+eight headline rows; native “See all features” holds the rest. It is open in the
+HTML so every row is available without JavaScript, and the page script closes it
+initially when JavaScript runs.
 
 
 The original illustrated Strip banner remains a full-width band directly after
@@ -373,3 +376,17 @@ fixes its geometry, and `src/mac/banner.js` moves only compositor transforms.
 Pause also freezes an in-flight transition. Keyboard Space/Enter use the native
 button, with an action label and `aria-controls`. Reduced motion and no JavaScript
 show the same static first frame; the inactive no-JavaScript control is hidden.
+
+
+The Pro trial totals 14 days: the first 7 days start automatically after setup,
+and the user can choose one extension for 7 more days. No card is required and
+there is no automatic charge. The site states this once in the Mac price block;
+Terms retain the same behavior. There is no competitor comparison on `/mac`;
+PaperWM and niri appear only in the footer inspiration credit.
+
+The matrix keeps Strip heights available in both editions. Free holds up to two
+scratchpad windows; Pro has no capacity limit. Scratchpad toggle, S pill and CLI
+remain Free. The source check used `jsonMartin/papermac` main at
+`2a91a34d3159593a20981e66e16936a3baf8f533`. Its first-week status still says
+“14-day Pro trial”; the implemented trial is the automatic 7 days plus one
+optional 7-day extension described above.

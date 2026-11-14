@@ -121,7 +121,7 @@ try {
         await verify('#install .cmd',`Mac Copied hover ${scheme}`,true);
         await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
         await verify('#install .cmd',`Mac Copied after leaving ${scheme}`,true);
-        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice']) await verify(selector,`${selector} ${scheme}`);
+        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice','.feature-table th','.feature-table td','.matrix-note']) await verify(selector,`${selector} ${scheme}`);
       }
       await evaluate("document.querySelector('[data-theme-set=dark]').click()");
       assert.equal(await evaluate('document.documentElement.dataset.mode'),'dark');
@@ -131,6 +131,19 @@ try {
     }
     for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
       await load('/mac/',width,height,scheme);
+      assert.equal(await evaluate("document.querySelector('[data-feature-details]').open"),false,'Feature details close when JavaScript runs');
+      assert(await evaluate("(()=>{const frame=document.querySelector('[data-feature-matrix]').getBoundingClientRect(),th=document.querySelector('.feature-table thead th:last-child'),r=document.createRange();r.selectNodeContents(th);const text=r.getBoundingClientRect(),fold=parseFloat(getComputedStyle(document.querySelector('[data-feature-matrix]'),'::before').width);return text.top>=frame.top+fold||text.right<=frame.right-fold})()"),'Fold does not obscure the Pro column label'); checks++;
+      const visibleRows = () => evaluate("[...document.querySelectorAll('[data-feature]')].filter(e=>e.checkVisibility()).length");
+      assert.equal(await visibleRows(),8,'Eight headline matrix rows');
+      assert.deepEqual(await evaluate("[...document.querySelector('[data-feature=heights]').querySelectorAll('td')].map(e=>e.innerText)"),['✓','✓'],'Heights are included in both editions');
+      await evaluate("document.querySelector('[data-feature-details] summary').focus()");
+      await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+      await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await settle();
+      assert.equal(await visibleRows(),27,'Native keyboard expansion exposes all verified features');
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'Expanded matrix fits viewport');
+      assert(await evaluate("document.querySelector('[data-feature-details] summary').getBoundingClientRect().height>=44"),'Feature disclosure touch target');
+      await evaluate("document.querySelector('[data-feature-details]').open=false"); checks+=6;
       const geometry=await evaluate(`(()=>[...document.querySelectorAll('.ls .pin')].map(p=>{const s=p.querySelector('.stick'),m=p.querySelector('.media'),r=m.getBoundingClientRect();return {kind:p.dataset.row,fill:r.height/innerHeight,ratio:r.width/r.height,pin:p.offsetHeight-s.offsetHeight,position:getComputedStyle(s).position}}))()`);
       assert.equal(geometry.length,4);
       for (const row of geometry) {
@@ -163,6 +176,8 @@ try {
         await send('Page.reload',{ignoreCache:true});await Bun.sleep(300);await evaluate('document.fonts.ready.then(()=>true)');
         assert.deepEqual(await evaluate(snapshot),expected,'No-JavaScript diagrams match the reduced-motion first frame');
         assert(await evaluate("document.querySelectorAll('.ls .band .win').length>10"),'Static windows exist without JS');
+        assert(await evaluate("document.querySelector('[data-feature-details]').open&&[...document.querySelectorAll('[data-feature]')].every(e=>e.checkVisibility())"),'All matrix features are available without JavaScript');
+        assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'No-JS expanded matrix fits viewport'); checks+=2;
         assert(await evaluate("getComputedStyle(document.querySelector('.screencast')).display!=='none'&&document.querySelector('.screencast').controls"),'No-JS hero keeps native playback controls');
       } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=5;
     }

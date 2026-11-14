@@ -33,7 +33,9 @@ with tempfile.TemporaryDirectory() as directory:
             assert html.count('<code>BETABELIEVER</code>') == 1
             assert html.count('<code>FOREVERFOUNDER</code>') == 1
             assert html.count('class="btn quiet lifetime-cta"') == (1 if lifetime != 'off' else 0)
-            assert html.count('trial-cta" href="#install"') == 1
+            assert html.count('trial-cta" href="#install">Start free</a>') == 1
+            assert html.count('14 days of Pro: your first 7 days start automatically after setup. Extend once for 7 more days when you choose. No card. No automatic charge.') == 1
+            assert 'Try Pro free for 14 days' not in html and 'Starts inside the app' not in html
             notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
             assert html.count(notice) == int(pro != 'off') + int(lifetime != 'off')
             assert html.count('class="sales-closed"') == int(pro == 'off')

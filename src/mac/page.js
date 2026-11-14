@@ -52,4 +52,5 @@
   }
 
 
+  for (const details of $$("[data-feature-details]")) details.open = false;
 })();

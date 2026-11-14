@@ -116,20 +116,39 @@ check('Free forever' not in product and '#activate=' not in product)
 check('Covers macOS 27 forever; later editions are optional. Up to five activations.' in product)
 check('Golden Gate' not in product and 'closed-source software' not in product)
 check('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product)
-check(product.count('Try Pro free for 14 days') == 1)
-check(product.count('Starts inside the app, when you choose. No automatic charge.') == 1)
+check(product.count('14 days of Pro: your first 7 days start automatically after setup. Extend once for 7 more days when you choose. No card. No automatic charge.') == 1)
+check('>Start free</a>' in product)
 check(product.count('Free to use, with no time limit.') == 1)
 check(product.count('Real app; synthetic documents.') == 1)
 check(product.count('30-day refund, for any reason.') == 1)
-check('free week' not in product and 'starts automatically after setup' not in product)
-free_column = product.split('id="free"', 1)[1].split('id="pro"', 1)[0]
-pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
-check('Stacks of up to 2 windows' in free_column and 'Select several windows and arrange them at once' in free_column)
-check('3+ strips' in pro_column and 'Stacks of 3+ windows' in pro_column)
-check('Lock windows as a group' in pro_column and 'Everything in Free, plus:' in pro_column)
-check('App rules, gestures, shortcuts, config file, CLI and crash recovery' in free_column)
-check(not re.search(r'heights?', pro_column, re.I), 'Height adjustment must not be marketed as Pro-only')
-check('Overview' not in free_column and 'Overview' not in pro_column and 'computer-use agents' not in product.lower())
+check('Try Pro free for 14 days' not in product and 'Starts inside the app' not in product)
+matrix = product.split('data-feature-matrix>', 1)[1].split('</div>', 1)[0]
+purchase = product.split('class="paper-frame purchase"', 1)[1].split('</aside>', 1)[0]
+check(product.index('data-feature-matrix') < product.index('class="paper-frame purchase"'))
+check('class="cols"' not in product and 'class="feats"' not in product)
+check('<details data-feature-details open>' in matrix and '<summary>See all features</summary>' in matrix)
+rows = re.findall(r'<tr data-feature="([^"]+)">(.*?)</tr>', matrix, re.S)
+expected_pro = {'limelight', 'previews', 'synced', 'auto-names', 'ai', 'suggest-name', 'name-all', 'snooze', 'groups'}
+expected_shared = {'heights', 'every-display', 'switcher', 'minimap', 'resize', 'send', 'select', 'manual-names', 'scratchpad-controls', 'rules', 'gestures', 'shortcuts', 'config', 'cli', 'recovery'}
+check({name for name, _ in rows} == expected_pro | expected_shared | {'strips', 'stacks', 'scratchpad-windows'})
+check(len(rows) == 27 and matrix.split('<details', 1)[0].count('data-feature=') == 8)
+for name, row in rows:
+    label = ' '.join(Page(re.search(r'<th\b[^>]*>(.*?)</th>', row, re.S)[1]).texts).replace('*', '').strip()
+    cells = [''.join(Page(cell).texts) for cell in re.findall(r'<td\b[^>]*>(.*?)</td>', row, re.S)]
+    check(len(label.split()) <= 4, (name, label))
+    expected_cells = ['2', '3+'] if name in {'strips', 'stacks'} else ['2', '∞'] if name == 'scratchpad-windows' else ['—', '✓'] if name in expected_pro else ['✓', '✓']
+    check(cells == expected_cells, (name, cells))
+    check(row.count('scope="row"') == 1)
+    check(len([1 for tag, attrs in Page(row).tags if tag == 'td' and 'aria-label' in attrs]) == 2)
+check('Needs Apple Intelligence on a supported Mac; otherwise names come from your projects.' in matrix)
+check('aria-describedby="ai-note"' in matrix and 'on-device with Apple Intelligence' in matrix)
+check('Overview' not in matrix and 'unevenStackHeights' not in matrix)
+check('Scratchpad windows' in matrix and 'aria-label="Unlimited"' in matrix)
+check(not re.search(r'heights?', purchase, re.I), 'Height adjustment must not be marketed as Pro-only')
+check('computer-use agents' not in product.lower())
+main_copy = re.search(r'<main\b[^>]*>(.*?)</main>', product, re.S)[1]
+check(not re.search(r'PaperWM|niri|\bversus\b|\bvs\.?\s', main_copy, re.I), 'No competitor comparison')
+check(product.count('PaperWM</a>') == 1 and product.count('niri</a>') == 1)
 check(not any(phrase in product.lower() for phrase in ['lifetime support', 'lifetime updates', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life', 'discounted upgrades']))
 videos = [attrs for tag, attrs in Page(product).tags if tag == 'video']
 check(len(videos) == 2)
@@ -256,6 +275,7 @@ check('Experimental on macOS.' in main)
 check('curl -fsSL' not in main and 'scroll-snap' not in main)
 check('Room for your windows' not in main and 'Beyond the arrow keys' not in main)
 terms = (site / 'terms/index.html').read_text()
+check('Pro starts automatically after setup for 7 days. You can choose one 7-day extension, for 14 days total. No card is required and there is no automatic charge.' in terms)
 for phrase in ['closed-source software', 'licensed under these proprietary Terms', 'Each activated macOS user account counts as one installation.', 'macOS 27 Golden Gate', "You get a full refund, and we won't ask why."]:
     check(phrase in terms, ('Retained legal detail', phrase))
 for page in [main, product, terms]:
@@ -305,17 +325,24 @@ check(product.count('data:font/ttf') == 2 and product.count('data:image/') == 0 
 check(not re.search(r'<(?:img|video|svg)\b', ls))
 for data in section:
     check(b'@font-face' not in data and b'url(' not in data)
-# The current brief permits a new shared stylesheet; installer, legal and sales switches stay frozen.
+# Only the approved trial sentence changes in Terms; all other legal text stays byte-identical.
 guards = ['src/mac/style.css', 'src/mac/init.js', 'src/mac/checkout-url.txt', 'src/mac/lifetime-checkout-url.txt',
-          'src/mac/dmg-url.txt', 'src/terms', 'src/privacy', 'src/paperland', 'terms', 'privacy',
-          'paperland', 'site/terms', 'site/privacy', 'site/paperland', 'install', 'site/install', 'scripts', '_headers']
+          'src/mac/dmg-url.txt', 'src/privacy', 'src/paperland', 'privacy',
+          'paperland', 'site/privacy', 'site/paperland', 'install', 'site/install', 'scripts', '_headers']
 changed = subprocess.check_output(['git', 'diff', '--name-only', '19caeace', '--', *guards], cwd=root).decode().splitlines()
 check(changed == [], ('Unchanged out-of-scope sources', changed))
+old_trial = 'The Pro trial lasts 14 days from when you start it in the app.'
+new_trial = 'Pro starts automatically after setup for 7 days. You can choose one 7-day extension, for 14 days total. No card is required and there is no automatic charge.'
+for path in ['src/terms/index.html', 'terms/index.html', 'site/terms/index.html']:
+    original = subprocess.check_output(['git', 'show', f'19caeace:{path}'], cwd=root).decode()
+    check((root / path).read_text() == original.replace(old_trial, new_trial), ('Only approved trial change in Terms', path))
 for source in (root / 'src/_kit').iterdir():
     if source.name == 'launch.css':
         continue
     original = subprocess.check_output(['git', 'show', f'19caeace:src/_kit/{source.name}'], cwd=root)
-    check(source.read_bytes() == original, ('Unchanged existing shared kit', source.name))
+    if source.name == 'v5.js':
+        original = original.replace(b' <a href="/mac/#install">Try Pro free for 14 days</a>, starting in the app when you choose, with no automatic charge.', b'')
+    check(source.read_bytes() == original, ('Unchanged existing shared kit except obsolete trial helper', source.name))
 added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '19caeace'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
 check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2'] for name in added), 'No added fonts')
