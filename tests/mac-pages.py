@@ -306,6 +306,45 @@ check('id="strip-banner-stage"' in banner and 'class="map"' in banner and 'class
 check('aria-controls="strip-banner-stage"' in banner and 'aria-label="Pause window animation"' in banner)
 check(banner.count('class="track"') == 2 and banner.count('data-id="b"') == 3)
 check(product.index(banner) > product.index('class="hero wrap"') and product.index(banner) < product.index('class="trust wrap"'))
+engine_copy = [
+    'Written from scratch for macOS.',
+    'Written from scratch in Swift by one independent developer.',
+    'Works with your real Desktops and Mission Control.',
+    'Windows never spill onto your other displays.',
+    'No SIP changes, no code injection. The free version needs only Accessibility.',
+]
+engine = re.search(r'<section\b[^>]*\bid="engine"[^>]*>.*?</section>', product, re.S)
+check(engine is not None, 'Approved engine section exists')
+engine = engine[0]
+check('aria-labelledby="engine-h"' in engine and '<h2 id="engine-h">' in engine)
+check(' '.join(' '.join(Page(engine).texts).split()) == ' '.join(engine_copy), 'Only approved engine copy')
+for phrase in engine_copy:
+    check(product.count(phrase) == 1, ('Engine copy exactly once', phrase))
+check([tag for tag, _ in Page(engine).tags].count('li') == 4, 'Four engine list items')
+check(product[product.index(banner) + len(banner):].lstrip().startswith(engine), 'Engine immediately follows banner')
+check(product.index(engine) < product.index('class="trust wrap"') < product.index('id="editions"'), 'Engine precedes trust and features')
+faq_summary = "How is PaperMac's engine different?"
+faq_answer = "PaperMac was written from scratch. On macOS 27, it runs on an engine that gives every window its own container. As you scroll, windows stay full size on their own display instead of being pushed off-screen or squeezed to fit, so nothing peeks onto your other monitor and apps don't reflow. Windows you've scrolled away from keep running in the background, ready the moment you come back."
+faq = re.search(r'<details\b[^>]*\bid="engine-faq"[^>]*>.*?</details>', product, re.S)
+check(faq is not None, 'Approved engine FAQ exists')
+faq = faq[0]
+check(product.count(faq_summary) == 1 and product.count(faq_answer) == 1, 'FAQ copy exactly once')
+check(' '.join(' '.join(Page(faq).texts).split()) == faq_summary + ' ' + faq_answer, 'Only approved FAQ copy')
+check('open' not in next(attrs for tag, attrs in Page(faq).tags if tag == 'details'), 'FAQ collapsed by default')
+check(product.index(faq) > product.index(engine) + len(engine), 'FAQ outside engine section')
+check('TODO' not in faq)
+check(product.count("<!-- Claim basis: papermac main 2a91a34d, tileHostAll container path, per-display clipping, background keepalive default since beta.7. Re-verify if any change. -->") == 1, 'FAQ claim-basis comment retained')
+for route in ['index.html', 'mac/index.html']:
+    html = (site / route).read_text()
+    html = re.sub(r'<details\b[^>]*\bid="engine-faq"[^>]*>.*?</details>', '', html, flags=re.S | re.I)
+    copy_html = re.sub(r'<(script|style)\b[^>]*>.*?</\1\s*>|<!--.*?-->', '', html, flags=re.S | re.I)
+    page = Page(copy_html)
+    descriptions = [attrs.get('content', '') for tag, attrs in page.tags if tag == 'meta'
+                    and (attrs.get('name') or attrs.get('property')) in ['description', 'og:description', 'twitter:description']]
+    public_copy = ' '.join([*page.texts, *descriptions]).lower()
+    for phrase in ['off-screen', 'off screen', 'offscreen', 'cursor warp', 'pointer warp', 'no warping',
+                   'screen capture', 'fewer resources', 'more performant', 'fork']:
+        check(phrase not in public_copy, (route, 'Unsupported claim', phrase))
 ls = product.split('class="ls"', 1)[1].split('</section>', 1)[0]
 labels = [('switch', 'Option-Tab to any window'), ('resize', 'Move and resize'),
           ('heights', 'Two Strips per Desktop'), ('send', 'Send to Desktop or display')]

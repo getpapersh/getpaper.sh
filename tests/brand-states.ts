@@ -129,7 +129,7 @@ try {
         await verify('#install .cmd',`Mac Copied hover ${scheme}`,true);
         await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
         await verify('#install .cmd',`Mac Copied after leaving ${scheme}`,true);
-        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice','.feature-table th','.feature-table td','.matrix-note']) await verify(selector,`${selector} ${scheme}`);
+        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice','.feature-table th','.feature-table td','.matrix-note','#engine h2','#engine li','.engine-faq summary']) await verify(selector,`${selector} ${scheme}`);
       }
       await evaluate("document.querySelector('[data-theme-set=dark]').click()");
       assert.equal(await evaluate('document.documentElement.dataset.mode'),'dark');
@@ -139,6 +139,17 @@ try {
     }
     for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
       await load('/mac/',width,height,scheme);
+      const engineGeometry=await evaluate("(()=>{const e=document.querySelector('#engine');return {height:e.getBoundingClientRect().height,title:parseFloat(getComputedStyle(e.querySelector('h2')).fontSize),hero:parseFloat(getComputedStyle(document.querySelector('h1')).fontSize),section:parseFloat(getComputedStyle(document.querySelector('#features-h')).fontSize)}})()");
+      assert(engineGeometry.height<height&&engineGeometry.title<engineGeometry.hero&&engineGeometry.title<=engineGeometry.section,'Engine section stays compact and secondary');
+      assert.equal(await evaluate("document.querySelector('#engine-faq').open"),false,'Engine FAQ starts collapsed');
+      assert(!(await evaluate('document.body.innerText')).includes('PaperMac was written from scratch.'),'Collapsed FAQ answer stays outside visible copy');
+      await evaluate("document.querySelector('#engine-faq summary').focus()");
+      await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+      await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await settle();
+      assert(await evaluate("document.querySelector('#engine-faq').open&&document.body.innerText.includes('PaperMac was written from scratch.')"),'Native keyboard disclosure exposes the FAQ answer');
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'Open FAQ fits viewport');
+      await verify('#engine-faq p',`Engine FAQ answer ${scheme} ${width}`);
+      await evaluate("document.querySelector('#engine-faq').open=false");checks+=5;
       assert.equal(await evaluate("document.querySelector('[data-feature-details]').open"),false,'Feature details close when JavaScript runs');
       assert(await evaluate("(()=>{const frame=document.querySelector('[data-feature-matrix]').getBoundingClientRect(),th=document.querySelector('.feature-table thead th:last-child'),r=document.createRange();r.selectNodeContents(th);const text=r.getBoundingClientRect(),fold=parseFloat(getComputedStyle(document.querySelector('[data-feature-matrix]'),'::before').width);return text.top>=frame.top+fold||text.right<=frame.right-fold})()"),'Fold does not obscure the Pro column label'); checks++;
       const visibleRows = () => evaluate("[...document.querySelectorAll('[data-feature]')].filter(e=>e.checkVisibility()).length");
@@ -186,6 +197,7 @@ try {
         assert(await evaluate("document.querySelectorAll('.ls .band .win').length>10"),'Static windows exist without JS');
         assert(await evaluate("document.querySelector('[data-feature-details]').open&&[...document.querySelectorAll('[data-feature]')].every(e=>e.checkVisibility())"),'All matrix features are available without JavaScript');
         assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'No-JS expanded matrix fits viewport'); checks+=2;
+        assert(await evaluate("!document.querySelector('#engine-faq').open&&!document.querySelector('#engine-faq p').checkVisibility()"),'No-JS FAQ remains collapsed');checks++;
         assert(await evaluate("getComputedStyle(document.querySelector('.screencast')).display!=='none'&&document.querySelector('.screencast').controls"),'No-JS hero keeps native playback controls');
       } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=5;
     }

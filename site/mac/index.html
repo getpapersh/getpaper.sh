@@ -87,6 +87,10 @@ p { max-width:70ch; }
 .pause,.theme button { min-height:44px; padding:8px 14px; border:1px solid var(--brand-ink3); border-radius:8px; background:transparent; color:var(--brand-ink); font-size:14px; font-weight:650; }
 .pause:hover,.theme button:hover { background:var(--brand-accentTint); color:var(--brand-accentText); }
 .theme button[aria-pressed=true] { background:var(--brand-accent); color:var(--brand-onAccent); border-color:var(--brand-accent); }
+#engine { margin-block:40px; padding-block:24px; border-block:1px solid var(--brand-border); }
+#engine h2 { font-size:clamp(28px,3vw,40px); }
+#engine ul { max-width:70ch; margin:20px 0 0; padding-left:22px; color:var(--brand-ink2); }
+#engine li + li { margin-top:8px; }
 .trust { color:var(--brand-ink2); font-size:15px; font-weight:600; }
 .features,.pricing,.install { margin-top:128px; }
 .footnote { color:var(--brand-ink2); font-size:15px; margin-top:24px; }
@@ -183,16 +187,19 @@ footer p { flex-basis:100%; }
 .feature-table sup { color:var(--brand-accentText); margin-left:2px; }
 .matrix-note { padding:16px 24px; color:var(--brand-ink2); font-size:15px; }
 .feature-matrix details { border-top:1px solid var(--brand-border); }
-.feature-matrix summary { padding:16px 24px; min-height:56px; cursor:pointer; font-size:16px; font-weight:700; }
-.feature-matrix summary:hover { color:var(--brand-accentText); }
+.feature-matrix summary,.engine-faq summary { padding:16px 24px; min-height:56px; cursor:pointer; font-size:16px; font-weight:700; }
+.feature-matrix summary:hover,.engine-faq summary:hover { color:var(--brand-accentText); }
 @media(max-width:700px) {
  .feature-table { font-size:14px; }
  .feature-table th,.feature-table td { padding:14px 12px; }
  .feature-table thead th { font-size:14px; }
  .feature-table col:first-child { width:58%; }
  .feature-table col:not(:first-child) { width:21%; }
- .matrix-note,.feature-matrix summary { padding-inline:16px; }
+ .matrix-note,.feature-matrix summary,.engine-faq summary { padding-inline:16px; }
 }
+
+.engine-faq { margin-top:48px; border-block:1px solid var(--brand-border); }
+.engine-faq p { padding:0 24px 24px; color:var(--brand-ink2); font-size:17px; }
 </style>
 <style>
 a[href^="mailto:"] {
@@ -418,6 +425,15 @@ a:hover { color: var(--brand-accentText); }
         <button class="pause" type="button" aria-controls="strip-banner-stage" aria-label="Pause window animation" hidden><svg class="i-pause" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8.5" y="2" width="3" height="10" rx="1" fill="currentColor"/></svg><svg class="i-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 2.2v9.6L11.8 7z" fill="currentColor"/></svg><span class="lbl">Pause</span></button>
       </figcaption>
     </figure>
+  <section class="native wrap" id="engine" aria-labelledby="engine-h">
+    <h2 id="engine-h">Written from scratch for macOS.</h2>
+    <ul>
+      <li>Written from scratch in Swift by one independent developer.</li>
+      <li>Works with your real Desktops and Mission Control.</li>
+      <li>Windows never spill onto your other displays.</li>
+      <li>No SIP changes, no code injection. The free version needs only Accessibility.</li>
+    </ul>
+  </section>
   <p class="trust wrap">Native macOS Spaces · Mission Control intact · No SIP changes · Notarized · No telemetry</p>
   <section class="features wrap" id="editions" aria-labelledby="features-h">
     <h2 id="features-h">Make room for your work.</h2>
@@ -510,6 +526,11 @@ a:hover { color: var(--brand-accentText); }
     <p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>
     <p>Open PaperMac and allow Accessibility access. Your windows line up on the Strip.</p>
   </section>
+  <!-- Claim basis: papermac main 2a91a34d, tileHostAll container path, per-display clipping, background keepalive default since beta.7. Re-verify if any change. -->
+  <details class="engine-faq wrap" id="engine-faq">
+    <summary>How is PaperMac's engine different?</summary>
+    <p>PaperMac was written from scratch. On macOS 27, it runs on an engine that gives every window its own container. As you scroll, windows stay full size on their own display instead of being pushed off-screen or squeezed to fit, so nothing peeks onto your other monitor and apps don't reflow. Windows you've scrolled away from keep running in the background, ready the moment you come back.</p>
+  </details>
 </main>
 <footer><div class="wrap footer-grid">
   <a class="brand" href="/">Paper</a>
