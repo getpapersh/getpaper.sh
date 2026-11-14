@@ -35,12 +35,10 @@
     return el;
   }
   function makeBand(band, list, map) {
-    band.innerHTML = '<div class="trk peek"><div class="track"></div></div><div class="viewport"></div><div class="trk in"><div class="track"></div></div><div class="swipe" tabindex="-1"><div class="swipe-inner"></div></div>';
     const tracks = $$('.track', band), els = new Map();
     for (const w of list) {
-      const pair = tracks.map(t => { const el = makeWin(w); t.append(el); return el; }); els.set(w.id, pair);
+      els.set(w.id, tracks.map(t => $('[data-id="' + w.id + '"]', t)));
     }
-    if (map) map.innerHTML = list.map(() => '<b></b>').join('') + '<u></u>';
     return { band, tracks, els, wins: list, map, bars: map && $$('b', map), frame: map && $('u', map), swipe: $('.swipe', band), inner: $('.swipe-inner', band) };
   }
   function place(b, pos, focus) {
@@ -60,6 +58,7 @@
     const G = b.G, {pos, T} = measure(list, G);
     let scale = 1, focus = opts.focus || pos[0].id, x = center(pos.find(w => w.id === focus));
     if (opts.from != null) { const tr = travel(pos, p, opts.from); x = tr.x; focus = tr.focus; }
+    if (b.row === 'switch') x = Math.min(x, T - G.iw / 2);
     let tx = G.vpCenter - x;
     if (opts.overview) {
       scale = lerp(1, Math.min(1, (G.iw - 2 * G.g) / T), p);
@@ -117,7 +116,7 @@
       if (spec.wins) s.bands = [makeBand(bands[0], spec.wins, $('.map', pin))];
       else {
         s.bands = [makeBand(bands[0], spec.top), makeBand(bands[1], kind === 'send' ? [...spec.bot, spec.top.find(w => w.id === spec.moving)] : spec.bot)];
-        if (kind === 'send') { const layer = document.createElement('div'); layer.className = 'lift-layer'; s.flyer = makeWin(spec.top.find(w => w.id === spec.moving)); s.flyer.classList.add('lift'); layer.append(s.flyer); $('.duo', pin).append(layer); }
+        if (kind === 'send') { const layer = document.createElement('div'); layer.className = 'lift-layer'; s.flyer = makeWin(spec.top.find(w => w.id === spec.moving)); s.flyer.classList.add('lift'); s.flyer.style.display = 'none'; layer.append(s.flyer); $('.duo', pin).append(layer); }
       }
       for (const b of s.bands) b.row = kind;
       return s;

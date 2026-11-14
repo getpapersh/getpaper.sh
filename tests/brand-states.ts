@@ -1,6 +1,7 @@
 // Check the rendered cascade, including the theme selector and hover label overlays.
 import assert from "node:assert/strict";
 import { checkLightPeeks } from "./strips-peeks";
+import { displayChrome, switchEnd, stillLayout, assertStill } from "./strips-states";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -319,6 +320,30 @@ try {
       }
     }
   }
+  for (const scheme of ['light','dark']) {
+    for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
+      for (const reduced of [false,true]) {
+        await loadStrips(width,height,scheme,reduced);
+        assert(await evaluate(displayChrome), `${width} ${scheme}: destination needs its own display bezel and menu bar`);
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.ls .map')).pointerEvents"),'none');
+        checks+=2;
+        if (width>700&&!reduced) {
+          await go('switch',1); const end=await evaluate(switchEnd);
+          assert(end.emptyR<=.001&&end.neighbors>=2, `${width} ${scheme}: switch end ${JSON.stringify(end)}`); checks++;
+        }
+      }
+      await loadStrips(width,height,scheme,true);
+      const expected=await evaluate(stillLayout);
+      await send('Emulation.setScriptExecutionDisabled',{value:true});
+      try {
+        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:'no-preference'}]});
+        await send('Page.reload',{ignoreCache:true}); await Bun.sleep(350);
+        await evaluate('document.fonts.ready.then(()=>true)');
+        assertStill(await evaluate(stillLayout),expected,`${width} ${scheme} no-JS`); checks++;
+      } finally { await send('Emulation.setScriptExecutionDisabled',{value:false}); }
+    }
+  }
+  console.log('PASS: destination display chrome, switch endpoints, no-JS stills and non-interactive Minimap');
   console.log('PASS: Live Strips reverse, linearity, pin bounds, focus, send, Overview, phone swipe and reduced motion');
   console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
 } finally {

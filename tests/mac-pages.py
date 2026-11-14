@@ -356,4 +356,8 @@ check(not subprocess.check_output(['git', 'diff', '--name-only', '9d6b72c4', '--
 added = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=A', '9d6b72c4'], cwd=root).decode().splitlines()
 added += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root).decode().splitlines()
 check(not any(Path(name).suffix.lower() in ['.ttf', '.otf', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'] for name in added), 'No added font or raster files')
+before_copy = subprocess.check_output(['git', 'show', '414eb23:mac/index.html'], cwd=root).decode()
+def copy_words(html):
+    return ' '.join(' '.join(Page(re.sub(r'<(?:script|style)>.*?</(?:script|style)>', '', html, flags=re.S)).texts).split())
+check(copy_words(product) == copy_words(before_copy), 'No visible copy changes in the final fix round')
 print(f'PASS: {checks} Mac-page assertions; 0 failures; exact site inventory, shared DMG links, local resources, recording controls, Mac links and activation link/header policy')
