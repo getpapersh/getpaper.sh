@@ -10,7 +10,7 @@
   --k-ui: "Mona Sans", system-ui, sans-serif; --k-mono: "JetBrains Mono", ui-monospace, monospace; --k-display: "Mona Sans", system-ui;
   --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-menubar: #fffdf8; --k-ombar: #121317;
   --k-shadow: 0 2px 4px rgba(20,21,26,.18), 0 30px 60px -30px rgba(20,21,26,.6);
-  --wall-mac: linear-gradient(160deg, #6f7dff, #2a2fe8 55%, #11148f); --wall-om: linear-gradient(160deg, #1d2030, #0b0c14);
+  --wall-mac: linear-gradient(160deg, #1590F7, #0352C5); --wall-om: linear-gradient(160deg, #1d2030, #0b0c14);
 }
 
 * { box-sizing: border-box; }

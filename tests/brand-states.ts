@@ -155,6 +155,55 @@ try {
       checks++;
     }
   }
+  for (const path of ['/robots.txt', '/favicon.ico', '/apple-touch-icon.png']) {
+    assert.equal((await fetch(base + path)).status, 200, path);
+    checks++;
+  }
+  for (const scheme of ['light', 'dark']) {
+    await send('Emulation.setEmulatedMedia', {features: [{name: 'prefers-color-scheme', value: scheme}]});
+    for (const [width, height] of [[1440, 900], [768, 1024], [390, 844]]) {
+      await send('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
+      await send('Page.navigate', {url: base + '/'});
+      await Bun.sleep(250);
+      await evaluate('document.fonts.ready.then(() => true)');
+      await evaluate("document.documentElement.style.scrollSnapType='none';document.documentElement.style.scrollBehavior='auto'");
+      for (const y of [0, 1200, 1800, 2419, 3000, 3600]) {
+        await evaluate(`scrollTo({top:${y},behavior:'instant'});new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))`);
+        const cuts = await evaluate(`(() => {
+          const frame=document.querySelector('.vf'), style=getComputedStyle(frame), f=frame.getBoundingClientRect();
+          if (+style.opacity < .05 || style.visibility === 'hidden') return false;
+          return [...document.querySelectorAll('.hero h1,.hero .h1')].some(el=>{
+            if (!el.getBoundingClientRect().width || +getComputedStyle(el.closest('.lay')).opacity < .05) return false;
+            const range=document.createRange();range.selectNodeContents(el);const r=range.getBoundingClientRect();
+            return ([f.left,f.right].some(x=>x>=r.left&&x<=r.right)&&f.bottom>r.top&&f.top<r.bottom)||([f.top,f.bottom].some(y=>y>=r.top&&y<=r.bottom)&&f.right>r.left&&f.left<r.right);
+          });
+        })()`);
+        assert(!cuts, `Viewfinder cuts headline at ${width}px, ${scheme}, scroll ${y}`);
+      }
+      checks++;
+    }
+    await send('Emulation.setDeviceMetricsOverride', {width: 390, height: 844, deviceScaleFactor: 1, mobile: false});
+    const targets = ['/', '/mac/', '/paperland/', '/terms/', '/privacy/', '/mac/activate/'].map(route => [route, 'a:not(.skip)']);
+    for (const [route, selector] of targets) {
+      await send('Page.navigate', {url: base + route});await Bun.sleep(250);
+      await evaluate('document.fonts.ready.then(() => true)');
+      const short = await evaluate(`(() => [...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>!e.closest('[inert]')).map(e=>({text:e.textContent.trim(),box:e.getBoundingClientRect().toJSON()})).filter(e=>e.box.width>0&&e.box.height>0&&(e.box.width<43.9||e.box.height<43.9)))()`);
+      assert.deepEqual(short, [], `${route} ${scheme}: short mobile tap targets`);
+      assert.equal(await evaluate('document.documentElement.scrollWidth'), 390, `${route}: mobile overflow`);
+      if (route === '/mac/') {
+        const closed = await evaluate(`(() => {const a=document.querySelector('.top .trial-cta').getBoundingClientRect(),b=document.getElementById('header-sales').getBoundingClientRect();return {gap:b.top-a.bottom,fonts:[...document.querySelectorAll('.decide .price b,.purchase .price b')].map(e=>parseFloat(getComputedStyle(e).fontSize))};})()`);
+        assert(closed.gap >= 6 && closed.fonts.every(size=>size<=28), 'Sales-off price hierarchy and header spacing');
+        checks++;
+      }
+      if (['/terms/', '/privacy/', '/mac/activate/'].includes(route)) {
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"), route+' skip hidden');
+        await evaluate("document.querySelector('.skip').focus()");
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"), route+' skip visible on focus');
+        checks++;
+      }
+      checks++;
+    }
+  }
   console.log(`PASS: ${checks} computed interaction, keyboard, copy and tablet navigation checks; no accent-on-accent text; home follows both system schemes`);
 } finally {
   ws?.close(); chrome.kill(); server.stop(true);

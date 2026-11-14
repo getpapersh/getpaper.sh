@@ -2,6 +2,7 @@
 <html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
+<meta property="og:type" content="website">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Paper: a scrolling window manager for macOS and Linux</title>
 <meta property="og:title" content="Paper: a scrolling window manager for macOS and Linux">
@@ -234,7 +235,7 @@
   --k-ui: "Paper Sans", system-ui, sans-serif; --k-mono: "JetBrains Mono", ui-monospace, monospace; --k-display: "Paper Sans", system-ui;
   --k-cmd-bg: var(--brand-ink); --k-cmd-ink: var(--brand-paper); --k-menubar: #fffdf8; --k-ombar: #121317;
   --k-shadow: 0 2px 4px rgba(20,21,26,.18), 0 30px 60px -30px rgba(20,21,26,.6);
-  --wall-mac: linear-gradient(160deg, #6f7dff, #2a2fe8 55%, #11148f); --wall-om: linear-gradient(160deg, #1d2030, #0b0c14);
+  --wall-mac: linear-gradient(160deg, #1590F7, #0352C5); --wall-om: linear-gradient(160deg, #1d2030, #0b0c14);
 }
 
 * { box-sizing: border-box; }
@@ -417,11 +418,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 .bar6 svg { flex: none; }
 
 /* ---------- macOS ---------- */
-.d6.mac .wp { background:
-  radial-gradient(70% 90% at 12% 108%, #ff9a62 0%, rgba(255,154,98,0) 60%),
-  radial-gradient(60% 70% at 92% -6%, #8b7dff 0%, rgba(139,125,255,0) 62%),
-  radial-gradient(80% 60% at 60% 70%, rgba(38,104,255,.85) 0%, rgba(38,104,255,0) 70%),
-  linear-gradient(165deg, #2546d8 0%, #16237e 55%, #0b0f3d 100%); }
+.d6.mac .wp { background: radial-gradient(75% 90% at 12% 108%, #f2efe7 0%, rgba(242,239,231,0) 60%), linear-gradient(160deg, #1590F7, #0352C5); }
 .d6.mac .bar6 { height: 34px; padding: 0 16px; gap: 22px; color: #fff; font: 600 14px/1 "Paper Sans", system-ui; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 .d6.mac .bar6 .app-name { font-weight: 800; }
 .d6.mac .bar6 .menus { display: flex; gap: 20px; font-weight: 550; }
@@ -538,6 +535,11 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 7vw
 
 @media (max-width: 1000px) { .fork .k-cmd code { display: block; } }
 .home-overview { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: 12px; }
+
+@media (max-width: 700px) {
+  .links a, .way .more-way a, .prod a, .product-truth a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .hero .links a { min-width: 55px; min-height: 55px; }
+}
 </style>
 <style>
 /* Viewfinder (round 7): windows land, a window is dragged wider and sent full width, the page's own edges
@@ -1455,6 +1457,16 @@ Paper.story({
       rOut.setAttribute("d", `M${x1},${mac.y + fh + 12} V${H} M${x2},${mac.y + fh + 12} V${H}`);
     }
     rIn.style.opacity = rOut.style.opacity = dock;
+    // Keep the screen border off headline type while windows pass the viewfinder.
+    const frame = vf.getBoundingClientRect();
+    const cutsTitle = [...stage.querySelectorAll('.hero h1, .hero .h1')].some(el => {
+      const r = el.getBoundingClientRect();
+      const vertical = (frame.left >= r.left && frame.left <= r.right) || (frame.right >= r.left && frame.right <= r.right);
+      const horizontal = (frame.top >= r.top && frame.top <= r.bottom) || (frame.bottom >= r.top && frame.bottom <= r.bottom);
+      return (vertical && frame.bottom > r.top && frame.top < r.bottom) || (horizontal && frame.right > r.left && frame.left < r.right);
+    });
+    vf.style.visibility = cutsTitle ? 'hidden' : '';
+
   },
 });
 

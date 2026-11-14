@@ -15,11 +15,7 @@
 .bar6 svg { flex: none; }
 
 /* ---------- macOS ---------- */
-.d6.mac .wp { background:
-  radial-gradient(70% 90% at 12% 108%, #ff9a62 0%, rgba(255,154,98,0) 60%),
-  radial-gradient(60% 70% at 92% -6%, #8b7dff 0%, rgba(139,125,255,0) 62%),
-  radial-gradient(80% 60% at 60% 70%, rgba(38,104,255,.85) 0%, rgba(38,104,255,0) 70%),
-  linear-gradient(165deg, #2546d8 0%, #16237e 55%, #0b0f3d 100%); }
+.d6.mac .wp { background: radial-gradient(75% 90% at 12% 108%, #f2efe7 0%, rgba(242,239,231,0) 60%), linear-gradient(160deg, #1590F7, #0352C5); }
 .d6.mac .bar6 { height: 34px; padding: 0 16px; gap: 22px; color: #fff; font: 600 14px/1 "Mona Sans", system-ui; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 .d6.mac .bar6 .app-name { font-weight: 800; }
 .d6.mac .bar6 .menus { display: flex; gap: 20px; font-weight: 550; }

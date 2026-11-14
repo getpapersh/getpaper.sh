@@ -12,7 +12,7 @@ die() { printf 'build-site: %s\n' "$*" >&2; exit 1; }
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/site}
-sources="paperland/index.html paperland/og.png src/brand scripts/build-site.sh _redirects sitemap.xml src/mac/dmg-url.txt install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
+sources="robots.txt favicon.ico paperland/index.html paperland/og.png src/brand scripts/build-site.sh _redirects sitemap.xml src/mac/dmg-url.txt install index.html mac media terms privacy og.png _headers licenses wrangler.jsonc scripts/assemble-install.sh paperland/install paperland/uninstall paperland/build.sh paperland/release.env"
 
 if [ "$out" = "$root/site" ]; then
   for source in $sources; do
@@ -31,7 +31,7 @@ paperland=$(mktemp -d "${TMPDIR:-/tmp}/build-site.XXXXXX")
 trap 'rm -rf "$paperland"' EXIT
 sh "$root/paperland/build.sh" "$root/paperland/release.env" "$paperland" >/dev/null
 sh "$root/scripts/assemble-install.sh" "$root/install" "$paperland" "$paperland/served-install"
-for file in install index.html og.png _headers _redirects sitemap.xml; do
+for file in install index.html og.png _headers _redirects sitemap.xml robots.txt favicon.ico; do
   if [ "$file" = install ]; then cp "$paperland/served-install" "$out/$file.tmp"; else cp "$root/$file" "$out/$file.tmp"; fi
   chmod 644 "$out/$file.tmp"
   mv "$out/$file.tmp" "$out/$file"
@@ -62,5 +62,7 @@ cp "$root/paperland/index.html" "$root/paperland/og.png" "$out/paperland/"
 for size in 32 180; do
   cp "$root/src/brand/paperland/exports/paperland-icon-$size.png" "$out/brand/paperland/"
 done
+
+cp "$root/src/brand/papermac/exports/papermac-icon-180.png" "$out/apple-touch-icon.png"
 
 echo "Built $out/install, six page bundles, brand assets, media, legal pages, _headers, _redirects and sitemap.xml"

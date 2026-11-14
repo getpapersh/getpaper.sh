@@ -45,3 +45,8 @@
 
 @media (max-width: 1000px) { .fork .k-cmd code { display: block; } }
 .home-overview { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: 12px; }
+
+@media (max-width: 700px) {
+  .links a, .way .more-way a, .prod a, .product-truth a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .hero .links a { min-width: 55px; min-height: 55px; }
+}

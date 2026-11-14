@@ -199,7 +199,7 @@ the Mac and legal pages keep their existing light/dark behavior.
 installed Chrome as the OG tool to check computed hover and copy-state contrast.
 The full-palette check reports every failing pair before exiting nonzero.
 
-The preview output has 40 entries including directories. To test an uncommitted
+The preview output has 43 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
 Two files set the sales modes, and both committed defaults are `off`:

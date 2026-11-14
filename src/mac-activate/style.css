@@ -41,3 +41,6 @@ p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1
 @media (max-width: 700px) { .wrap { width: calc(100% - 32px); } .slip { padding: 30px 20px; } }
 
 .keybox { overflow-wrap: anywhere; user-select: all; }
+
+.skip { position: absolute; left: 16px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--ink); color: var(--paper); font-weight: 750; }
+.skip:focus { top: 12px; }

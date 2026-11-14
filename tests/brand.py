@@ -45,6 +45,9 @@ for route, source in routes.items():
     check(f'sizes="180x180" href="/brand/{"paperland" if source == "paperland" else "papermac"}/{"paperland" if source == "paperland" else "papermac"}-icon-180.png"' in page, (route, 'Apple-touch'))
     og = 'og.png' if source == 'v7-1-viewfinder' else 'paperland/og.png' if source == 'paperland' else 'mac/og.png'
     check(f'property="og:image" content="https://getpaper.sh/{og}"' in page, (route, 'OG image'))
+    if source in ['terms', 'privacy']:
+        check(all(re.search(pattern, page) for pattern in [r'<title>[^<]+</title>', r'<meta name="description" content="[^"]+">', r'<meta property="og:title" content="[^"]+">', r'<meta property="og:description" content="[^"]+">']), (route, 'Legal metadata'))
+
     check(struct.unpack('>II', (site / og).read_bytes()[16:24]) == (1200, 630), og)
     # Old decorative logo WebPs are forbidden; real app screenshots have descriptive alt text.
     for tag in re.findall(r'<(?:img|link)\b[^>]+>', page):
@@ -55,9 +58,15 @@ for route, source in routes.items():
     check(not re.search(r'#(?:e2470f|b53a0a|ff7a45|ff8a5c|c2410c|d5430e|ffb020)\b', styles, re.I), (route, 'Retired orange UI state'))
     check(not re.search(r'(?<![-\w])color:\s*var\(--(?:brand-accent|hi|k-accent)\)', styles), (route, 'Accent text must use accentText'))
     check('outline: 2px solid var(--brand-focus); outline-offset: 2px;' in styles, (route, 'Focus ring'))
+    check(not re.search(r'#(?:6f7dff|2a2fe8|ff9a62|8b7dff|e2470f)\b', styles, re.I), (route, 'Retired wallpaper colors'))
+    if route != 'mac/activate/index.html':
+        check('property="og:type" content="website"' in page, (route, 'Open Graph type'))
     built = subprocess.check_output(['uvx', '--with', 'segno', '--from', 'fonttools', 'python',
                                      str(root / 'scripts/bundle-page.py'), str(root / 'src' / source / 'index.html')])
     check(built == (site / route).read_bytes() == (root / route).read_bytes(), (route, 'Fresh page bundle'))
+check('Sitemap: https://getpaper.sh/sitemap.xml' in (site / 'robots.txt').read_text(), 'Robots sitemap')
+check((site / 'apple-touch-icon.png').read_bytes() == (root / 'src/brand/papermac/exports/papermac-icon-180.png').read_bytes(), 'Root apple-touch alias')
+check((site / 'favicon.ico').read_bytes() == (root / 'favicon.ico').read_bytes() and (site / 'favicon.ico').read_bytes()[:4] == b'\x00\x00\x01\x00', 'Root ICO alias')
 check('/brand/papermac/papermac-icon.svg' in (site / 'index.html').read_text() and
       '/brand/paperland/paperland-icon.svg' in (site / 'index.html').read_text(), 'Both family marks')
 check('data-theme="light" data-mode="light"' not in (site / 'index.html').read_text(), 'Home follows system theme')

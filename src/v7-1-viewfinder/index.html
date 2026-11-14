@@ -2,6 +2,7 @@
 <html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
+<meta property="og:type" content="website">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Paper: a scrolling window manager for macOS and Linux</title>
 <meta property="og:title" content="Paper: a scrolling window manager for macOS and Linux">
@@ -251,6 +252,16 @@ Paper.story({
       rOut.setAttribute("d", `M${x1},${mac.y + fh + 12} V${H} M${x2},${mac.y + fh + 12} V${H}`);
     }
     rIn.style.opacity = rOut.style.opacity = dock;
+    // Keep the screen border off headline type while windows pass the viewfinder.
+    const frame = vf.getBoundingClientRect();
+    const cutsTitle = [...stage.querySelectorAll('.hero h1, .hero .h1')].some(el => {
+      const r = el.getBoundingClientRect();
+      const vertical = (frame.left >= r.left && frame.left <= r.right) || (frame.right >= r.left && frame.right <= r.right);
+      const horizontal = (frame.top >= r.top && frame.top <= r.bottom) || (frame.bottom >= r.top && frame.bottom <= r.bottom);
+      return (vertical && frame.bottom > r.top && frame.top < r.bottom) || (horizontal && frame.right > r.left && frame.left < r.right);
+    });
+    vf.style.visibility = cutsTitle ? 'hidden' : '';
+
   },
 });
 

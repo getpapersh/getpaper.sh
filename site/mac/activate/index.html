@@ -86,6 +86,9 @@ p.bad-only { margin: 18px 0 0; font-weight: 650; font-size: 17px; line-height: 1
 @media (max-width: 700px) { .wrap { width: calc(100% - 32px); } .slip { padding: 30px 20px; } }
 
 .keybox { overflow-wrap: anywhere; user-select: all; }
+
+.skip { position: absolute; left: 16px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--ink); color: var(--paper); font-weight: 750; }
+.skip:focus { top: 12px; }
 </style>
 <style>
 a[href^="mailto:"] {
@@ -98,6 +101,10 @@ a[href^="mailto:"] {
 a[href^="mailto:"]:focus-visible {
   outline: 2px solid var(--brand-focus);
   outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  a[href^="mailto:"] { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
 }
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
@@ -183,9 +190,10 @@ a:hover { color: var(--brand-accentText); }
 <meta property="og:image:height" content="630">
 </head>
 <body>
+<a class="skip" href="#main">Skip to license</a>
 <p id="live" class="sr-only" aria-live="polite"></p>
 <header class="wrap top"><p class="brand"><img src="/brand/papermac/papermac-icon.svg" alt="" width="40" height="40">PaperMac</p></header>
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1">
   <section class="slip" id="activate" aria-labelledby="act-title">
     <div class="who"><img src="/brand/papermac/papermac-icon.svg" alt="" width="52" height="52"><div><b>PaperMac 27</b><span>Pro &amp; Lifetime license · macOS 27</span></div></div>
     <h1 id="act-title" tabindex="-1"><span class="good-only">Your license key</span><span class="bad-only">This link has no key in it</span></h1>

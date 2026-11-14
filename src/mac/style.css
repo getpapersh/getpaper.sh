@@ -103,8 +103,7 @@
 
 
 :root {
-  --wall: radial-gradient(70% 90% at 12% 108%, #ff9a62 0%, rgba(255,154,98,0) 60%), radial-gradient(60% 70% at 92% -6%, #8b7dff 0%, rgba(139,125,255,0) 62%),
-          radial-gradient(80% 60% at 60% 70%, rgba(38,104,255,.85) 0%, rgba(38,104,255,0) 70%), linear-gradient(165deg, #2546d8 0%, #16237e 55%, #0b0f3d 100%);
+  --wall: radial-gradient(75% 90% at 12% 108%, #f2efe7 0%, rgba(242,239,231,0) 60%), linear-gradient(160deg, #1590F7, #0352C5);
   --mbar: rgba(255,255,255,.55); --mbar-ink: #14151a; --bezel: #0c0d12;
   --win: #ffffff; --win-bar: #f3f3f5; --win-line: #dcdde3; --win-ink: #14151a; --win-soft: #eef0f3; --term: #161821;
   --code1: #d1006b; --code2: #0b71e4; --code3: #14804f; --ring: var(--brand-focus); --sel: var(--brand-focus);
@@ -174,7 +173,8 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .top.with-buy-notice { display: grid; grid-template-columns: 1fr auto; gap: 4px 28px; height: auto; padding-block: 14px 8px; }
 .top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
 .sales-closed { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 600; line-height: 1.45; }
-.top > .sales-closed { position: absolute; right: 0; bottom: -8px; text-align: right; }
+.top > .sales-closed { grid-column: 1 / -1; justify-self: end; text-align: right; color: var(--ink); font-size: 15px; font-weight: 750; }
+[data-sales="off"] .top { height: auto; padding-block: 12px; row-gap: 8px; }
 .top .brand { justify-self: start; min-height: 44px; }
 .slip .sales-closed { margin-top: 8px; text-align: center; }
 
@@ -417,7 +417,7 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
   .top .brand { font-size: 16px; gap: 6px; }
   .top nav { gap: 0; }
   .top .btn.small { padding-inline: 10px; font-size: 13px; }
-  .top > .sales-closed { bottom: -4px; }
+  [data-sales="off"] .top { padding-bottom: 16px; row-gap: 10px; }
 }
 time { white-space: nowrap; }
 .was { display: inline-block; margin-left: 6px; color: var(--ink-2); font: 650 15px/1.5 "Paper Sans", system-ui; letter-spacing: 0; }
@@ -469,4 +469,11 @@ time { white-space: nowrap; }
 @media (min-width: 701px) and (max-width: 1000px) {
   .top nav > a:not(.btn) { display: none; }
   .top nav > a[href="/paperland/"] { display: inline-flex; }
+}
+
+[data-sales="off"] .decide .price b, [data-sales="off"] .purchase .price b { font-size: 26px; color: var(--ink-2); }
+[data-sales="off"] .slip .sales-closed { color: var(--ink); font-weight: 750; font-size: 16px; }
+@media (max-width: 700px) {
+  main a:not(.btn):not(.mobile-dmg), footer a, .land p a, .legal p a, .legal li a, .compare > .txt a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .top nav a:not(.btn) { min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 4px; }
 }

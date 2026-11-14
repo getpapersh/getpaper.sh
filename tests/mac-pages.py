@@ -23,7 +23,7 @@ expected.update(['brand', 'brand/papermac', 'brand/paperland',
                  'brand/papermac/papermac-icon-32.png', 'brand/papermac/papermac-icon-180.png',
                  'mac/og.png', 'paperland', 'paperland/index.html', 'paperland/og.png',
                  'brand/paperland/paperland-icon-32.png', 'brand/paperland/paperland-icon-180.png',
-                 '_redirects', 'sitemap.xml'])
+                 '_redirects', 'sitemap.xml', 'robots.txt', 'favicon.ico', 'apple-touch-icon.png'])
 expected.update('licenses/' + name for name in
                 ['OFL-monasans.txt', 'OFL-jetbrainsmono.txt', 'LOGOS-SOURCE.txt', 'FONTS.txt'])
 expected.update('media/papermac/' + name + suffix
@@ -101,6 +101,11 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     if route != 'index.html':
         check('outline: 2px solid var(--brand-focus); outline-offset: 2px;' in text, route)
 
+for route in ['terms/index.html', 'privacy/index.html', 'mac/activate/index.html']:
+    page_html = (site / route).read_text()
+    check('<a class="skip" href="#main">' in page_html, (route, 'Focus-only skip link'))
+    check('id="main" tabindex="-1"' in page_html, (route, 'Skip target'))
+
 product = (site / 'mac/index.html').read_text()
 refund_item = """<div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email billing@getpaper.sh within 30 days of purchase for a full refund. We won't ask why.</p></div>"""
 check(re.search(r'<div class="plain" role="list" aria-label="Purchase terms">\s*' + re.escape(refund_item), product), 'Refund must be the first purchase term')
@@ -123,7 +128,7 @@ pro_column = product.split('id="pro"', 1)[1].split('</section>', 1)[0]
 check('The core window manager is free to use, with no time limit.' in free_column)
 check('up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.' in free_column)
 check('data-pic="select"' in free_column and 'data-pic="select"' not in pro_column)
-check('Three or more Strips</b> per Desktop, stacked, with adjustable heights' in pro_column)
+check('Three or more Strips</b> per Desktop.' in pro_column)
 check('Lanes of different heights' not in pro_column)
 check('with up to five activations at a time. Each macOS user account counts as a separate activation.' in product)
 check('<strong>Five activations.</strong><p>One license covers one person across all their Macs, with up to five activations at a time. Each macOS user account counts as a separate activation.</p>' in product)
@@ -179,7 +184,7 @@ for tag, attrs in Page(product).tags:
     if tag == 'button' and 'cmd' in attrs.get('class', '').split():
         check('aria-label' not in attrs)
         check(f'id="{attrs["aria-describedby"]}"' in product)
-check('Also in Pro: lock windows together as a group. Any two-Strip layout can be resized to any height in Free or Pro; Pro is required for three or more Strips.' in pro_column)
+check('Also in Pro: lock windows together as a group.' in pro_column)
 check('Everything in Free, plus:' in pro_column)
 check('Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.' in free_column)
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
@@ -241,7 +246,7 @@ check('--hi:' not in activation_text and 'var(--hi)' not in activation_text)
 check('--brand-focus: #0965D0;' in activation_text and activation_text.count('--brand-focus: #79B6FF;') == 2)
 check('--done-bg: var(--brand-accent); --done-ink: var(--brand-onAccent);' in activation_text)
 activation = Page(activation_text)
-check([attributes['href'] for tag, attributes in activation.tags if tag == 'a'] == ['papermac://license', 'mailto:billing@getpaper.sh'])
+check([attributes['href'] for tag, attributes in activation.tags if tag == 'a'] == ['#main', 'papermac://license', 'mailto:billing@getpaper.sh'])
 meta = {attributes.get('name'): attributes.get('content') for tag, attributes in activation.tags if tag == 'meta'}
 check('noindex' in meta['robots'].split(', '))
 check(meta['referrer'] == 'no-referrer')
@@ -282,11 +287,10 @@ for page in [main, product, terms]:
     check('href="https://github.com/jsonMartin/papermac' not in page)
 check('two Strips at independently adjustable heights' in free_column)
 check('adjustable-height Strips, even with only two' not in pro_column)
-height_claim = re.compile(r'\b(?:(?:custom|adjustable)[\s-]+(?:(?:stack|strip)[\s-]+)?heights?|(?:stack|strip)[\s-]+heights?[\s-]+(?:adjustment|controls?))\b', re.I)
+height_claim = re.compile(r'\bheights?\b', re.I)
 home_pro_copy = re.search(r'<a href="/mac/#pro">Pro</a> adds (.*?)<a href="/mac/#install">', main, re.S)[1]
 mac_pro_copy = ' '.join(' '.join(Page(pro_column).texts).split())
-# The count-qualified caption describes the paid third Strip, not a paid height control.
-mac_pro_copy = mac_pro_copy.replace('Three or more Strips per Desktop, stacked, with adjustable heights.', '')
+mac_pro_copy += ' '.join(attrs.get('aria-label', '') for _, attrs in Page(pro_column).tags)
 for pro_copy in [home_pro_copy, mac_pro_copy]:
     check(not height_claim.search(pro_copy), 'Height adjustment must not be marketed as Pro-only')
 
