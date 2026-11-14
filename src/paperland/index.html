@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta property="og:type" content="website">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PaperLand Alpha: scrolling windows for Linux</title>
+<meta name="description" content="PaperLand Alpha brings scrolling Strips, a Minimap and Overview to Omarchy with Hyprland. GPL-3.0-or-later open source. Install without sudo.">
+<meta property="og:title" content="PaperLand Alpha: scrolling windows for Linux">
+<meta property="og:description" content="Scrolling Strips, a Minimap and Overview for Omarchy with Hyprland.">
+<meta property="og:image" content="https://getpaper.sh/paperland/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<script src="../mac/init.js"></script>
+<link rel="stylesheet" href="../mac/style.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../_kit/brand.css">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/paperland/paperland-icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/paperland/paperland-icon-180.png">
+<link rel="canonical" href="https://getpaper.sh/paperland/">
+<meta property="og:url" content="https://getpaper.sh/paperland/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PaperLand Alpha: scrolling windows for Linux">
+<meta name="twitter:description" content="PaperLand Alpha brings scrolling Strips, a Minimap and Overview to Omarchy with Hyprland. GPL-3.0-or-later open source; install without sudo.">
+<meta name="twitter:image" content="https://getpaper.sh/paperland/og.png">
+</head>
+<body>
+<a class="skip" href="#install">Skip to install</a>
+<header class="wrap top"><a class="brand" href="/"><img src="/brand/paperland/paperland-icon.svg" alt="" width="40" height="40">PaperLand</a><nav aria-label="Page"><a href="/">Paper</a><a href="/mac/">PaperMac Beta</a><a href="#install">Install</a></nav></header>
+<main class="wrap land">
+<section class="land-hero" aria-labelledby="title">
+  <div><h1 id="title">PaperLand</h1><p class="maturity">PaperLand Alpha · Linux / Omarchy</p><p class="tag">Your windows. Room to move.</p><p class="lede">Full-width windows in scrolling Strips, a Minimap to keep your place, and Overview to scan your Desktop and jump to a window.</p><p>Built for Hyprland's native workspaces. Inspired by <a href="https://github.com/paperwm/PaperWM">PaperWM</a> and <a href="https://github.com/YaLTeR/niri">niri</a>.</p><a class="btn ink" href="#install">Install PaperLand Alpha</a></div>
+  <img class="land-mark" src="/brand/paperland/paperland-icon.svg" alt="PaperLand's folded P and L mark" width="320" height="320">
+</section>
+<section id="install" class="land-install" aria-labelledby="install-h"><h2 id="install-h">Install on Omarchy</h2><p>Requires Omarchy 4+ and Hyprland 0.56+, with Quickshell, Python 3, git and jq. Other Linux desktops are not supported by this installer.</p><button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh"><code>curl -fsSL <span class="command-tail">https://getpaper.sh/install | sh</span></code><span class="lbl">Copy</span></button><p id="live" aria-live="polite"></p><p class="text-links"><a href="/install">Read the script first</a> · <a href="https://github.com/getpapersh/paperland">Source and changelog</a></p><p>The installer validates the pinned plugin release before publishing it, installs the runtime and configures your shortcut and autostart. No sudo. If your Hyprland config is symlinked, follow the printed include instructions or explicitly choose <code>--edit-dotfiles</code>.</p><p>When setup finishes, open the Minimap with <kbd>Super</kbd> + <kbd>M</kbd> by default. Run the same command again to update. After an update, use <code>paperland stop &amp;&amp; paperland start-hidden</code> as instructed.</p><p><b>Alpha software.</b> Expect rough edges. Review the installer output and keep your config backups.</p></section>
+<section class="land-source" aria-labelledby="source-h"><h2 id="source-h">Open source for Linux.</h2><p>PaperLand is GPL-3.0-or-later open source. PaperMac Free and Pro on macOS are separate, closed-source products under <a href="/terms/">PaperMac's proprietary Terms</a>. PaperLand is not a PaperMac Pro license or a promise of feature parity.</p><p class="text-links"><a href="https://github.com/getpapersh/paperland">Explore PaperLand on GitHub</a> · <a href="/mac/#editions">Compare PaperMac Free and Pro</a></p><details><summary>Uninstall PaperLand</summary><p>Run <code>curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall</code>. Your settings and config backups are kept.</p></details></section>
+</main>
+<footer><div class="wrap"><a href="/">Paper</a><a href="/mac/">PaperMac Beta</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="https://github.com/getpapersh/paperland">GitHub</a></div></footer>
+<script>
+const copy = document.querySelector('[data-copy]'), live = document.getElementById('live');
+copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(copy.dataset.copy); live.textContent = 'Copied. Paste it in a terminal on Omarchy to install PaperLand.'; } catch { live.textContent = 'Copy unavailable. Select the command and copy it manually.'; } });
+</script>
+</body>
+</html>

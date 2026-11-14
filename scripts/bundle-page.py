@@ -19,17 +19,33 @@ from fontTools.ttLib import TTFont
 
 page = pathlib.Path(sys.argv[1]).resolve()
 html = page.read_text()
+
+
+def sell(html, url_file, marker):
+    """Reads url_file (off or a checkout URL) and keeps only the matching <!-- marker:off|url --> blocks."""
+    url = (page.parent / url_file).read_text().strip()
+    mode = "off" if url == "off" else "url"
+    if mode == "url" and not url.startswith("https://"):
+        sys.exit(f"{url_file} must be off or an https:// checkout URL")
+    html = re.sub(rf"<!-- {marker}:(off|url) -->(.*?)<!-- /{marker}:\1 -->",
+                  lambda match: match[2] if match[1] == mode else "", html, flags=re.S)
+    return html, url, mode
+
+
 if "{{CHECKOUT_URL}}" in html:
-    checkout = (page.parent / "checkout-url.txt").read_text().strip()
-    sales_mode = "off" if checkout == "off" else "url"
-    html = re.sub(r"<!-- sales:(off|url) -->(.*?)<!-- /sales:\1 -->",
-                  lambda match: match[2] if match[1] == sales_mode else "", html, flags=re.S)
+    html, checkout, sales_mode = sell(html, "checkout-url.txt", "sales")
     html = html.replace("{{SALES_MODE}}", sales_mode)
     html = html.replace("{{CHECKOUT_URL}}", html_lib.escape(checkout, quote=True))
     if "{{CHECKOUT_QR}}" in html:
         import segno
         html = html.replace("{{CHECKOUT_QR}}", segno.make(checkout, error="m", micro=False).svg_inline(
-            border=4, omitsize=True, title="QR code for the PaperMac Pro checkout"))
+            border=4, omitsize=True, title="QR code for the PaperMac 27 Pro checkout"))
+if "{{LIFETIME_CHECKOUT_URL}}" in html:
+    html, lifetime, lifetime_mode = sell(html, "lifetime-checkout-url.txt", "lifetime")
+    if lifetime_mode == "url" and sales_mode == "off":
+        sys.exit("Lifetime checkout needs Pro checkout on")
+    html = html.replace("{{BUY_LABEL}}", "Buy PaperMac 27 Pro or Lifetime" if lifetime_mode == "url" else "Buy PaperMac 27 Pro")
+    html = html.replace("{{LIFETIME_CHECKOUT_URL}}", html_lib.escape(lifetime, quote=True))
 html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: "<style>\n" + (page.parent / m.group(1)).read_text() + "</style>", html)
 html = re.sub(r'<script src="([^"]+)"></script>', lambda m: "<script>\n" + (page.parent / m.group(1)).read_text() + "</script>", html)
 

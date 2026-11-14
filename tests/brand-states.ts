@@ -1,0 +1,298 @@
+// Check the rendered cascade, including the theme selector and hover label overlays.
+import assert from "node:assert/strict";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve, sep } from "node:path";
+
+const site = resolve(process.argv[2]);
+const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch(request) {
+  const pathname = decodeURIComponent(new URL(request.url).pathname);
+  const file = resolve(site, "." + pathname + (pathname.endsWith("/") ? "index.html" : ""));
+  if (!file.startsWith(site + sep)) return new Response(null, { status: 403 });
+  // Exercise the promo state machine with an existing clip until the approved asset arrives.
+  if (new URL(request.url).searchParams.has('promo-test')) {
+    const source = new URL(request.url).searchParams.get('promo-test') === 'off' ? '' : '/media/papermac/strip.mp4';
+    return new Response(readFileSync(file, 'utf8').replace(/data-promo-src="[^"]*"/, `data-promo-src="${source}"`), {headers:{'Content-Type':'text/html'}});
+  }
+  return new Response(Bun.file(file));
+} });
+const base = `http://127.0.0.1:${server.port}`;
+const profile = mkdtempSync(resolve(tmpdir(), "paper-brand-states-"));
+const chrome = Bun.spawn(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run", "about:blank"], { stdout: "ignore", stderr: "ignore" });
+let ws: WebSocket;
+try {
+  const portFile = resolve(profile, "DevToolsActivePort");
+  let port = "";
+  // Chrome can create the port file before writing its contents.
+  for (let i = 0; i < 100 && !port; i++) {
+    if (existsSync(portFile)) port = readFileSync(portFile, "utf8").split("\n")[0];
+    if (!port) await Bun.sleep(100);
+  }
+  const targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
+  ws = new WebSocket(targets.find((target) => target.type === "page").webSocketDebuggerUrl);
+  await new Promise((done) => ws.onopen = done);
+  let id = 0;
+  const pending = new Map();
+  let mediaRequests: any[] = [], mediaFailures: any[] = [];
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data as string);
+    if (message.method === 'Network.requestWillBeSent' && /\.mp4(?:\?|$)/.test(message.params.request.url))
+      mediaRequests.push({id:message.params.requestId,url:message.params.request.url});
+    if (message.method === 'Network.loadingFailed') mediaFailures.push(message.params);
+    pending.get(message.id)?.(message); pending.delete(message.id);
+  };
+  const send = async (method, params = {}) => {
+    const message: any = await new Promise((done) => { const next = ++id; pending.set(next, done); ws.send(JSON.stringify({ id: next, method, params })); });
+    assert(!message.error, JSON.stringify(message.error));
+    return message.result;
+  };
+  const evaluate = async (expression) => {
+    const result = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+    assert(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));
+    return result.result.value;
+  };
+  const state = (selector) => evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)}), label = el.querySelector('.lbl') || el;
+    const rgb = (s) => s.match(/[\\d.]+/g).map(Number);
+    const blend = (fg, bg) => fg.slice(0, 3).map((x, i) => x * (fg[3] ?? 1) + bg[i] * (1 - (fg[3] ?? 1)));
+    const background = (el) => {
+      const layers = []; for (let p = el; p; p = p.parentElement) layers.push(rgb(getComputedStyle(p).backgroundColor));
+      return layers.reverse().reduce((bg, layer) => blend(layer, bg), [255,255,255]);
+    };
+    const lum = (rgb) => rgb.map(x => x / 255).map(x => x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4).reduce((sum, x, i) => sum + x * [.2126,.7152,.0722][i], 0);
+    const contrast = (fg, bg) => { const [light, dark] = [lum(fg), lum(bg)].sort((a,b) => b-a); return (light+.05)/(dark+.05); };
+    const bg = background(label), fg = blend(rgb(getComputedStyle(label).color), bg);
+    const root = getComputedStyle(document.documentElement), accent = root.getPropertyValue('--brand-accent').trim(), accentText = root.getPropertyValue('--brand-accentText').trim();
+    const color = (hex) => hex.match(/[a-f\\d]{2}/gi).map(x => parseInt(x,16));
+    const same = (a,b) => a.every((x,i) => Math.abs(x-b[i]) < .01);
+    // Catch accentText on an accent fill, even when a more specific rule wins.
+    const collisions = [...document.querySelectorAll('body *')].filter(e => {
+      if (!e.getBoundingClientRect().width || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return false;
+      const c = rgb(getComputedStyle(e).color), b = background(e);
+      return same(b,color(accent)) && (same(c,color(accent)) || same(c,color(accentText)));
+    }).map(e => e.className);
+    return { ratio: contrast(fg,bg), color: fg, background: bg, done: el.classList.contains('done'), collisions };
+  })()`);
+  const hover = async (selector) => {
+    const point = await evaluate(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); e.scrollIntoView({block:'center',behavior:'instant'}); const b=e.getBoundingClientRect(); return {x:b.x+b.width/2,y:b.y+b.height/2}; })()`);
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", ...point });
+    await Bun.sleep(350);
+    return point;
+  };
+  let checks = 0;
+  const verify = async (selector, label, copied = false) => {
+    const result = await state(selector);
+    assert(result.ratio >= 4.5, `${label}: ${JSON.stringify(result)}`);
+    assert.deepEqual(result.collisions, [], `${label}: accent text on accent fill`);
+    if (copied) assert(result.done, `${label}: copy did not reach its done state`);
+    console.log(`PASS: ${label}: ${result.ratio.toFixed(4)}:1`);
+    checks++;
+  };
+  await send("Page.enable");
+  await send("Network.enable");
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
+  await send("Browser.grantPermissions", { origin: base, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
+  await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  const settle = () => evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  const load = async (route, width=1440, height=900, scheme='light', reduced=false) => {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme},{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}]});
+    await send('Page.navigate',{url:base+route}); await Bun.sleep(400);
+    await evaluate('document.fonts.ready.then(()=>true)'); await settle();
+    await evaluate("document.documentElement.style.scrollBehavior='auto'");
+  };
+  const go = async (kind,p) => {
+    await evaluate(`(()=>{const e=document.querySelector('[data-row="${kind}"]'),r=e.getBoundingClientRect();scrollTo({top:scrollY+r.top-innerHeight*.9+${p}*(innerHeight*.8+r.height*.5),behavior:'instant'})})()`);
+    await settle();
+  };
+  const transforms = kind => evaluate(`[...document.querySelectorAll('[data-row="${kind}"] .track,[data-row="${kind}"] .win')].map(e=>e.style.transform)`);
+  for (const scheme of ['light','dark']) {
+    for (const route of ['/','/mac/']) {
+      await load(route,1440,900,scheme);
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"),'Skip hidden before focus');
+      await evaluate("document.querySelector('.skip').focus()");
+      assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"),'Skip visible on focus');
+      await evaluate("document.querySelector('.skip').blur()"); checks++;
+      assert.equal(await evaluate('getComputedStyle(document.body).backgroundColor'),scheme==='light'?'rgb(242, 239, 231)':'rgb(18, 19, 23)');
+      assert.equal(await evaluate('getComputedStyle(document.documentElement).scrollSnapType'),'none'); checks+=2;
+      if (route==='/') {
+        assert(await evaluate("document.querySelectorAll('.doors .door').length===2&&document.querySelectorAll('.shared article').length===3"),'Equal product doors and three shared cards');
+        const heights=await evaluate("[...document.querySelectorAll('.door')].map(e=>e.getBoundingClientRect().height)");
+        assert.equal(heights[0],heights[1]);
+        assert(!(await evaluate("document.querySelector('main').innerText")).includes('curl'));
+        await verify('.trust',`Chooser trust ${scheme}`); checks+=3;
+      } else {
+        await hover('.top .btn'); await verify('.top .btn',`Mac header download hover ${scheme}`);
+        const point=await hover('#install .cmd'); await verify('#install .cmd',`Mac Copy hover ${scheme}`);
+        await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});
+        await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point}); await Bun.sleep(200);
+        await verify('#install .cmd',`Mac Copied hover ${scheme}`,true);
+        await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
+        await verify('#install .cmd',`Mac Copied after leaving ${scheme}`,true);
+        for (const selector of ['.ls .label','.ls .note','.founding','.lifetime-price','.buy-notice','.feature-table th','.feature-table td','.matrix-note','#engine h2','#engine li','.engine-faq summary']) await verify(selector,`${selector} ${scheme}`);
+      }
+      await evaluate("document.querySelector('[data-theme-set=dark]').click()");
+      assert.equal(await evaluate('document.documentElement.dataset.mode'),'dark');
+      await evaluate("document.querySelector('[data-theme-set=light]').click()");
+      assert.equal(await evaluate('document.documentElement.dataset.mode'),'light');
+      await evaluate(`document.querySelector('[data-theme-set=""]').click()`); checks++;
+    }
+    for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
+      await load('/mac/',width,height,scheme);
+      const engineGeometry=await evaluate("(()=>{const e=document.querySelector('#engine');return {height:e.getBoundingClientRect().height,title:parseFloat(getComputedStyle(e.querySelector('h2')).fontSize),hero:parseFloat(getComputedStyle(document.querySelector('h1')).fontSize),section:parseFloat(getComputedStyle(document.querySelector('#features-h')).fontSize)}})()");
+      assert(engineGeometry.height<height&&engineGeometry.title<engineGeometry.hero&&engineGeometry.title<=engineGeometry.section,'Engine section stays compact and secondary');
+      assert.equal(await evaluate("document.querySelector('#engine-faq').open"),false,'Engine FAQ starts collapsed');
+      assert(!(await evaluate('document.body.innerText')).includes('PaperMac was written from scratch.'),'Collapsed FAQ answer stays outside visible copy');
+      await evaluate("document.querySelector('#engine-faq summary').focus()");
+      await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+      await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await settle();
+      assert(await evaluate("document.querySelector('#engine-faq').open&&document.body.innerText.includes('PaperMac was written from scratch.')"),'Native keyboard disclosure exposes the FAQ answer');
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'Open FAQ fits viewport');
+      await verify('#engine-faq p',`Engine FAQ answer ${scheme} ${width}`);
+      await evaluate("document.querySelector('#engine-faq').open=false");checks+=5;
+      assert.equal(await evaluate("document.querySelector('[data-feature-details]').open"),false,'Feature details close when JavaScript runs');
+      assert(await evaluate("(()=>{const frame=document.querySelector('[data-feature-matrix]').getBoundingClientRect(),th=document.querySelector('.feature-table thead th:last-child'),r=document.createRange();r.selectNodeContents(th);const text=r.getBoundingClientRect(),fold=parseFloat(getComputedStyle(document.querySelector('[data-feature-matrix]'),'::before').width);return text.top>=frame.top+fold||text.right<=frame.right-fold})()"),'Fold does not obscure the Pro column label'); checks++;
+      const visibleRows = () => evaluate("[...document.querySelectorAll('[data-feature]')].filter(e=>e.checkVisibility()).length");
+      assert.equal(await visibleRows(),8,'Eight headline matrix rows');
+      assert.deepEqual(await evaluate("[...document.querySelector('[data-feature=heights]').querySelectorAll('td')].map(e=>e.innerText)"),['✓','✓'],'Heights are included in both editions');
+      await evaluate("document.querySelector('[data-feature-details] summary').focus()");
+      await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+      await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await settle();
+      assert.equal(await visibleRows(),27,'Native keyboard expansion exposes all verified features');
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'Expanded matrix fits viewport');
+      assert(await evaluate("document.querySelector('[data-feature-details] summary').getBoundingClientRect().height>=44"),'Feature disclosure touch target');
+      await evaluate("document.querySelector('[data-feature-details]').open=false"); checks+=6;
+      const geometry=await evaluate(`(()=>[...document.querySelectorAll('.ls .pin')].map(p=>{const s=p.querySelector('.stick'),m=p.querySelector('.media'),r=m.getBoundingClientRect();return {kind:p.dataset.row,fill:r.height/innerHeight,ratio:r.width/r.height,pin:p.offsetHeight-s.offsetHeight,position:getComputedStyle(s).position}}))()`);
+      assert.equal(geometry.length,4);
+      for (const row of geometry) {
+        const minimum=width===1440?.65:width===768?.515:.577;
+        assert(row.fill>=minimum&&row.fill<=.725,`Media fill ${width}: ${JSON.stringify(row)}`);
+        assert(Math.abs(row.ratio-(width===1440?1.6:width===768?4/3:4/5))<.01);
+        assert.equal(row.pin,0); assert.notEqual(row.position,'sticky'); checks++;
+      }
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),width);
+      for (const kind of ['switch','resize','heights','send']) {
+        await go(kind,.2); const a=await transforms(kind);
+        await go(kind,.7); const b=await transforms(kind); assert.notDeepEqual(a,b,kind+' scroll changes transforms');
+        assert(await evaluate(`(()=>{const row=document.querySelector('[data-row="${kind}"]'),m=row.querySelector('.media').getBoundingClientRect();const rings=[...row.querySelectorAll('.win.f')].filter(e=>!e.hidden&&getComputedStyle(e).display!=='none');return rings.length===1&&rings.some(e=>{const r=e.getBoundingClientRect();return r.left<m.right&&r.right>m.left&&r.top<m.bottom&&r.bottom>m.top})})()`),kind+' keeps one visible focus ring');
+        await go(kind,.2); assert.deepEqual(await transforms(kind),a,kind+' scroll reverses'); checks+=2;
+      }
+      await evaluate(`window.layoutWrites=[];window.layoutObserver=new MutationObserver(records=>{for(const r of records){const old=document.createElement('i').style;old.cssText=r.oldValue||'';for(const key of ['width','height','top','font-size'])if(old.getPropertyValue(key)!==r.target.style.getPropertyValue(key))layoutWrites.push(key)}});layoutObserver.observe(document.querySelector('.ls'),{subtree:true,attributes:true,attributeFilter:['style'],attributeOldValue:true})`);
+      for (const kind of ['switch','resize','heights','send']) {await go(kind,.3);await go(kind,.6);}
+      assert.deepEqual(await evaluate('layoutWrites'),[],'Scroll must not mutate width, height, top or font-size');
+      await evaluate('layoutObserver.disconnect()');
+      assert(await evaluate("[...document.querySelectorAll('.ls .track')].every(e=>getComputedStyle(e).willChange==='transform')"),'Tracks have a compositor layer'); checks+=3;
+      await load('/mac/',width,height,scheme,true);
+      assert(await evaluate("document.querySelector('.hero-film').dataset.phase==='screencast'&&document.querySelector('.screencast').paused"),'Reduced motion starts on a still screencast');
+      const still=await evaluate("[...document.querySelectorAll('.ls .track,.ls .win')].map(e=>e.style.transform)");
+      await evaluate("scrollTo({top:2000,behavior:'instant'})");await settle();
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.ls .track,.ls .win')].map(e=>e.style.transform)"),still,'Reduced motion stays fixed');
+      const snapshot=`(()=>[...document.querySelectorAll('.ls .band')].map(b=>[...b.querySelectorAll('.win')].filter(e=>getComputedStyle(e).display!=='none').map(e=>{const r=e.getBoundingClientRect(),o=b.getBoundingClientRect();return [e.dataset.id,r.x-o.x,r.y-o.y,r.width,r.height]})))()`;
+      const expected=await evaluate(snapshot);
+      await send('Emulation.setScriptExecutionDisabled',{value:true});
+      try {
+        await send('Page.reload',{ignoreCache:true});await Bun.sleep(300);await evaluate('document.fonts.ready.then(()=>true)');
+        assert.deepEqual(await evaluate(snapshot),expected,'No-JavaScript diagrams match the reduced-motion first frame');
+        assert(await evaluate("document.querySelectorAll('.ls .band .win').length>10"),'Static windows exist without JS');
+        assert(await evaluate("document.querySelector('[data-feature-details]').open&&[...document.querySelectorAll('[data-feature]')].every(e=>e.checkVisibility())"),'All matrix features are available without JavaScript');
+        assert.equal(await evaluate('document.documentElement.scrollWidth'),width,'No-JS expanded matrix fits viewport'); checks+=2;
+        assert(await evaluate("!document.querySelector('#engine-faq').open&&!document.querySelector('#engine-faq p').checkVisibility()"),'No-JS FAQ remains collapsed');checks++;
+        assert(await evaluate("getComputedStyle(document.querySelector('.screencast')).display!=='none'&&document.querySelector('.screencast').controls"),'No-JS hero keeps native playback controls');
+      } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=5;
+    }
+    for (const width of [701,768,1000]) {
+      await load('/paperland/',width,1024,scheme);
+      assert.equal(await evaluate("document.querySelectorAll('.top nav a').length"),3);
+      assert(await evaluate("[...document.querySelectorAll('.top nav a')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>=44&&r.left>=0&&r.right<=innerWidth})"),'PaperLand tablet nav stays visible');checks++;
+    }
+    for (const route of ['/','/mac/','/paperland/','/terms/','/privacy/','/mac/activate/']) {
+      await load(route,390,844,scheme);
+      assert.equal(await evaluate('document.documentElement.scrollWidth'),390,route+' mobile overflow');
+      const selector='a.btn,a.mobile-dmg,.top a,footer nav a,footer .brand,.text-links a,button:not([hidden])';
+      const short=await evaluate(`(()=>[...document.querySelectorAll(${JSON.stringify(selector)})].map(e=>({text:e.textContent.trim(),r:e.getBoundingClientRect()})).filter(e=>e.r.width>0&&e.r.height>0&&(e.r.width<43.9||e.r.height<43.9)).map(e=>e.text))()`);
+      assert.deepEqual(short,[],route+' mobile target size');
+      const enlargedInline=await evaluate(`(()=>[...document.querySelectorAll('p a,li a')].filter(e=>!e.matches(${JSON.stringify(selector)})&&!e.closest('[inert]')&&e.getBoundingClientRect().width>0&&getComputedStyle(e).display!=='inline').map(e=>e.textContent.trim()))()`);
+      assert.deepEqual(enlargedInline,[],route+' in-sentence links stay inline');
+      if (route==='/terms/') {
+        const heights=await evaluate(`(()=>{const p=document.querySelector('.legal p a[href="mailto:billing@getpaper.sh"]').closest('p'),copy=p.cloneNode(true);p.after(copy);for(const a of copy.querySelectorAll('a'))Object.assign(a.style,{display:'inline',minHeight:'0',minWidth:'0',padding:'0'});const result=[p.getBoundingClientRect().height,copy.getBoundingClientRect().height];copy.remove();return result})()`);
+        assert.equal(heights[0],heights[1],'Terms billing link preserves paragraph line spacing');
+      }
+      if (['/terms/','/privacy/','/mac/activate/'].includes(route)) {
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().bottom<=0"),route+' skip hidden');
+        await evaluate("document.querySelector('.skip').focus()");
+        assert(await evaluate("document.querySelector('.skip').getBoundingClientRect().top>=0"),route+' skip visible on focus');
+      }
+      checks+=3;
+    }
+  }
+  await send('Network.setCacheDisabled',{cacheDisabled:true});
+  mediaRequests=[];mediaFailures=[];
+  await load('/mac/?promo-test=off');
+  const heroRequests=mediaRequests.filter(e=>e.url.endsWith('/strip.mp4'));
+  assert.equal(heroRequests.length,1,'Hero requests its HTML fallback recording once');
+  assert.equal(mediaRequests.length,1,'Empty promo makes no video request');
+  assert(!mediaFailures.some(e=>heroRequests.some(r=>r.id===e.requestId)),'Hero recording does not abort');
+  console.log('PASS: 1440x900 hero network:',JSON.stringify({requests:mediaRequests,failures:mediaFailures.filter(e=>heroRequests.some(r=>r.id===e.requestId))}));
+  await send('Network.setCacheDisabled',{cacheDisabled:false});checks+=3;
+  assert(await evaluate("document.querySelector('.promo').currentSrc===''&&document.querySelector('[data-film-replay]').hidden&&document.querySelector('.hero-film').dataset.phase==='screencast'"),'Empty promo source starts the real loop with replay hidden');
+  assert(await evaluate("!performance.getEntriesByType('resource').some(e=>e.name.endsWith('/promo.mp4'))"),'Empty promo does not request a missing media file'); checks+=2;
+  await load('/mac/?promo-test=1');
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'promo','Desktop starts the promo');
+  assert(await evaluate("!document.querySelector('.promo').loop&&document.querySelector('.promo').muted&&document.querySelector('.promo').playsInline"));
+  await evaluate("document.querySelector('[data-film-pause]').click()");
+  assert(await evaluate("document.querySelector('.promo').paused"),'Pause stops the promo');
+  await evaluate("document.querySelector('[data-film-pause]').click();document.querySelector('.promo').dispatchEvent(new Event('ended'))");await Bun.sleep(700);
+  assert(await evaluate("document.querySelector('.hero-film').dataset.phase==='screencast'&&document.querySelector('.screencast').loop&&getComputedStyle(document.querySelector('.promo')).opacity==='0'"),'Promo ends in a crossfade to the loop');
+  await evaluate("document.querySelector('[data-film-replay]').click()");
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'promo');
+  await evaluate("scrollTo({top:2000,behavior:'instant'})");await Bun.sleep(250);
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Passing hero skips promo');
+  await evaluate("scrollTo({top:0,behavior:'instant'})");await Bun.sleep(250);
+  assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Return does not replay the promo');
+  await evaluate("document.querySelector('[data-film-pause]').click()");
+  assert(await evaluate("document.querySelector('.screencast').paused"),'Pause stops loop'); checks+=8;
+  for (const [width,reduced] of [[390,false],[1440,true]]) {
+    await load('/mac/?promo-test=1',width,width===390?844:900,'light',reduced);
+    assert.equal(await evaluate("document.querySelector('.hero-film').dataset.phase"),'screencast','Phone and reduced motion skip promo'); checks++;
+  }
+  const bannerFrame = `(()=>{const f=document.querySelector('[data-strip-demo]'),s=f.querySelector('.stage').getBoundingClientRect();return {width:f.getBoundingClientRect().width,height:f.getBoundingClientRect().height,stage:s.height,transforms:[...f.querySelectorAll('.track,.win,.map b,.map u')].map(e=>[e.style.transform,e.style.opacity]),caption:f.querySelector('.cap').textContent}})()`;
+  for (const scheme of ['light','dark']) for (const [width,height] of [[1440,900],[768,1024],[390,844]]) {
+    await load('/mac/',width,height,scheme,true);
+    await evaluate("document.querySelector('[data-strip-demo]').scrollIntoView({block:'center',behavior:'instant'})");await settle();
+    const fixed=await evaluate(bannerFrame);
+    assert.equal(fixed.width,width,'Banner fills the viewport width');
+    assert(await evaluate("document.querySelector('[data-strip-demo] .pause').getAttribute('aria-label')==='Play window animation'"),'Reduced-motion banner starts paused');
+    await evaluate('scrollBy(0,80)');await settle();
+    assert.deepEqual((await evaluate(bannerFrame)).transforms,fixed.transforms,'Reduced-motion banner stays fixed');
+    assert(await evaluate("[...document.querySelectorAll('[data-strip-demo] .track')].every(e=>getComputedStyle(e).willChange==='transform')"),'Banner tracks use their own compositor layer');
+    await send('Emulation.setScriptExecutionDisabled',{value:true});
+    try {
+      await send('Page.reload',{ignoreCache:true});await Bun.sleep(250);await evaluate('document.fonts.ready.then(()=>true)');
+      assert(await evaluate("document.querySelectorAll('[data-strip-demo] .track .win').length===14&&document.querySelector('[data-strip-demo] .pause').hidden"),'No-JS banner keeps its static windows and hides the inert control');
+      const staticSize=await evaluate("(()=>{const f=document.querySelector('[data-strip-demo]'),s=f.querySelector('.stage');return [f.getBoundingClientRect().width,f.getBoundingClientRect().height,s.getBoundingClientRect().height]})()");
+      assert.deepEqual(staticSize,[fixed.width,fixed.height,fixed.stage]);
+    } finally {await send('Emulation.setScriptExecutionDisabled',{value:false});} checks+=6;
+  }
+  await load('/mac/');
+  await evaluate("document.querySelector('[data-strip-demo]').scrollIntoView({block:'center',behavior:'instant'});document.querySelector('[data-strip-demo] .pause').focus()");await settle();
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  assert(await evaluate("document.querySelector('[data-strip-demo] .pause').dataset.paused==='true'"),'Space pauses the banner');
+  const pausedBanner=await evaluate(bannerFrame);await Bun.sleep(2900);
+  assert.deepEqual(await evaluate(bannerFrame),pausedBanner,'Pause freezes both in-flight transforms and beats');
+  await evaluate(`window.bannerLayoutWrites=[];window.bannerObserver=new MutationObserver(records=>{for(const r of records){const old=document.createElement('i').style;old.cssText=r.oldValue||'';for(const key of ['width','height','top','font-size'])if(old.getPropertyValue(key)!==r.target.style.getPropertyValue(key))bannerLayoutWrites.push(key)}});bannerObserver.observe(document.querySelector('[data-strip-demo]'),{subtree:true,attributes:true,attributeFilter:['style'],attributeOldValue:true})`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await Bun.sleep(2900);
+  assert.notEqual((await evaluate(bannerFrame)).caption,pausedBanner.caption,'Enter resumes the looping beats');
+  assert.deepEqual(await evaluate('bannerLayoutWrites'),[],'Banner never changes width, height, top or font-size during animation');
+  assert(await evaluate("[...document.querySelectorAll('[data-strip-demo] .track,[data-strip-demo] .win')].every(e=>getComputedStyle(e).transitionProperty.split(',').every(p=>['transform','opacity'].includes(p.trim())))"),'Banner CSS transitions only transform and opacity');
+  await evaluate('bannerObserver.disconnect()');checks+=4;
+  for (const path of ['/robots.txt','/favicon.ico','/apple-touch-icon.png']) { assert.equal((await fetch(base+path)).status,200); checks++; }
+  console.log(`PASS: ${checks} browser checks: both themes, three viewports, copy and focus, fixed geometry, reverse scrolling, no pins, no-JS first frames and hero playback states`);
+} finally {
+  ws?.close(); chrome.kill(); server.stop(true);
+  await chrome.exited;
+  rmSync(profile, { recursive: true, force: true });
+}

@@ -1,0 +1,278 @@
+{
+  "$description": "Paper brand color tokens - direction 'Paper & Fold Blue' (recommended, Nov 9 2026). Approved 2026-11-09.",
+  "meta": {
+    "name": "paper-blue",
+    "version": "0.1.0-draft",
+    "source": "Paper brand colour review (approved by Jason 2026-11-09)",
+    "rules": [
+      "One accent for every selected/focused thing on every surface.",
+      "Text in accent color always uses accentText, never accent.",
+      "Selected tiles: solid accent fill + onAccent label; keep a 0.75px white 16% inner rim on dark for extra margin.",
+      "Anything drawn straight on a wallpaper (focused-window border) uses a two-tone ring: focus color + 1px dark outline #0B1220 at 60%.",
+      "Orange #E2470F is retired from UI; if kept at all it is a marketing-only marker, never a state."
+    ]
+  },
+  "brand": {
+    "fold-blue": {
+      "$type": "color",
+      "$value": "#0965D0",
+      "$description": "Brand blue; matches the icon squircle bottom family and the current /mac Pro button"
+    },
+    "fold-blue-deep": {
+      "$type": "color",
+      "$value": "#0352C5",
+      "$description": "Icon squircle bottom; text-safe on light"
+    },
+    "fold-blue-bright": {
+      "$type": "color",
+      "$value": "#1590F7",
+      "$description": "Icon squircle top; illustration only, not for text or UI states"
+    },
+    "fold-blue-light": {
+      "$type": "color",
+      "$value": "#79B6FF",
+      "$description": "Text-safe and focus on dark"
+    },
+    "paper": {
+      "$type": "color",
+      "$value": "#F2EFE7",
+      "$description": "Cream paper"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#14151A",
+      "$description": "Ink"
+    }
+  },
+  "light": {
+    "paper": {
+      "$type": "color",
+      "$value": "#F2EFE7",
+      "$description": "Page / window background"
+    },
+    "surface": {
+      "$type": "color",
+      "$value": "#FFFDF8",
+      "$description": "Cards, panels, inputs"
+    },
+    "raised": {
+      "$type": "color",
+      "$value": "#E8E4D8",
+      "$description": "Unselected tiles, secondary buttons, chips"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#14151A",
+      "$description": "Primary text"
+    },
+    "ink2": {
+      "$type": "color",
+      "$value": "#55585F",
+      "$description": "Secondary text (AA on paper/surface)"
+    },
+    "ink3": {
+      "$type": "color",
+      "$value": "#64635E",
+      "$description": "Tertiary text, minimum for any text (AA on paper/surface/raised)"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "#D9D3C5",
+      "$description": "Hairlines, dividers"
+    },
+    "borderStrong": {
+      "$type": "color",
+      "$value": "#B8B1A2",
+      "$description": "Input borders, tile outlines"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#0965D0",
+      "$description": "THE Paper accent: selected fill, primary button, focused window border"
+    },
+    "accentText": {
+      "$type": "color",
+      "$value": "#0352C5",
+      "$description": "Accent used as text or links (AA on paper/surface)"
+    },
+    "onAccent": {
+      "$type": "color",
+      "$value": "#FFFFFF",
+      "$description": "Text/icons on an accent fill"
+    },
+    "accentTint": {
+      "$type": "color",
+      "$value": "#0965D024",
+      "$description": "Matches/hover wash (8-digit hex with alpha)"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "#0965D0",
+      "$description": "Keyboard focus ring (2px, offset 2px)"
+    },
+    "viewport": {
+      "$type": "color",
+      "$value": "#0352C5",
+      "$description": "Minimap viewport outline"
+    },
+    "success": {
+      "$type": "color",
+      "$value": "#2E7A4D",
+      "$description": "Success text/icon (AA)"
+    },
+    "warning": {
+      "$type": "color",
+      "$value": "#8F5A00",
+      "$description": "Warning text/icon (AA)"
+    },
+    "error": {
+      "$type": "color",
+      "$value": "#C0302B",
+      "$description": "Error/danger text/icon (AA)"
+    }
+  },
+  "dark": {
+    "paper": {
+      "$type": "color",
+      "$value": "#121317",
+      "$description": "Page / window background"
+    },
+    "surface": {
+      "$type": "color",
+      "$value": "#1D1E24",
+      "$description": "Cards, panels, inputs"
+    },
+    "raised": {
+      "$type": "color",
+      "$value": "#23242A",
+      "$description": "Unselected tiles, secondary buttons, chips"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#F2EFE7",
+      "$description": "Primary text"
+    },
+    "ink2": {
+      "$type": "color",
+      "$value": "#B9B5AB",
+      "$description": "Secondary text (AA on paper/surface)"
+    },
+    "ink3": {
+      "$type": "color",
+      "$value": "#9A968D",
+      "$description": "Tertiary text, minimum for any text (AA on paper/surface/raised)"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "#36373F",
+      "$description": "Hairlines, dividers"
+    },
+    "borderStrong": {
+      "$type": "color",
+      "$value": "#55565F",
+      "$description": "Input borders, tile outlines"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#1A73E0",
+      "$description": "THE Paper accent: selected fill, primary button, focused window border"
+    },
+    "accentText": {
+      "$type": "color",
+      "$value": "#79B6FF",
+      "$description": "Accent used as text or links (AA on paper/surface)"
+    },
+    "onAccent": {
+      "$type": "color",
+      "$value": "#FFFFFF",
+      "$description": "Text/icons on an accent fill"
+    },
+    "accentTint": {
+      "$type": "color",
+      "$value": "#4D9BFF33",
+      "$description": "Matches/hover wash (8-digit hex with alpha)"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "#79B6FF",
+      "$description": "Keyboard focus ring (2px, offset 2px)"
+    },
+    "viewport": {
+      "$type": "color",
+      "$value": "#79B6FF",
+      "$description": "Minimap viewport outline"
+    },
+    "success": {
+      "$type": "color",
+      "$value": "#5FCB8E",
+      "$description": "Success text/icon (AA)"
+    },
+    "warning": {
+      "$type": "color",
+      "$value": "#F2B84B",
+      "$description": "Warning text/icon (AA)"
+    },
+    "error": {
+      "$type": "color",
+      "$value": "#FF7468",
+      "$description": "Error/danger text/icon (AA)"
+    }
+  },
+  "overlay": {
+    "$description": "Always-dark app overlays (PaperMac switcher/minimap/HUDs, PaperLand minimap/switcher/Overview). They float over arbitrary content, so they own their colors.",
+    "surface": {
+      "$type": "color",
+      "$value": "#1A1B20",
+      "$description": "Overlay card/minimap base (use ~94% opacity over blur; solid under Reduce Transparency)"
+    },
+    "tile": {
+      "$type": "color",
+      "$value": "#23242A",
+      "$description": "Unselected tile/box"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#F2EFE7"
+    },
+    "ink2": {
+      "$type": "color",
+      "$value": "#BDB9AF"
+    },
+    "ink3": {
+      "$type": "color",
+      "$value": "#9C988F"
+    },
+    "selected": {
+      "$type": "color",
+      "$value": "#1A73E0",
+      "$description": "Selected/focused tile fill"
+    },
+    "onSelected": {
+      "$type": "color",
+      "$value": "#FFFFFF"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "#79B6FF",
+      "$description": "Focus ring, viewport outline, match edge"
+    },
+    "match": {
+      "$type": "color",
+      "$value": "#4D9BFF38",
+      "$description": "Filter match wash"
+    },
+    "floating": {
+      "$type": "color",
+      "$value": "#F2B84B",
+      "$description": "Floating-window marker (was #FF9E38); distinct from selection"
+    },
+    "urgent": {
+      "$type": "color",
+      "$value": "#FF7468",
+      "$description": "Urgent dot / danger"
+    }
+  },
+  "contrast": {
+    "note": "WCAG 2.x ratios, computed. All pairs listed in COLOR-REVIEW.md pass: text >= 4.5:1, UI/selection >= 3:1 incl. deuteranopia/protanopia simulation (Machado 2009, severity 1.0)."
+  }
+}

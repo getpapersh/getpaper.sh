@@ -146,7 +146,7 @@
   background: var(--k-cmd-lbl, rgba(255,255,255,.12)); border-radius: 0 var(--k-cmd-r, 14px) var(--k-cmd-r, 14px) 0; }
 .k-cmd .lbl svg { width: 15px; height: 15px; }
 .k-cmd:hover { transform: translateY(-1px); } .k-cmd:active { transform: translateY(1px); }
-.k-cmd.done .lbl { background: var(--k-done, #ffe14d); color: #0a0b26; }
+.k-cmd.done .lbl { background: var(--brand-accent); color: var(--brand-onAccent); }
 .k-after { margin: 10px 0 0; min-height: 1.4em; font: 600 14px/1.4 var(--k-ui, system-ui); color: var(--k-after, inherit); opacity: 0; transition: opacity .3s; }
 .k-after.on { opacity: 1; }
 @media (max-width: 480px) {
@@ -167,7 +167,7 @@
 .k-mini .trk { position: relative; height: 100%; }
 .k-mini button { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; border-radius: 5px; background: var(--k-line); cursor: pointer; transition: background .2s, opacity .3s; }
 .k-mini button[aria-current="true"] { background: var(--k-accent); }
-.k-mini button:hover { background: var(--k-dim); }
+.k-mini button:hover { background: var(--brand-accent); color: var(--brand-onAccent); }
 .k-mini .vw { position: absolute; top: -4px; bottom: -4px; border: 2.5px solid var(--k-accent); border-radius: 8px; pointer-events: none; }
 .k-beats { margin: 0; padding: 0; }
 
