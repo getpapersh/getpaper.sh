@@ -1,0 +1,18 @@
+.land { padding-bottom: 72px; }
+.land-hero { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 64px; align-items: center; padding: 64px 0 72px; }
+.land h1 { font-size: clamp(48px, 7vw, 96px); line-height: 1.05; }
+.maturity { color: var(--brand-accentText); font-weight: 750; }
+.land .tag { font-size: clamp(28px, 3vw, 44px); }
+.land p { max-width: 70ch; }
+.land-mark { width: 100%; height: auto; }
+.land-install, .land-source { padding: 40px 0; border-top: 1px solid var(--brand-border); }
+.land h2 { font-size: clamp(30px, 4vw, 48px); line-height: 1.15; }
+.land .cmd { max-width: 760px; }
+.command-tail { white-space: nowrap; }
+.land details { margin-top: 32px; }
+.land summary { min-height: 44px; cursor: pointer; }
+.land details code { overflow-wrap: anywhere; }
+@media (max-width: 800px) { .land-hero { grid-template-columns: 1fr; padding: 32px 0 48px; gap: 24px; } .land-mark { grid-row: 1; width: 96px; } .land p { font-size: 17px; } .top nav { gap: 12px; } .top .brand { font-size: 17px; } }
+@media (max-width: 500px) { .land .cmd { display: flex; flex-direction: column; } .land .cmd code { padding: 16px 10px; font-size: 13px; } .land .cmd .lbl { padding: 12px; } .top nav a { font-size: 13px; } }
+
+.top nav > a:not(.btn) { display: inline-flex; }

@@ -21,7 +21,7 @@ They arrive from a link, read the one-liner, decide whether to install, and copy
 
 ## Product Purpose
 
-Paper is one scrolling workflow on two platforms: PaperMac on macOS and Paperland on Hyprland (Omarchy). getpaper.sh is where both get installed. The page succeeds when a visitor understands the idea within one viewport and copies the right command for their system.
+Paper is one scrolling workflow on two platforms: PaperMac on macOS and PaperLand on Hyprland (Omarchy). getpaper.sh is where both get installed. The page succeeds when a visitor understands the idea within one viewport and copies the right command for their system.
 
 ## Positioning
 
@@ -33,10 +33,10 @@ Infinite Canvas is the feature name; "an infinite canvas" describes the experien
 
 ## Operating Context
 
-- Install: `curl -fsSL https://getpaper.sh/install | sh` (universal; on macOS installs PaperMac, on Linux with Omarchy and Hyprland installs Paperland). Uninstall: `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
-- Final-state install fork (owner decision): macOS shows `brew tap getpapersh/tap && brew install --cask papermac` and a DMG download; Linux shows an Omarchy plugin install command. Today the Mac page (`/mac/`) shows the Homebrew command, the DMG and the universal command; the home page's macOS slot shows the universal command and the DMG, and its Linux slot shows the universal command, which installs Paperland as an Omarchy plugin.
-- Requirements today: PaperMac needs macOS 27 or newer and Accessibility access; Paperland needs Omarchy 4+ with Hyprland 0.56+, Quickshell, Python 3, git and jq.
-- PaperMac runs on top of native macOS Spaces (Mission Control keeps working); Paperland works with Hyprland's native workspaces.
+- Install: `curl -fsSL https://getpaper.sh/install | sh` (universal; on macOS installs PaperMac, on Linux with Omarchy and Hyprland installs PaperLand). Uninstall: `curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall`.
+- Final-state install fork (owner decision): macOS shows `brew tap getpapersh/tap && brew install --cask papermac` and a DMG download; Linux shows an Omarchy plugin install command. Today the Mac page (`/mac/`) shows the Homebrew command, the DMG and the universal command; the home page's macOS slot shows the universal command and the DMG, and its Linux slot shows the universal command, which installs PaperLand as an Omarchy plugin.
+- Requirements today: PaperMac needs macOS 27 or newer and Accessibility access; PaperLand needs Omarchy 4+ with Hyprland 0.56+, Quickshell, Python 3, git and jq.
+- PaperMac runs on top of native macOS Spaces (Mission Control keeps working); PaperLand works with Hyprland's native workspaces.
 
 ## Capabilities and Constraints
 
@@ -44,7 +44,7 @@ Shared concepts (both products): scrolling Strips within a Desktop; focus moves 
 
 PaperMac only or ahead today: Limelight (dims unfocused windows), optional focused-window border, typed search in the switcher across all Desktops, window snoozing, per-app rules, customizable shortcuts with a Ghost Keys overlay, a guided first-run lesson ("First Flow"), Sparkle updates.
 
-Paperland only or ahead today: full-display Overview with Full/Icons/Timeline modes, Peek mode for the Minimap, scratchpad.
+PaperMac Free includes experimental Overview for browsing the current canvas on macOS 27. PaperLand only or ahead today: full-display Overview with Full/Icons/Timeline modes, Peek mode for the Minimap, scratchpad.
 
 ### Shared terminology
 
@@ -66,8 +66,8 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 
 ## Brand Commitments
 
-- Names: Paper (family), PaperMac (macOS), Paperland (Hyprland). Domain getpaper.sh.
-- Voice: calm, technical, honest. PaperMac is in public beta (27.0.0-beta.7). The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
+- Names: Paper (family), PaperMac (macOS), PaperLand (Hyprland). Domain getpaper.sh.
+- Voice: calm, technical, honest. PaperMac is in Beta; PaperLand is in Alpha. The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
 - Soft launch: no announcement copy, no analytics.
 - The earlier papermac-www site work (its layout, palette and headline) is explicitly not a reference for getpaper.sh.
 

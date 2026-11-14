@@ -3,8 +3,8 @@
 #   Install or update:  curl -fsSL https://getpaper.sh/install | sh
 #   Uninstall:          curl -fsSL https://getpaper.sh/install | sh -s -- --uninstall
 #
-# macOS: installs PaperMac. Linux (Omarchy with Hyprland): installs Paperland, with the
-# Paperland installer that scripts/build-site.sh inlines from paperland/ (the served
+# macOS: installs PaperMac. Linux (Omarchy with Hyprland): installs PaperLand, with the
+# PaperLand installer that scripts/build-site.sh inlines from paperland/ (the served
 # site/install is the built file; this source refuses Linux until it is built).
 #
 # The whole script is one { ... } block ending in `main "$@"; }` on the last line, so
@@ -431,7 +431,7 @@ paperland_install() { die "This installer was not built: run scripts/build-site.
 paperland_uninstall() { die "This installer was not built: run scripts/build-site.sh and use site/install."; }
 # END PAPERLAND
 
-# shellcheck disable=SC2031 # the Paperland subshells set SITE too, to the same value
+# shellcheck disable=SC2031 # the PaperLand subshells set SITE too, to the same value
 usage() {
   cat <<EOF
 Usage:
@@ -439,13 +439,13 @@ Usage:
   curl -fsSL $SITE/install | sh -s -- --uninstall          uninstall
   curl -fsSL $SITE/install | sh -s -- --edit-dotfiles      Linux: see below
 
-macOS installs PaperMac. Linux (Omarchy with Hyprland) installs Paperland.
+macOS installs PaperMac. Linux (Omarchy with Hyprland) installs PaperLand.
 
-  --uninstall      Remove PaperMac (macOS) or Paperland (Linux). Settings are kept.
+  --uninstall      Remove PaperMac (macOS) or PaperLand (Linux). Settings are kept.
   --edit-dotfiles  Linux only. When ~/.config/hypr/hyprland.lua or a parent is a symlink (into a
-                   dotfiles repository, say), add Paperland's marked include to the file
+                   dotfiles repository, say), add PaperLand's marked include to the file
                    it points to instead of printing the lines for you to paste. The link
-                   stays a link, and Paperland's generated files never go there.
+                   stays a link, and PaperLand's generated files never go there.
   --help           Show this help.
 EOF
 }
@@ -463,7 +463,7 @@ main() {
   done
   case "$(uname -s)" in
     Darwin)
-      [ -z "$edit_dotfiles" ] || die "--edit-dotfiles applies only to Paperland on Linux; PaperMac has no Hyprland config."
+      [ -z "$edit_dotfiles" ] || die "--edit-dotfiles applies only to PaperLand on Linux; PaperMac has no Hyprland config."
       ME=$(id -u)
       [ "$ME" -ne 0 ] || die "Do not run this as root or with sudo; run it as your normal user."
       WORK='' MOUNTED='' APP_STAGE='' DEST='' LOCKS='' PIDS='' QUIT_REQUEST=''
@@ -474,7 +474,7 @@ main() {
     Linux)
       [ "$action" = install ] || [ -z "$edit_dotfiles" ] ||
         die "--edit-dotfiles applies only to the installer, not to --uninstall."
-      # Paperland's half runs in a subshell with its own traps; this shell only waits
+      # PaperLand's half runs in a subshell with its own traps; this shell only waits
       # for it (a no-op trap, not an ignore, which its children would inherit), so its
       # cleanup always finishes before the exit status is returned.
       trap : INT TERM HUP
@@ -486,7 +486,7 @@ main() {
       else
         paperland_install
       fi ;;
-    *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (Paperland)." ;;
+    *) die "Unsupported system: $(uname -s). Paper supports macOS (PaperMac) and Linux with Omarchy and Hyprland (PaperLand)." ;;
   esac
 }
 

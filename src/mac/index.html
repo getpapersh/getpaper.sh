@@ -2,23 +2,37 @@
 <html lang="en" data-sales="{{SALES_MODE}}">
 <head>
 <meta charset="utf-8">
+<meta property="og:type" content="website">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PaperMac: a scrolling window manager for macOS</title>
 <meta name="description" content="PaperMac is a scrolling window manager for macOS. Go beyond Mission Control. Unleash your desktop on an infinite canvas.">
 <meta property="og:title" content="PaperMac: a scrolling window manager for macOS">
 <meta property="og:description" content="Go beyond Mission Control. Unleash your desktop on an infinite canvas.">
-<link rel="icon" href="data:image/webp;base64,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">
 <script src="init.js"></script>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="../_kit/contact.css">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/papermac/papermac-icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/papermac/papermac-icon-180.png">
+<link rel="stylesheet" href="../_kit/brand.css">
+<meta property="og:image" content="https://getpaper.sh/mac/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="canonical" href="https://getpaper.sh/mac/">
+<meta property="og:url" content="https://getpaper.sh/mac/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PaperMac: a scrolling window manager for macOS">
+<meta name="twitter:description" content="PaperMac Beta brings full-width windows, scrolling Strips and Overview to native macOS Spaces. Free to use, with optional Pro features.">
+<meta name="twitter:image" content="https://getpaper.sh/mac/og.png">
 </head>
 <body>
 <a class="skip" href="#install">Skip to install</a>
 <p id="live" class="sr-only" aria-live="polite"></p>
 
-<header class="wrap top with-buy-notice">
-  <a class="brand" href="#top" aria-label="PaperMac, top of page"><img src="data:image/webp;base64,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" alt="" width="30" height="30">PaperMac</a>
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="PaperMac, top of page"><img src="/brand/papermac/papermac-icon.svg" alt="" width="30" height="30">PaperMac</a>
   <nav aria-label="Page" data-page>
+    <a href="/">Paper</a>
+    <a href="/paperland/">Linux · PaperLand Alpha</a>
     <a href="#editions">Free and Pro</a>
     <a href="#install">Install</a>
 <!-- sales:url -->
@@ -26,27 +40,26 @@
 <!-- /sales:url -->
 <!-- sales:off -->
 <a class="btn pro small trial-cta" href="#install">Try Pro free for 14 days</a>
-<button class="btn pro small" type="button" disabled aria-describedby="header-sales">Buy Pro</button>
 <!-- /sales:off -->
   </nav>
 <!-- sales:off -->
-<p class="sales-closed" id="header-sales">Buying Pro opens during the beta</p>
+<p class="sales-closed" id="header-sales">Buying opens soon.</p>
 <!-- /sales:off -->
-  <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
 </header>
 
 <main id="top">
 
   <section class="hero" aria-labelledby="title" data-page>
     <div class="wrap hero-grid">
-      <div>
+      <div class="hero-copy">
         <h1 id="title">PaperMac</h1>
+        <p class="maturity">PaperMac Beta · macOS 27</p>
         <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
         <p class="lede">A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.</p>
       </div>
       <aside class="decide" aria-label="Get PaperMac">
         <div class="tier">
-          <div class="tier-head"><img src="data:image/webp;base64,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" alt="" width="48" height="48"><div><h2>PaperMac Free</h2><p class="free-line">Free to use, with no time limit.</p></div></div>
+          <div class="tier-head"><img src="/brand/papermac/papermac-icon.svg" alt="" width="48" height="48"><div><h2>PaperMac Free</h2><p class="free-line">Free to use, with no time limit.</p></div></div>
           <p class="req">macOS 27 or newer, with Accessibility access</p>
           <div class="ways" role="tablist" data-ways aria-label="Ways to install">
             <button role="tab" id="t-dmg" aria-controls="p-dmg" aria-selected="true">Download</button>
@@ -54,30 +67,39 @@
             <button role="tab" id="t-sh" aria-controls="p-sh" aria-selected="false" tabindex="-1">Script</button>
           </div>
           <div class="way-panel" role="tabpanel" id="p-dmg" aria-labelledby="t-dmg">
-            <a class="btn ink wide" href="{{DMG_URL}}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download free</a>
+            <div class="download-actions"><a class="btn ink wide direct-download" href="{{DMG_URL}}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download free</a><button class="btn ink share-download" type="button">Get it on your Mac</button><a class="mobile-dmg" href="{{DMG_URL}}">Download the DMG</a></div>
           </div>
           <div class="way-panel" role="tabpanel" id="p-brew" aria-labelledby="t-brew" hidden>
-            <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the Homebrew install command"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button>
+            <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-describedby="copy-homebrew-1"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button><span class="sr-only" id="copy-homebrew-1">Copies the Homebrew install command</span>
           </div>
           <div class="way-panel" role="tabpanel" id="p-sh" aria-labelledby="t-sh" hidden>
-            <button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the install script command"><code>curl -fsSL https://getpaper.sh/install | sh</code><span class="lbl">Copy</span></button>
+            <button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh" data-after="Copied: paste it in Terminal to install PaperMac." aria-describedby="copy-install-script-1"><code>curl -fsSL https://getpaper.sh/install | sh</code><span class="lbl">Copy</span></button><span class="sr-only" id="copy-install-script-1">Copies the install script command</span>
             <p class="sub"><a href="https://getpaper.sh/install">Read the script first</a></p>
           </div>
           <p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>
         </div>
         <div class="tier pro">
-          <div class="pro-head"><h2>PaperMac Pro 27</h2><p class="price"><b>$19</b> <s><span class="sr-only">was </span>$29</s></p></div>
-          <ul class="facts"><li>One-time purchase for macOS 27</li><li><b>BETABELIEVER</b> takes $10 off</li></ul>
+          <div class="pro-head"><h2>PaperMac 27 Pro</h2><p class="price"><b>$19.50</b> <span class="was">Regular $39</span></p></div>
+          <ul class="facts"><li>One-time purchase for macOS 27. Founding price through <time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time>, then $39.</li></ul>
 <!-- sales:url -->
 <a class="btn pro wide" href="{{CHECKOUT_URL}}">Buy Pro</a>
+<a class="btn ink wide trial-cta" href="#install">Try Pro free for 14 days</a>
+<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
 <!-- /sales:url -->
 <!-- sales:off -->
 <a class="btn pro wide trial-cta" href="#install">Try Pro free for 14 days</a>
-<button class="btn pro wide" type="button" disabled aria-describedby="hero-sales">Buy Pro</button>
-<p class="sales-closed" id="hero-sales">Buying Pro opens during the beta</p>
+<p class="sales-closed" id="hero-sales">Buying opens soon. Until then, try Pro free for 14 days.</p>
 <!-- /sales:off -->
-          <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <p class="trial">The 14-day Pro trial starts inside the app, when you choose.</p>
+          <p class="trial">The 14-day Pro trial starts inside the app, when you choose. There is no automatic charge.</p>
+<!-- lifetime:url -->
+          <div class="lifetime-row">
+            <b>PaperMac 27 Lifetime</b>
+            <p class="price"><b>$39.50</b> <span class="was">Regular $79</span></p>
+            <p class="coverage">Covers this and all future versions of PaperMac with a Pro license.</p>
+            <a class="btn quiet lifetime-cta" href="{{LIFETIME_CHECKOUT_URL}}">Buy Lifetime</a>
+            <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
+          </div>
+<!-- /lifetime:url -->
         </div>
       </aside>
     </div>
@@ -100,9 +122,11 @@
 
   <section class="native wrap" aria-labelledby="native-h" data-page>
     <h2 id="native-h">Native to macOS</h2>
+    <p class="lede">Keep windows at full width without shrinking them to fit. PaperMac works on native macOS Spaces, with Mission Control intact and no SIP disabling. Inspired by <a href="https://github.com/paperwm/PaperWM">PaperWM</a> and <a href="https://github.com/YaLTeR/niri">niri</a>.</p>
+    <p class="trust">Notarized PaperMac downloads · Checksum-verified installer · No sudo · No SIP changes · No telemetry</p>
     <div class="grid">
       <figure class="slot-live">
-        <video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
+        <video controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
         <figcaption>Moving focus scrolls the Strip. Real app; synthetic documents.</figcaption>
       </figure>
       <figure class="menubar">
@@ -118,78 +142,90 @@
 
   <section class="compare wrap" id="editions" aria-labelledby="ed-h" data-page>
     <h2 id="ed-h">Free and Pro</h2>
+    <p class="lede">PaperMac Free is free to use, with no time limit. Both Free and Pro are closed-source software under <a href="/terms/">PaperMac's proprietary Terms</a>. For Linux, <a href="https://github.com/getpapersh/paperland">PaperLand is GPL-3.0-or-later open source</a>.</p>
     <div class="cols">
       <div class="col" id="free">
         <div class="col-head"><h3>PaperMac Free</h3><b>$0</b></div>
-        <p class="col-intro">The whole scrolling Strip, on every Desktop and every display.</p>
+        <p class="col-intro">The core window manager is free to use, with no time limit.</p>
+        <p class="txt">Get scrollable tiling on every Desktop and display, with up to two Strips per Desktop at independently adjustable heights, and stacks of up to 2 showing windows.</p>
         <div class="pics">
-          <figure class="pic" data-pic="lanes2"><div class="mini" aria-hidden="true"></div><figcaption>Up to <b>2 lanes</b> per Desktop, full height or half and half</figcaption></figure>
-          <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 windows</b></figcaption></figure>
+          <figure class="pic" data-pic="lanes2"><div class="mini" aria-hidden="true"></div><figcaption>Up to <b>two Strips at independently adjustable heights</b> per Desktop</figcaption></figure>
+          <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 showing windows</b></figcaption></figure>
           <figure class="pic" data-pic="strip"><div class="mini" aria-hidden="true"></div><figcaption>A Strip on every Desktop and display, in live motion</figcaption></figure>
           <figure class="pic" data-pic="resize"><div class="mini" aria-hidden="true"></div><figcaption>Move between windows and resize them</figcaption></figure>
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic recording"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview (Experimental). Real app; synthetic documents.</figcaption></figure>
           <figure class="pic" data-pic="minimap"><div class="mini" aria-hidden="true"></div><figcaption>The Minimap shows where you are</figcaption></figure>
           <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
-          <p class="txt">Also free: rules for your apps, gestures, your own shortcuts, a config file and a CLI, and crash recovery.</p>
+          <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
+          <p class="txt">Also free: app rules, gestures, custom shortcuts, a config file, a CLI, and crash recovery.</p>
         </div>
         <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
       </div>
       <div class="col pro" id="pro">
-        <div class="col-head"><h3>PaperMac Pro 27</h3><b>$19 <s><span class="sr-only">was </span>$29</s></b></div>
+        <div class="col-head"><h3>PaperMac 27 Pro</h3><b>$19.50 <span class="was">Regular $39</span></b></div>
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
-          <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>3 or more windows</b></figcaption></figure>
-          <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Lanes of different heights</figcaption></figure>
+          <figure class="pic recording"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three Strips and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>Three or more Strips</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>three or more showing windows</b></figcaption></figure>
           <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>
           <figure class="pic" data-pic="previews"><div class="mini" aria-hidden="true"></div><figcaption>Window previews on hover</figcaption></figure>
           <figure class="pic" data-pic="synced"><div class="mini" aria-hidden="true"></div><figcaption>Strips that stay in sync across displays</figcaption></figure>
           <figure class="pic" data-pic="names"><div class="mini" aria-hidden="true"></div><figcaption>Desktops that name themselves</figcaption></figure>
           <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Snooze a window until you need it</figcaption></figure>
-          <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
         </div>
-        <aside class="slip" aria-label="Buy PaperMac Pro">
-          <div class="who"><img src="data:image/webp;base64,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" alt="" width="52" height="52"><div><b>PaperMac Pro 27</b><span>The edition for macOS 27</span></div></div>
-          <div class="price"><b>$19</b><span>beta price<br>then <s>$29</s></span></div>
-<!-- sales:url -->
-<a class="btn pro" href="{{CHECKOUT_URL}}">Buy PaperMac Pro</a>
-<!-- /sales:url -->
-<!-- sales:off -->
-<a class="btn pro trial-cta" href="#install">Try Pro free for 14 days</a>
-<button class="btn pro" type="button" disabled aria-describedby="panel-sales">Buy PaperMac Pro</button>
-<p class="sales-closed" id="panel-sales">Buying Pro opens during the beta</p>
-<!-- /sales:off -->
-          <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <p class="to">Use BETABELIEVER for $10 off.</p>
-          <hr>
-<!-- sales:url -->
-          <div class="phone">
-            {{CHECKOUT_QR}}
-            <div><b>Buy on your phone</b><p>Scan to open the same checkout.</p></div>
-          </div>
-<!-- /sales:url -->
-<!-- sales:off -->
-          <div class="phone sales-unavailable">
-            <div class="qr-placeholder" aria-hidden="true"></div>
-            <div><b>Buy on your phone</b><p>Buying Pro opens during the beta</p></div>
-          </div>
-<!-- /sales:off -->
-          <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <hr>
-          <p class="bill">Purchases and licenses: <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a></p>
-        </aside>
+        <p class="txt">Also in Pro: lock windows together as a group.</p>
       </div>
     </div>
-    <p class="txt soon"><b>Coming soon</b>Stack scrolling and stack height controls. Not included in Free or Pro.</p>
-    <p class="txt soon"><b>Beta software</b>PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things.</p>
-    <p class="lead">Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.</p>
+    <aside class="slip purchase" aria-label="{{BUY_LABEL}}">
+      <div class="options">
+        <div class="option">
+          <div class="who"><b>PaperMac 27 Pro</b></div>
+          <p class="coverage">PaperMac 27 Pro on macOS 27</p>
+          <div class="price"><b>$19.50</b><span><span class="was">Regular $39</span><br>one time.</span></div>
+          <p class="to">Founding price through <time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time></p>
+<!-- sales:url -->
+          <a class="btn pro" href="{{CHECKOUT_URL}}">Buy PaperMac 27 Pro</a>
+          <a class="btn ink trial-cta" href="#install">Try Pro free for 14 days</a>
+          <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
+          <p class="to">Full refund within 30 days, for any reason.</p>
+          <div class="phone">
+            {{CHECKOUT_QR}}
+            <b>Scan to buy PaperMac 27 Pro on your phone</b>
+          </div>
+<!-- /sales:url -->
+<!-- sales:off -->
+          <a class="btn pro trial-cta" href="#install">Try Pro free for 14 days</a>
+          <p class="sales-closed" id="panel-sales">Buying opens soon. Until then, try Pro free for 14 days.</p>
+<!-- /sales:off -->
+        </div>
+<!-- lifetime:url -->
+        <div class="option lifetime-option">
+          <div class="who"><b>PaperMac 27 Lifetime</b></div>
+          <p class="coverage">Covers this and all future versions of PaperMac with a Pro license.</p>
+          <div class="price"><b>$39.50</b><span><span class="was">Regular $79</span><br>one time.</span></div>
+          <p class="to">Founding price through <time datetime="2026-12-02T07:59:59Z">Dec 1, 11:59&nbsp;PM&nbsp;PT</time></p>
+          <a class="btn quiet lifetime-cta" href="{{LIFETIME_CHECKOUT_URL}}">Buy PaperMac 27 Lifetime</a>
+          <p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>
+          <p class="to">Full refund within 30 days, for any reason.</p>
+        </div>
+<!-- /lifetime:url -->
+      </div>
+      <hr>
+      <p class="bill">Purchases and licenses: <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a></p>
+    </aside>
+    <p class="txt soon"><b>PaperMac Beta</b>PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things.</p>
+    <p class="txt">PaperMac is built by Jason Martin, an independent developer. Questions before you buy? Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a>.</p>
+    <p class="lead">A PaperMac 27 Pro license covers PaperMac 27 Pro on macOS 27 Golden Gate.</p>
     <div class="plain" role="list" aria-label="Purchase terms">
-      <div role="listitem"><strong>Pay once.</strong><p>No subscription.</p></div>
-      <div role="listitem"><strong>Your edition never expires.</strong><p>Keep using PaperMac Pro 27 on macOS 27. Future editions are optional discounted upgrades.</p></div>
-      <div role="listitem"><strong>One person, all your Macs.</strong><p>Use your license on up to 5 Macs at once.</p></div>
-      <div role="listitem"><strong>No grace window.</strong><p>A new edition is a separate purchase, even if you bought this one recently.</p></div>
+      <div role="listitem"><strong>30-day refund, for any reason.</strong><p>Email billing@getpaper.sh within 30 days of purchase for a full refund. We won't ask why.</p></div>
+      <div role="listitem"><strong>Pay once.</strong><p>No subscription. A PaperMac 27 Pro license never expires. Editions for later macOS versions are separate, optional purchases.</p></div>
+<!-- lifetime:url -->
+      <div role="listitem"><strong>Lifetime.</strong><p>Covers this and all future versions of PaperMac with a Pro license.</p></div>
+<!-- /lifetime:url -->
+      <div role="listitem"><strong>Five activations.</strong><p>One license covers one person across all their Macs, with up to five activations at a time. Each macOS user account counts as a separate activation.</p></div>
+      <div role="listitem"><strong>Try Pro.</strong><p>The 14-day Pro trial starts inside the app, when you choose. There is no automatic charge.</p></div>
     </div>
   </section>
 
@@ -198,28 +234,34 @@
     <div class="three">
       <div>
         <h3>Homebrew</h3>
-        <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the Homebrew install command"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button>
+        <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-describedby="copy-homebrew-2"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button><span class="sr-only" id="copy-homebrew-2">Copies the Homebrew install command</span>
       </div>
       <div>
         <h3>Download</h3>
-        <a class="btn ink" href="{{DMG_URL}}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download the DMG</a>
+        <div class="download-actions"><a class="btn ink direct-download" href="{{DMG_URL}}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download the DMG</a><button class="btn ink share-download" type="button">Get it on your Mac</button><a class="mobile-dmg" href="{{DMG_URL}}">Download the DMG</a></div>
         <p>For macOS 27 or newer.</p>
       </div>
       <div>
         <h3>Script</h3>
-        <button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the install script command"><code>curl -fsSL https://getpaper.sh/install | sh</code><span class="lbl">Copy</span></button>
-        <p><a href="https://getpaper.sh/install">Read the script</a></p>
+        <button class="cmd" type="button" data-copy="curl -fsSL https://getpaper.sh/install | sh" data-after="Copied: paste it in Terminal to install PaperMac." aria-describedby="copy-install-script-2"><code>curl -fsSL https://getpaper.sh/install | sh</code><span class="lbl">Copy</span></button><span class="sr-only" id="copy-install-script-2">Copies the install script command</span>
+        <p class="text-links"><a href="https://getpaper.sh/install">Read the script</a></p>
       </div>
     </div>
     <p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>
-    <p class="after">Open PaperMac, allow Accessibility access when it asks, and your windows line up on the Strip.</p>
+    <p class="after">Open PaperMac, allow Accessibility access when it asks, and your windows line up on the Strip. The 14-day Pro trial starts inside the app, when you choose.</p>
+  </section>
+  <section class="wrap release-history" id="changelog" aria-labelledby="changelog-h">
+    <h2 id="changelog-h">Changelog</h2>
+    <h3>PaperMac 27 Beta 7 · Build 22</h3>
+    <p>Computer-use agents can work with windows scrolled off screen. The Minimap adds a Hidden group for apps hidden with Command-H, and Settings can install the papermac command on your PATH.</p>
+    <p class="text-links"><a href="https://dl.getpaper.sh/papermac/appcast-27.xml">Full release notes in the official update feed</a></p>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <a class="brand" href="https://getpaper.sh"><img src="data:image/webp;base64,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" alt="" width="24" height="24">Paper</a>
-    <nav aria-label="Legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></nav>
+    <a class="brand" href="https://getpaper.sh"><img src="/brand/papermac/papermac-icon.svg" alt="" width="32" height="32">Paper</a>
+    <nav aria-label="Legal"><a href="/paperland/">PaperLand Alpha</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></nav>
     <span>Help with the app: <a href="mailto:support@getpaper.sh">support@getpaper.sh</a></span>
     <div class="theme" role="group" aria-label="Colour theme">
       <button type="button" data-theme-set="">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>

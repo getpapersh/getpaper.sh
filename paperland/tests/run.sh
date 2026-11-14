@@ -4,7 +4,7 @@
 #
 #   tests/run.sh                        stubbed installer and uninstaller cases
 #   TEST_SH=dash tests/run.sh           run the scripts under dash instead of sh
-#   PAPERLAND_SRC=/path tests/run.sh    also: publish releases from that Paperland
+#   PAPERLAND_SRC=/path tests/run.sh    also: publish releases from that PaperLand
 #                                       checkout, then install, upgrade and uninstall
 #                                       with real git, Python and setup.py
 #   COMBINED=1 tests/run.sh             every case against the served /install, with
@@ -12,7 +12,7 @@
 set -u
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-work=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/getpaper-tests.XXXXXX")" && pwd -P)  # Paperland refuses symlinked parents (macOS /var)
+work=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/getpaper-tests.XXXXXX")" && pwd -P)  # PaperLand refuses symlinked parents (macOS /var)
 trap 'rm -rf "$work"' EXIT
 pass=0
 failed=0
@@ -182,7 +182,7 @@ check "root changes nothing" not_called "omarchy"
 new_case pending
 run "$work/build/pending/install" "$HIS"
 check "PENDING is refused" status 1
-check "PENDING message" says "No Paperland release is pinned yet (PLUGIN_SHA=PENDING)"
+check "PENDING message" says "No PaperLand release is pinned yet (PLUGIN_SHA=PENDING)"
 check "PENDING changes nothing" not_called git
 
 new_case unbuilt
@@ -197,7 +197,7 @@ check "missing Omarchy message" says "needs Omarchy 4 or newer (omarchy-version 
 
 new_case old-omarchy
 run "$PINNED" STUB_OMARCHY=3.2.1 "$HIS"
-check "Omarchy 3 is refused" says "Paperland needs Omarchy 4 or newer; this system has Omarchy 3.2.1."
+check "Omarchy 3 is refused" says "PaperLand needs Omarchy 4 or newer; this system has Omarchy 3.2.1."
 
 new_case dev-omarchy-unreadable
 run "$PINNED" STUB_OMARCHY="dev (abc123)" "$HIS"
@@ -209,7 +209,7 @@ new_case dev-omarchy-old
 mkdir -p "$home/omarchy"
 echo "3.9.0" > "$home/omarchy/version"
 run "$PINNED" STUB_OMARCHY=dev OMARCHY_PATH="$home/omarchy/" "$HIS"
-check "a dev Omarchy 3 is refused" says "Paperland needs Omarchy 4 or newer; this system has Omarchy 3.9.0."
+check "a dev Omarchy 3 is refused" says "PaperLand needs Omarchy 4 or newer; this system has Omarchy 3.9.0."
 
 new_case dev-omarchy-4
 mkdir -p "$home/omarchy"
@@ -220,12 +220,12 @@ check "a dev Omarchy 4 installs" status 0
 new_case no-jq
 rm "$bin/jq"
 run "$PINNED" "$HIS"
-check "missing jq message" says "Paperland needs jq, which was not found on PATH."
+check "missing jq message" says "PaperLand needs jq, which was not found on PATH."
 
 new_case old-hyprland
 run "$PINNED" STUB_HYPR=0.55.0 "$HIS"
 check "old Hyprland is refused" status 1
-check "old Hyprland message" says "Paperland needs Hyprland 0.56 or newer; this system has Hyprland 0.55."
+check "old Hyprland message" says "PaperLand needs Hyprland 0.56 or newer; this system has Hyprland 0.55."
 check "old Hyprland changes nothing" not_called git
 
 new_case old-hyprland-no-session
@@ -252,14 +252,14 @@ fi
 new_case non-git-plugin
 mkdir -p "$home/.config/omarchy/plugins/json.paperland"
 run "$PINNED" "$HIS"
-check "existing non-git plugin is refused" says "Paperland is already installed at"
+check "existing non-git plugin is refused" says "PaperLand is already installed at"
 check "existing non-git plugin is not touched" not_called "git [clone]"
 
 new_case linked-plugin
 mkdir -p "$home/.config/omarchy/plugins" "$home/.local/share/paperland/plugin"
 ln -s "$home/.local/share/paperland/plugin" "$home/.config/omarchy/plugins/json.paperland"
 run "$PINNED" "$HIS"
-check "a linked plugin from an earlier setup points at the uninstaller" says "is a link left by an earlier Paperland setup. First run: curl --proto '=https'"
+check "a linked plugin from an earlier setup points at the uninstaller" says "is a link left by an earlier PaperLand setup. First run: curl --proto '=https'"
 
 new_case not-ours
 installed "$OLD"
@@ -272,14 +272,14 @@ new_case foreign-launcher
 mkdir -p "$home/.local/bin"
 touch "$home/.local/bin/paperland"
 run "$PINNED" "$HIS"
-check "foreign launcher is refused before any change" says "is not Paperland's launcher"
+check "foreign launcher is refused before any change" says "is not PaperLand's launcher"
 check "foreign launcher changes nothing" not_called "git [clone]"
 
 new_case foreign-runtime
 mkdir -p "$home/.local/share/paperland"
 echo "something else" > "$home/.local/share/paperland/.installed-by-paperland"
 run "$PINNED" "$HIS"
-check "runtime with a different marker is refused" says "was not installed by Paperland"
+check "runtime with a different marker is refused" says "was not installed by PaperLand"
 
 # --- fresh install ----------------------------------------------------------------
 
@@ -303,7 +303,7 @@ omarchy [bar] [set] [json.paperland] [executable] [~/.local/share/paperland/pape
 check "install publishes the verified tree" head_is "$SHA"
 check "install leaves no staging folder" no_leftovers
 check "install never uses omarchy plugin add or update" not_called "[plugin] [add]"
-check "install reports success" says "Paperland is installed at $SHA."
+check "install reports success" says "PaperLand is installed at $SHA."
 check "install warns when ~/.local/bin is not on PATH" says ".local/bin is not on PATH; add it to run 'paperland' in a terminal."
 check "install documents the HTTPS uninstall" says "Uninstall: curl --proto '=https' --tlsv1.2 -fsSL https://getpaper.sh/install | sh -s -- --uninstall"
 
@@ -359,7 +359,7 @@ run "$PINNED" "$HIS"
 check "rerun with the widget off succeeds" status 0
 check "rerun keeps the widget off" not_called "[plugin] [enable]"
 check "rerun with the widget off sets nothing on the bar" not_called "[bar] [set]"
-check "rerun with the widget off prints how to turn it on" says "The Paperland bar widget is off. To add it to your bar: omarchy plugin enable json.paperland && omarchy bar set json.paperland executable $home/.local/share/paperland/paperland"
+check "rerun with the widget off prints how to turn it on" says "The PaperLand bar widget is off. To add it to your bar: omarchy plugin enable json.paperland && omarchy bar set json.paperland executable $home/.local/share/paperland/paperland"
 
 # --- staged verification failures leave the live plugin untouched ----------------
 
@@ -389,8 +389,8 @@ new_case upgrade
 installed "$OLD"
 run "$PINNED" "$HIS"
 check "upgrade succeeds" status 0
-check "upgrade prints its plan" says "Paperland is already installed from $PLUGIN_URL"
-check "upgrade keeps setup unchanged" says "Keep your Paperland shortcut and autostart setup unchanged."
+check "upgrade prints its plan" says "PaperLand is already installed from $PLUGIN_URL"
+check "upgrade keeps setup unchanged" says "Keep your PaperLand shortcut and autostart setup unchanged."
 check "upgrade re-stages, swaps, then refreshes the runtime" calls "omarchy-shell [shell] [listPlugins]
 git [config] [--file] [$P/.git/config] [--get] [remote.origin.url]
 git [clone] [--quiet] [--no-checkout] [--single-branch] [--branch] [release] [--template] [$TEMPLATE] [--] [$PLUGIN_URL] [$STAGE]
@@ -409,7 +409,7 @@ check "upgrade keeps the previous plugin" previous_kept "$OLD"
 check "upgrade names the kept previous plugin" says "The replaced plugin is kept at $home/.config/omarchy/.paperland-previous-"
 check "upgrade leaves no staging folder" no_stage_left
 check "upgrade does not re-enable an enabled plugin" not_called "[plugin] [enable]"
-check "upgrade asks for a restart" says "Restart Paperland to finish: paperland stop && paperland start-hidden"
+check "upgrade asks for a restart" says "Restart PaperLand to finish: paperland stop && paperland start-hidden"
 
 new_case rerun-at-pin
 installed "$SHA"
@@ -506,7 +506,7 @@ run "$PINNED" STUB_INSTALL_TERM=1 "$HIS"
 check "a signal during the refresh exits on the signal" status 130
 check "a signal during the refresh keeps the new plugin" head_is "$SHA"
 check "a signal during the refresh keeps the previous plugin" previous_kept "$OLD"
-check "a signal during the refresh says the runtime may be unfinished" says "The Paperland runtime may not have finished installing. Run the same command again to finish"
+check "a signal during the refresh says the runtime may be unfinished" says "The PaperLand runtime may not have finished installing. Run the same command again to finish"
 check "a signal before setup asks for no paste" lacks "paste them into"
 check "a signal before setup runs no setup" not_called "[setup]"
 
@@ -526,7 +526,7 @@ new_case symlinked-main-config
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
 echo "-- user" > "$home/dotfiles/hyprland.lua"
 ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
-# Paperland's setup stages paperland.lua, prints the include to paste, and exits 1.
+# PaperLand's setup stages paperland.lua, prints the include to paste, and exits 1.
 run "$PINNED" "$HIS"
 check "a symlinked hyprland.lua plan names the link's target" says "hyprland.lua resolves through a symlink to"
 check "a symlinked hyprland.lua plan says it is not edited by default" says "which this installer does not edit by default"
@@ -535,7 +535,7 @@ check "a symlinked hyprland.lua stops after setup" status 1
 check "a symlinked hyprland.lua is not written by default" [ "$(cat "$home/dotfiles/hyprland.lua")" = "-- user" ]
 check "a symlinked hyprland.lua stays a link by default" [ -L "$home/.config/hypr/hyprland.lua" ]
 check "a symlinked hyprland.lua keeps the installed plugin" head_is "$SHA"
-check "a symlinked hyprland.lua says what to paste where" says "If Paperland printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
+check "a symlinked hyprland.lua says what to paste where" says "If PaperLand printed lines to paste above, paste them into $home/dotfiles/hyprland.lua."
 check "a symlinked hyprland.lua does not claim a restore" lacks "was restored"
 
 new_case symlinked-main-config-upgrade
@@ -546,7 +546,7 @@ ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 check "a symlinked upgrade keeps the new plugin" head_is "$SHA"
 check "a symlinked upgrade keeps the previous plugin" previous_kept "$OLD"
-check "a symlinked upgrade says what to paste where" says "If Paperland printed lines to paste above, paste them into $home/hyprland.lua."
+check "a symlinked upgrade says what to paste where" says "If PaperLand printed lines to paste above, paste them into $home/hyprland.lua."
 
 new_case symlinked-main-validated
 installed "$OLD"
@@ -555,17 +555,17 @@ ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$PINNED" "$HIS"
 check "a pasted include behind a symlink installs" status 0
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
-check "a pasted include behind a symlink is validated by Paperland" called "~/.local/bin/paperland [setup] [--dry-run]"
+check "a pasted include behind a symlink is validated by PaperLand" called "~/.local/bin/paperland [setup] [--dry-run]"
 
 new_case symlinked-main-invalid
 installed "$OLD"
 mv "$home/.config/hypr/hyprland.lua" "$home/hyprland.lua"
 ln -s "$home/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
-check "a pasted include Paperland rejects fails the run" status 1
-check "a pasted include Paperland rejects says where to fix it" says "Paperland's setup check failed; see its message above. If it names the include, fix it in $home/hyprland.lua."
+check "a pasted include PaperLand rejects fails the run" status 1
+check "a pasted include PaperLand rejects says where to fix it" says "PaperLand's setup check failed; see its message above. If it names the include, fix it in $home/hyprland.lua."
 
-# --edit-dotfiles: the block Paperland prints goes into the link's target, in place.
+# --edit-dotfiles: the block PaperLand prints goes into the link's target, in place.
 new_case symlinked-main-edit
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
 printf '%s' "-- user" > "$home/dotfiles/hyprland.lua"
@@ -575,15 +575,15 @@ ARGS=--edit-dotfiles
 run "$PINNED" "$HIS"
 ARGS=
 check "--edit-dotfiles installs" status 0
-check "--edit-dotfiles plan says what it edits" says "With --edit-dotfiles, add Paperland's marked include to"
-check "--edit-dotfiles says what it edited" says "Added Paperland's include to $home/dotfiles/hyprland.lua"
+check "--edit-dotfiles plan says what it edits" says "With --edit-dotfiles, add PaperLand's marked include to"
+check "--edit-dotfiles says what it edited" says "Added PaperLand's include to $home/dotfiles/hyprland.lua"
 check "--edit-dotfiles keeps the link" [ -L "$home/.config/hypr/hyprland.lua" ]
 check "--edit-dotfiles keeps the target's mode" [ "$(mode_of "$home/dotfiles/hyprland.lua")" = "-rw-r-----" ]
 check "--edit-dotfiles keeps the user's lines" [ "$(head -n 1 "$home/dotfiles/hyprland.lua")" = "-- user" ]
 check "--edit-dotfiles writes the exact block once" [ "$(sed -n '/^-- BEGIN Paperland setup$/,/^-- END Paperland setup$/p' "$home/dotfiles/hyprland.lua")" = "$(printf '%s\n' "-- BEGIN Paperland setup" "dofile(\"$home/.local/state/paperland/hypr/paperland.lua\")" "-- END Paperland setup")" ]
 check "--edit-dotfiles writes nothing else into the dotfiles" [ "$(find "$home/dotfiles" -type f | wc -l | tr -d ' ')" = 1 ]
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
-check "--edit-dotfiles has Paperland check the result" called "~/.local/bin/paperland [setup] [--dry-run]"
+check "--edit-dotfiles has PaperLand check the result" called "~/.local/bin/paperland [setup] [--dry-run]"
 
 new_case symlinked-main-edit-invalid
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
@@ -592,8 +592,8 @@ ln -s "$home/dotfiles/hyprland.lua" "$home/.config/hypr/hyprland.lua"
 ARGS=--edit-dotfiles
 run "$PINNED" STUB_SETUP_STATUS=1 "$HIS"
 ARGS=
-check "--edit-dotfiles fails when Paperland rejects the result" status 1
-check "--edit-dotfiles says Paperland rejected it" says "Paperland's setup check failed; see its message above. If it names the include, fix it in $home/dotfiles/hyprland.lua."
+check "--edit-dotfiles fails when PaperLand rejects the result" status 1
+check "--edit-dotfiles says PaperLand rejected it" says "PaperLand's setup check failed; see its message above. If it names the include, fix it in $home/dotfiles/hyprland.lua."
 
 new_case symlinked-main-edit-other-error
 mkdir -p "$home/dotfiles" "$home/.config/hypr"
@@ -605,7 +605,7 @@ ARGS=
 check "--edit-dotfiles stops when setup fails for another reason" status 1
 check "--edit-dotfiles says the file was not edited" says "so $home/dotfiles/hyprland.lua was not edited"
 check "--edit-dotfiles leaves the target alone on another failure" [ "$(cat "$home/dotfiles/hyprland.lua")" = "-- user" ]
-check "--edit-dotfiles points to the reported problem, not to pasting" says "Fix what Paperland reported above, then run the same command again with --edit-dotfiles."
+check "--edit-dotfiles points to the reported problem, not to pasting" says "Fix what PaperLand reported above, then run the same command again with --edit-dotfiles."
 check "--edit-dotfiles prints no paste hint after refusing" lacks "paste them into"
 
 new_case edit-dotfiles-regular-file
@@ -626,7 +626,7 @@ ARGS=--edit-dotfiles
 run "$PINNED" "$HIS"
 ARGS=
 check "--edit-dotfiles through a relative link installs" status 0
-check "--edit-dotfiles through a relative link names the real file" says "Added Paperland's include to $home/dotfiles/hyprland.lua."
+check "--edit-dotfiles through a relative link names the real file" says "Added PaperLand's include to $home/dotfiles/hyprland.lua."
 check "--edit-dotfiles through a relative link edits the real file" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
 check "--edit-dotfiles keeps the relative link" [ "$(readlink "$home/.config/hypr/hyprland.lua")" = ../../dotfiles/hyprland.lua ]
 
@@ -639,7 +639,7 @@ ARGS=--edit-dotfiles
 run "$PINNED" "$HIS"
 ARGS=
 check "--edit-dotfiles through chained links installs" status 0
-check "--edit-dotfiles through chained links names the final file" says "Added Paperland's include to $home/dotfiles/hyprland.lua."
+check "--edit-dotfiles through chained links names the final file" says "Added PaperLand's include to $home/dotfiles/hyprland.lua."
 check "--edit-dotfiles through chained links edits the final file" grep -qF -- '-- BEGIN Paperland setup' "$home/dotfiles/hyprland.lua"
 check "--edit-dotfiles keeps the middle link" [ -L "$home/middle.lua" ]
 check "--edit-dotfiles keeps the first link" [ -L "$home/.config/hypr/hyprland.lua" ]
@@ -687,7 +687,7 @@ check "an unknown option is refused" status 1
 check "an unknown option is named" says "Unknown option: --bogus"
 ARGS=--edit-dotfiles
 run "$PINNED" STUB_OS=Darwin
-check "--edit-dotfiles is refused on macOS" says "--edit-dotfiles applies only to Paperland on Linux"
+check "--edit-dotfiles is refused on macOS" says "--edit-dotfiles applies only to PaperLand on Linux"
 installed "$SHA"
 run "$UNINSTALL"
 ARGS=
@@ -700,7 +700,7 @@ installed "$OLD"
 echo "-- user" > "$home/.config/hypr/hyprland.lua"
 run "$PINNED" "$HIS"
 check "repair succeeds" status 0
-check "repair plan says saved choices apply" says "Your saved Paperland shortcut and autostart choices are applied again."
+check "repair plan says saved choices apply" says "Your saved PaperLand shortcut and autostart choices are applied again."
 # shellcheck disable=SC2088 # literal ~: the stub logs $HOME as ~
 check "repair keeps the saved shortcut and autostart" called "~/.local/bin/paperland [setup] [--apply] [--replace-bindings]"
 check "repair passes no defaults" not_called "[--shortcut]"
@@ -732,7 +732,7 @@ git [config] [--file] [$P/.git/config] [--get] [remote.origin.url]
 omarchy [plugin] [remove] [json.paperland] [--yes]
 ~/.local/bin/paperland [uninstall]"
 check "uninstall removes the widget's bar item" fails bar_names_plugin
-check "uninstall reports success" says "Paperland is uninstalled."
+check "uninstall reports success" says "PaperLand is uninstalled."
 check "uninstall keeps a copy of the checkout" [ -f "$(find "$home/.config/omarchy" -maxdepth 4 -path '*/.paperland-removed-*/json.paperland/paperland/paperland')" ]
 check "uninstall names the copy" says "A copy of the plugin is kept at $home/.config/omarchy/.paperland-removed-"
 check "uninstall gives the copy's rm command" says "Delete it when you no longer need it: rm -rf '$home/.config/omarchy/.paperland-removed-"
@@ -764,18 +764,18 @@ cp "$root/tests/stub.sh" "$home/.local/bin/paperland"
 run "$UNINSTALL"
 check "uninstall with a foreign launcher fails" status 1
 check "uninstall never runs a foreign launcher" not_called "[setup]"
-check "uninstall names the foreign launcher" says "not Paperland's launcher, or its runtime is missing; not run"
-check "uninstall does not claim success" lacks "Paperland is uninstalled."
-check "uninstall lists the remaining include" says "the marked Paperland include in"
+check "uninstall names the foreign launcher" says "not PaperLand's launcher, or its runtime is missing; not run"
+check "uninstall does not claim success" lacks "PaperLand is uninstalled."
+check "uninstall lists the remaining include" says "the marked PaperLand include in"
 
 new_case uninstall-missing-launcher
 installed "$SHA"
 rm "$home/.local/bin/paperland"
 run "$UNINSTALL"
 check "uninstall with a missing launcher fails" status 1
-check "uninstall with a missing launcher runs nothing of Paperland's" not_called "[setup]"
-check "uninstall lists the remaining runtime" says "(Paperland runtime)"
-check "uninstall lists the remaining generated config" says "paperland.lua (generated Paperland config)"
+check "uninstall with a missing launcher runs nothing of PaperLand's" not_called "[setup]"
+check "uninstall lists the remaining runtime" says "(PaperLand runtime)"
+check "uninstall lists the remaining generated config" says "paperland.lua (generated PaperLand config)"
 
 new_case uninstall-hidden-changes
 installed "$SHA"
@@ -801,11 +801,11 @@ check "uninstall with a symlinked hyprland.lua stops" status 1
 check "uninstall with a symlinked hyprland.lua runs nothing" not_called "[setup]"
 check "uninstall with a symlinked hyprland.lua keeps the plugin" head_is "$SHA"
 check "uninstall with a symlinked hyprland.lua gives the recipe" says "Delete the lines from '-- BEGIN Paperland setup' to '-- END Paperland setup' in $home/hyprland.lua"
-check "uninstall with a symlinked hyprland.lua names state storage" says "Paperland removes its generated config in $home/.local/state/paperland/hypr"
+check "uninstall with a symlinked hyprland.lua names state storage" says "PaperLand removes its generated config in $home/.local/state/paperland/hypr"
 check "uninstall with a symlinked hyprland.lua never asks to remove the runtime by hand" lacks "rm -rf"
 check "uninstall with a symlinked hyprland.lua says to rerun" says "Then run this uninstaller again."
 check "uninstall with a symlinked hyprland.lua does not blame setup" lacks "could not remove its shortcuts"
-# After the recipe, Paperland's setup changes nothing and its files-only uninstall runs.
+# After the recipe, PaperLand's setup changes nothing and its files-only uninstall runs.
 printf '%s\n' "-- user" > "$home/hyprland.lua"
 run "$UNINSTALL"
 check "uninstall after the recipe succeeds" status 0
@@ -885,7 +885,7 @@ run "$UNINSTALL"
 check "uninstall keeps a copy of any real plugin folder" [ -f "$(find "$home/.config/omarchy" -maxdepth 3 -path '*/.paperland-removed-*/json.paperland/notes.txt')" ]
 
 # Install, rerun and uninstall in one HOME: the rerun keeps the bar item, and the
-# uninstall gets past Paperland's check on shell.json.
+# uninstall gets past PaperLand's check on shell.json.
 # omarchy-shell writes shell.json after `plugin remove` returns; the uninstaller waits.
 new_case uninstall-delayed-write
 installed "$SHA"
@@ -893,14 +893,14 @@ run "$UNINSTALL" STUB_REMOVE_DELAY=0.3
 check "uninstall waits for a delayed shell.json write" status 0
 check "uninstall after a delayed write removes the runtime" [ ! -e "$home/.local/share/paperland" ]
 
-# The item outlives `plugin remove`: say exactly how to clear it, and leave Paperland's
+# The item outlives `plugin remove`: say exactly how to clear it, and leave PaperLand's
 # uninstall for the rerun instead of letting it refuse.
 new_case uninstall-item-remains
 installed "$SHA"
 run "$UNINSTALL" STUB_REMOVE_KEEPS_ITEM=1
 check "uninstall with the bar item left fails" status 1
 check "uninstall with the bar item left gives the targeted fix" says "Run 'omarchy plugin disable json.paperland' (or remove its item from $home/.config/omarchy/shell.json), then rerun this uninstaller."
-check "uninstall with the bar item left skips Paperland's uninstall" not_called "[uninstall]"
+check "uninstall with the bar item left skips PaperLand's uninstall" not_called "[uninstall]"
 check "uninstall with the bar item left does not say to reinstall" lacks "install again"
 # What `omarchy plugin disable` does to shell.json; then a plain rerun finishes.
 printf '{"bar":{"layout":{"left":[],"center":[],"right":[]}}}\n' > "$home/.config/omarchy/shell.json"
@@ -935,7 +935,7 @@ check "uninstall keeps the plugin when setup fails" not_called "[plugin] [remove
 
 new_case uninstall-nothing
 run "$UNINSTALL"
-check "uninstall without an install" says "Paperland is not installed; nothing to do."
+check "uninstall without an install" says "PaperLand is not installed; nothing to do."
 
 new_case uninstall-root
 run "$UNINSTALL" STUB_UID=0
@@ -951,7 +951,7 @@ plugin_repo=$case_dir/plugin.git
 pgit() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -c user.name=test -c user.email=test@example.com "$@"; }
 pgit init --quiet -b main "$src"
 # A package Omarchy's validator accepts, where it is installed.
-printf '%s\n' '{"schemaVersion": 1, "id": "json.paperland", "name": "Paperland", "version": "0.0.1",' \
+printf '%s\n' '{"schemaVersion": 1, "id": "json.paperland", "name": "PaperLand", "version": "0.0.1",' \
   ' "kinds": ["bar-widget"], "entryPoints": {"barWidget": "Widget.qml"}}' > "$src/manifest.json"
 printf '%s\n' 'import QtQuick' 'Item {}' > "$src/Widget.qml"
 # shellcheck disable=SC2016 # expands in the generated packager
