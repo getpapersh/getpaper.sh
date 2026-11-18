@@ -2,7 +2,8 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
-  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = () => motion.matches;
   const live = $("#live");
   const say = (t) => { if (!live) return; live.textContent = ""; setTimeout(() => (live.textContent = t), 30); };
 
@@ -69,105 +70,110 @@
   };
   const winHTML = (k) => KIND[k] || KIND.dc;
 
-  // Geometry contract: strip units are fractions of the screen's usable width (1 = full width), the
-  // width presets PaperMac uses. Everything else is px of the stage, recomputed on resize.
   function StripDemo(fig) {
-    const stage = $(".stage", fig), layers = $$(".trk", fig), scr = $(".scr", fig), cap = $(".cap", fig), map = $(".map", fig), btn = $(".pause", fig);
-    let wins = [
-      { id: "a", k: "ph", w: .5 }, { id: "b", k: "ed", w: .5 }, { id: "c", k: "te", w: .34 },
-      { id: "d", k: "mu", w: .5 }, { id: "e", k: "dc", w: .67 }, { id: "f", k: "ed", w: .5 },
-    ];
-    const START = JSON.stringify(wins);
-    let focus = "b", zoom = false, G;
-    const els = new Map();
-    function make(win, hidden) {
-      const pair = layers.map((L) => {
-        const a = document.createElement("div");
-        a.className = "win " + win.k; a.innerHTML = winHTML(win.k);
-        if (hidden) a.style.opacity = "0";
-        $(".track", L).append(a); return a;
-      });
-      els.set(win.id, pair);
-    }
-    wins.forEach((w) => make(w));
-    function geo() {
-      const W = stage.clientWidth, H = stage.clientHeight;
-      let sh = H - 8, sw = sh * 1.6;
-      if (sw > W * .9) { sw = W * .9; sh = sw / 1.6; }
-      const sx = (W - sw) / 2, sy = (H - sh) / 2, b = Math.max(5, sw * .011);
-      const ix = sx + b, iy = sy + b, iw = sw - 2 * b, ih = sh - 2 * b;
-      const bar = Math.max(9, ih * .05), g = iw * .014, top = iy + bar + g, h = ih - bar - 2 * g;
-      G = { W, H, sx, sy, sw, sh, ix, iy, iw, ih, bar, g, top, h, U: iw - 2 * g };
-      Object.assign(scr.style, { left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px" });
-      scr.style.setProperty("--b", b + "px"); scr.style.setProperty("--bar", bar + "px");
-      const r = Math.max(4, sw * .012);
-      layers[1].style.clipPath = `inset(${iy + bar}px ${W - ix - iw}px ${H - iy - ih}px ${ix}px round 0 0 ${r}px ${r}px)`;
-      fig.style.setProperty("--u", (h / 30).toFixed(2) + "px");
-    }
-    const px = (w) => w * (G.U + G.g) - G.g;
-    function layout() {
-      let x = 0; const pos = new Map();
-      for (const w of wins) { pos.set(w.id, { x, wpx: px(w.w) }); x += px(w.w) + G.g; }
-      const T = x - G.g, f = pos.get(focus);
-      let s = 1, tx = G.ix + G.iw / 2 - (f.x + f.wpx / 2);
-      if (zoom) { s = Math.min(1, (G.iw - 2 * G.g) / T); tx = G.ix + G.iw / 2 - (s * T) / 2; }
-      for (const L of layers) {
-        const t = $(".track", L);
-        t.style.transformOrigin = `0 ${G.top + G.h / 2}px`;
-        t.style.transform = `translateX(${tx}px) scale(${s})`;
-      }
-      for (const w of wins) {
-        const p = pos.get(w.id);
-        for (const el of els.get(w.id)) {
-          Object.assign(el.style, { width: p.wpx + "px", height: G.h + "px", top: G.top + "px", transform: `translateX(${p.x}px)`, fontSize: G.h / 30 + "px" });
-          el.classList.toggle("f", w.id === focus);
-        }
-      }
-      // minimap: the whole Strip, the focused window, and the part the screen shows
-      if (map) {
-        const MW = map.clientWidth || 240, k = MW / T;
-        const v0 = Math.max(0, (G.ix - tx) / s), v1 = Math.min(T, (G.ix + G.iw - tx) / s);
-        map.innerHTML = wins.map((w) => { const p = pos.get(w.id); return `<b class="${w.id === focus ? "f" : ""}" style="left:${p.x * k}px;width:${Math.max(3, p.wpx * k - 2)}px"></b>`; }).join("")
-          + `<u style="left:${v0 * k - 3}px;width:${(v1 - v0) * k + 6}px"></u>`;
-      }
-    }
-    const setCap = (t) => {
-      if (!cap) return;
-      cap.classList.add("out");
-      setTimeout(() => { cap.textContent = t; cap.classList.remove("out"); }, 220);
+    const track = $(".rail", fig), windows = $$(".win", track);
+    const controls = $(".demo-controls", fig);
+    const pause = $(".pause", controls), prev = $(".prev", controls), next = $(".next", controls);
+    const status = $("[role=status]", fig);
+    const last = windows.length - 1;
+    let current = 0, pending = null, direction = 1;
+    let timer, visible = false, stopped = false;
+
+    const center = (win) => win.offsetLeft + (win.offsetWidth - track.clientWidth) / 2;
+    const nearest = () => {
+      const distance = (win) => Math.abs(track.scrollLeft - center(win));
+      return windows.reduce((best, win, i) => distance(win) < distance(windows[best]) ? i : best, 0);
     };
-    const BEATS = JSON.parse(fig.dataset.beats);
-    const ACTIONS = [
-      () => { focus = "c"; },
-      () => { const i = wins.findIndex((w) => w.id === "c"); const n = { id: "n", k: "dc", w: .5 }; wins.splice(i + 1, 0, n); make(n, true); focus = "n"; requestAnimationFrame(() => els.get("n").forEach((e) => (e.style.opacity = ""))); },
-      () => { wins.find((w) => w.id === "n").w = 1; },
-      () => { zoom = true; },
-      () => { zoom = false; focus = "e"; },
-      () => { const old = els.get("n"); old.forEach((e) => (e.style.opacity = "0")); setTimeout(() => old.forEach((e) => e.remove()), 600); wins = JSON.parse(START); focus = "b"; },
-    ];
-    let beat = -1, timer = null, playing = !reduced(), visible = false;
-    function step() {
-      beat = (beat + 1) % ACTIONS.length;
-      ACTIONS[beat](); layout(); setCap(BEATS[beat]);
-    }
-    function sched() {
-      clearInterval(timer); timer = null;
-      if (playing && visible) timer = setInterval(step, 2700);
-    }
-    btn?.addEventListener("click", () => {
-      playing = !playing;
-      btn.dataset.paused = String(!playing);
-      $(".lbl", btn).textContent = playing ? "Pause" : "Play";
-      sched();
+    const settle = () => {
+      pending = null;
+      const i = nearest();
+      if (i === current) return;
+      windows[current].removeAttribute("aria-current");
+      windows[i].setAttribute("aria-current", "true");
+      current = i;
+      prev.setAttribute("aria-disabled", String(i === 0));
+      next.setAttribute("aria-disabled", String(i === last));
+      status.textContent = `${$(".tb", windows[i]).textContent}, window ${i + 1} of ${windows.length}`;
+    };
+    const go = (index) => {
+      const i = Math.max(0, Math.min(last, index));
+      const left = center(windows[i]);
+      if (i === pending || (pending === null && Math.abs(left - track.scrollLeft) < 1)) return;
+      pending = i;
+      track.scrollTo({ left, behavior: reduced() ? "instant" : "smooth" });
+      if (reduced()) settle();
+    };
+    const schedule = () => {
+      clearInterval(timer);
+      pause.hidden = reduced();
+      if (!visible || stopped || reduced()) return;
+      timer = setInterval(() => {
+        if (current === 0) direction = 1;
+        if (current === last) direction = -1;
+        go(current + direction);
+      }, 2700);
+    };
+    const takeOver = () => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      pause.textContent = "Paused";
+      pause.setAttribute("aria-disabled", "true");
+    };
+    const step = (delta) => {
+      const from = stopped ? pending ?? nearest() : nearest();
+      takeOver();
+      go(from + delta);
+    };
+
+    pause.addEventListener("click", takeOver);
+    prev.addEventListener("click", () => step(-1));
+    next.addEventListener("click", () => step(1));
+    fig.addEventListener("keydown", (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target.closest("a")) return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      step(event.key === "ArrowLeft" ? -1 : 1);
     });
-    if (!playing && btn) { btn.dataset.paused = "true"; $(".lbl", btn).textContent = "Play"; }
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; sched(); }, { threshold: .15 }).observe(fig);
-    geo(); fig.classList.add("still"); layout();
-    if (cap) cap.textContent = fig.dataset.rest || "";
-    requestAnimationFrame(() => requestAnimationFrame(() => fig.classList.remove("still")));
-    let rz; addEventListener("resize", () => { clearTimeout(rz); fig.classList.add("still"); geo(); layout(); rz = setTimeout(() => fig.classList.remove("still"), 120); });
+    const nativeInput = () => { takeOver(); pending = null; };
+    track.addEventListener("pointerdown", nativeInput);
+    fig.addEventListener("wheel", nativeInput, { passive: true });
+    if ("onscrollend" in track) {
+      track.addEventListener("scrollend", settle);
+    } else {
+      let settling, touching = false;
+      const settleAfterScroll = () => {
+        clearTimeout(settling);
+        settling = setTimeout(() => {
+          if (!touching && Math.abs(track.scrollLeft - center(windows[nearest()])) < 1) settle();
+        }, 160);
+      };
+      track.addEventListener("touchstart", () => { touching = true; }, { passive: true });
+      const touchDone = () => { touching = false; settleAfterScroll(); };
+      track.addEventListener("touchend", touchDone, { passive: true });
+      track.addEventListener("touchcancel", touchDone, { passive: true });
+      track.addEventListener("scroll", settleAfterScroll, { passive: true });
+    }
+
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      schedule();
+    }, { threshold: .15 }).observe(track);
+    motion.addEventListener("change", schedule);
+    windows[current].setAttribute("aria-current", "true");
+    pause.hidden = reduced();
+    controls.hidden = false;
   }
-  for (const f of $$("[data-strip-demo]")) StripDemo(f);
+  StripDemo($("[data-strip-demo]"));
+
+  const posters = new IntersectionObserver((entries) => {
+    for (const { target, isIntersecting } of entries) {
+      if (!isIntersecting) continue;
+      target.poster = target.dataset.poster;
+      posters.unobserve(target);
+    }
+  });
+  $$("video[data-poster]").forEach((video) => posters.observe(video));
 
   // Coordinates are % of the screen's window area (below the menu bar); duo pictures use % of the figure.
   const W = (id, x, y, w, h, k = "ed", fl = "") => ({ id, x, y, w, h, k, fl });

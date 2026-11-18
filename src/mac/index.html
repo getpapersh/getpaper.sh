@@ -43,6 +43,42 @@
         <h1 id="title">PaperMac</h1>
         <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
         <p class="lede">A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.</p>
+        <figure class="demo scroller" data-strip-demo aria-labelledby="strip-caption">
+          <div class="rail" id="hero-strip" role="group" aria-label="Strip windows" tabindex="0">
+            <div class="win ph">
+              <b class="tb">Trail Guide</b>
+              <div class="photo" aria-hidden="true"></div>
+              <div class="window-body">
+                <strong>Morning at the ridge</strong>
+                <p>Follow the old fire road to the overlook.</p>
+              </div>
+            </div>
+            <div class="win dc">
+              <b class="tb">Field Notes</b>
+              <div class="window-body">
+                <strong>Weekend route</strong>
+                <p>Start at the trailhead. Take the creek path on the way back.</p>
+              </div>
+              <div class="ln" aria-hidden="true"><i style="--w:88%"></i><i style="--w:67%"></i><i style="--w:76%"></i></div>
+            </div>
+            <div class="win te">
+              <b class="tb">Terminal</b>
+              <div class="window-body"><code>$ ls<br>field-notes.txt<br>trail-guide.html</code></div>
+            </div>
+          </div>
+          <p class="sr-only" role="status"></p>
+          <figcaption>
+            <span id="strip-caption">Move focus and the Strip scrolls to it.</span>
+            <div class="demo-actions">
+              <div class="demo-controls" hidden>
+                <button class="btn quiet small pause" type="button" aria-controls="hero-strip">Pause</button>
+                <button class="btn quiet small prev" type="button" aria-controls="hero-strip" aria-label="Previous window" aria-disabled="true">Previous</button>
+                <button class="btn quiet small next" type="button" aria-controls="hero-strip" aria-label="Next window">Next</button>
+              </div>
+              <a class="btn ink small" href="#install">Install</a>
+            </div>
+          </figcaption>
+        </figure>
       </div>
       <aside class="decide" aria-label="Get PaperMac">
         <div class="tier">
@@ -82,27 +118,13 @@
       </aside>
     </div>
 
-    <figure class="demo" data-strip-demo aria-label="Animated picture: windows side by side on a Strip wider than the screen. Focus moves, a window opens and widens, and the view zooms out to the whole Strip."
-      data-rest="Your windows, side by side on one Strip."
-      data-beats='["Move focus and the Strip scrolls to it.","Windows sit side by side on the Strip.","Resize windows in the Strip.","Zoom out to see the whole Strip in Overview.","Pick any window and the Strip brings it back.","Your windows, side by side on one Strip."]'>
-      <div class="stage" aria-hidden="true">
-        <div class="trk out"><div class="track"></div></div>
-        <div class="scr"></div>
-        <div class="trk in"><div class="track"></div></div>
-      </div>
-      <figcaption class="foot">
-        <p class="cap" aria-hidden="true"></p>
-        <span class="map" aria-hidden="true"></span>
-        <button class="pause" type="button"><svg class="i-pause" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8.5" y="2" width="3" height="10" rx="1" fill="currentColor"/></svg><svg class="i-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 2.2v9.6L11.8 7z" fill="currentColor"/></svg><span class="lbl">Pause</span></button>
-      </figcaption>
-    </figure>
   </section>
 
   <section class="native wrap" aria-labelledby="native-h" data-page>
     <h2 id="native-h">Native to macOS</h2>
     <div class="grid">
       <figure class="slot-live">
-        <video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
+        <video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
         <figcaption>Moving focus scrolls the Strip. Real app; synthetic documents.</figcaption>
       </figure>
       <figure class="menubar">
@@ -127,7 +149,7 @@
           <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 windows</b></figcaption></figure>
           <figure class="pic" data-pic="strip"><div class="mini" aria-hidden="true"></div><figcaption>A Strip on every Desktop and display, in live motion</figcaption></figure>
           <figure class="pic" data-pic="resize"><div class="mini" aria-hidden="true"></div><figcaption>Move between windows and resize them</figcaption></figure>
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview. Real app; synthetic documents.</figcaption></figure>
           <figure class="pic" data-pic="minimap"><div class="mini" aria-hidden="true"></div><figcaption>The Minimap shows where you are</figcaption></figure>
           <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
@@ -140,7 +162,7 @@
         <div class="col-head"><h3>PaperMac Pro 27</h3><b>$19 <s><span class="sr-only">was </span>$29</s></b></div>
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
           <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>3 or more windows</b></figcaption></figure>
           <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Lanes of different heights</figcaption></figure>
           <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>

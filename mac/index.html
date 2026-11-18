@@ -43,28 +43,6 @@
 .win .fig, .mini .w .fig { display: block; margin: 0 1.4em; height: 22%; border-radius: .6em; background: var(--win-soft); }
 
 
-.demo { position: relative; margin: 0; }
-.demo .stage { position: relative; height: var(--stage-h, clamp(300px, 44vh, 460px)); overflow: hidden; }
-.demo .trk { position: absolute; inset: 0; pointer-events: none; }
-.demo .trk.out { z-index: 1; opacity: var(--out-o, .34); filter: saturate(.55); }
-.demo .trk.in { z-index: 3; }
-.demo .track { position: absolute; inset: 0; transition: transform .95s cubic-bezier(.22,.8,.2,1); }
-.demo .win { transition: transform .95s cubic-bezier(.22,.8,.2,1), width .95s cubic-bezier(.22,.8,.2,1), opacity .5s ease; }
-.demo .trk.in .win.f::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 calc(var(--u) * .28) var(--ring); pointer-events: none; }
-.demo .scr { position: absolute; z-index: 2; border-radius: calc(var(--b) * 2.4); background: var(--bezel); box-shadow: 0 2.4em 4em -2em rgba(0,0,0,.55); }
-.demo .scr::before { content: ""; position: absolute; inset: var(--b); border-radius: calc(var(--b) * 1.3); background: var(--wall); }
-.demo .scr::after { content: ""; position: absolute; left: var(--b); right: var(--b); top: var(--b); height: var(--bar); border-radius: calc(var(--b) * 1.3) calc(var(--b) * 1.3) 0 0; background: var(--mbar); }
-.demo.still .track, .demo.still .win { transition: none !important; }
-.demo .foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 14px 0 0; }
-.demo .cap { margin: 0; min-height: 2.6em; font-weight: 750; font-stretch: 110%; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.25; letter-spacing: -.01em; transition: opacity .22s, translate .22s; }
-.demo .cap.out { opacity: 0; translate: 0 4px; }
-.demo .map { position: relative; width: clamp(160px, 22vw, 260px); height: 22px; justify-self: center; }
-.demo .map b { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; background: var(--map-bar); transition: left .95s cubic-bezier(.22,.8,.2,1), width .95s cubic-bezier(.22,.8,.2,1), background .3s; }
-.demo .map b.f { background: var(--map-focus); }
-.demo .map u { position: absolute; top: 0; bottom: 0; border: 2px solid var(--map-view); border-radius: 6px; transition: left .95s cubic-bezier(.22,.8,.2,1), width .95s cubic-bezier(.22,.8,.2,1); }
-.demo .pause { justify-self: end; }
-
-
 .mini { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 10px; background: var(--wall); font-size: clamp(5px, .62cqw, 8px); container-type: inline-size; isolation: isolate; }
 .pic { container-type: inline-size; }
 .mini > .mb { position: absolute; z-index: 3; left: 0; right: 0; top: 0; height: 7%; display: flex; align-items: center; gap: 3%; padding: 0 3%; background: var(--mbar); }
@@ -99,7 +77,7 @@
 .mini .w.cur svg { width: 100%; height: 100%; display: block; }
 .mini .w.pv { z-index: 7; box-shadow: 0 0 0 .4cqw var(--win), 0 2cqw 4cqw -1cqw rgba(0,0,0,.6); }
 @media (prefers-reduced-motion: reduce) {
-  .demo .track, .demo .win, .demo .map b, .demo .map u, .mini .w, .mini > .mb .dt i { transition: none !important; }
+  .mini .w, .mini > .mb .dt i { transition: none !important; }
 }
 
 
@@ -126,7 +104,7 @@
   --mbar: rgba(255,255,255,.55); --mbar-ink: #14151a; --bezel: #0c0d12;
   --win: #ffffff; --win-bar: #f3f3f5; --win-line: #dcdde3; --win-ink: #14151a; --win-soft: #eef0f3; --term: #161821;
   --code1: #d1006b; --code2: #0b71e4; --code3: #14804f; --ring: #ffffff; --sel: #ffb020;
-  --map-bar: rgba(20,21,26,.16); --map-focus: #14151a; --map-view: #e2470f; --out-o: .32;
+  --map-bar: rgba(20,21,26,.16); --map-focus: #14151a; --map-view: #e2470f;
   --done-bg: #c2410c; --done-ink: #fff;
 }
 :root[data-mode="dark"] {
@@ -135,7 +113,7 @@
   --hi: #ff7a45; --hi-text: #ff8a5c; --pro: #0965d0; --pro-hover: #0b71e4; --pro-ink: #fff; --pro-text: #79b6ff;
   --mbar: rgba(18,19,24,.55); --mbar-ink: #f2efe7;
   --win: #24262e; --win-bar: #2c2e37; --win-line: #3c3f4a; --win-ink: #ebe8e1; --win-soft: #2f313b; --term: #101118;
-  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45; --out-o: .26;
+  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45;
   --done-bg: #ff7a45; --done-ink: #14151a;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-mode]) {
@@ -144,7 +122,7 @@
   --hi: #ff7a45; --hi-text: #ff8a5c; --pro: #0965d0; --pro-hover: #0b71e4; --pro-ink: #fff; --pro-text: #79b6ff;
   --mbar: rgba(18,19,24,.55); --mbar-ink: #f2efe7;
   --win: #24262e; --win-bar: #2c2e37; --win-line: #3c3f4a; --win-ink: #ebe8e1; --win-soft: #2f313b; --term: #101118;
-  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45; --out-o: .26;
+  --map-bar: rgba(242,239,231,.18); --map-focus: #f2efe7; --map-view: #ff7a45;
   --done-bg: #ff7a45; --done-ink: #14151a;
 } }
 
@@ -226,13 +204,44 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .get .buy p { margin: 0; font-weight: 700; font-size: 15px; }
 .get .buy p span { color: var(--ink-2); font-weight: 600; }
 
-.hero .demo { margin-top: clamp(18px, 3vh, 36px); --stage-h: clamp(250px, 41vh, 440px); }
-.hero .demo .foot { width: min(1240px, calc(100% - 48px)); margin-inline: auto; }
-.pause { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink); font: 700 14px/1 "Paper Sans"; cursor: pointer; }
-.pause:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.pause svg { width: 14px; height: 14px; }
-.pause[data-paused=true] .i-pause, .pause:not([data-paused=true]) .i-play { display: none; }
-
+.demo { margin: clamp(16px, 2.6vh, 30px) 0 0; }
+.demo.scroller .rail {
+  position: relative;
+  grid-auto-columns: 100%;
+  gap: 12px;
+  padding: 16px clamp(44px, 13%, 96px);
+  border-radius: 14px;
+  background: var(--wall);
+  scrollbar-width: thin;
+  scrollbar-color: var(--map-view) transparent;
+}
+.demo.scroller .rail::-webkit-scrollbar { display: block; height: 8px; }
+.demo.scroller .win {
+  position: relative;
+  height: clamp(170px, 26vw, 254px);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+.demo .win[aria-current="true"] { outline: 2px solid var(--ring); }
+.demo .tb {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  padding-inline: 40px 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.demo .win.te { color: #ebe8e1; }
+.demo .window-body { padding: 12px 14px; font-size: 14px; line-height: 1.35; }
+.demo .window-body p { margin: 4px 0 0; }
+.demo .ln { padding-block: 0; }
+.demo figcaption { margin-top: 12px; color: var(--ink-2); font-size: 15px; font-weight: 650; }
+.demo-actions, .demo-controls:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.demo-actions { margin-top: 8px; }
+.demo-actions .btn { min-height: 44px; padding-inline: 10px; }
+.demo-controls .btn[hidden] { display: none; }
+.demo-controls [aria-disabled="true"] { color: var(--ink-2); cursor: default; box-shadow: inset 0 0 0 1.5px var(--line); }
+.demo-controls [aria-disabled="true"]:active { transform: none; }
 
 .native { padding: clamp(80px, 10vw, 140px) 0 0; }
 .native .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 28px; margin-top: 44px; align-items: start; }
@@ -334,9 +343,6 @@ footer .brand img { width: 24px; height: 24px; }
   .wrap { width: calc(100% - 32px); }
   .top nav a:not(.btn) { display: none; }
   .top { gap: 12px; }
-  .hero .demo { --stage-h: 250px; }
-  .hero .demo .foot { grid-template-columns: 1fr auto; width: calc(100% - 32px); }
-  .demo .map { display: none; }
   .pics { grid-template-columns: 1fr 1fr; gap: 26px 14px; }
   .pics .pic, .pics .pic.big { grid-column: span 1; }
   .pics .pic.big:first-child, .pics .slot-pro { grid-column: 1 / -1; }
@@ -356,7 +362,6 @@ footer .brand img { width: 24px; height: 24px; }
 
 .hero-grid { align-items: start; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); }
 .hero-grid > div:first-child { padding-top: clamp(8px, 4vh, 48px); }
-.hero .demo { --stage-h: clamp(240px, 36vh, 420px); margin-top: clamp(16px, 2.6vh, 30px); }
 .decide { display: grid; padding: 22px 24px; border-radius: 18px; background: var(--slab); box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 24px 40px -30px rgba(20,21,26,.45); }
 .decide .tier { display: grid; min-width: 0; gap: 10px; }
 .decide .tier.pro { margin-top: 18px; padding-top: 18px; border-top: 1.5px dashed var(--line); }
@@ -405,11 +410,20 @@ footer .brand img { width: 24px; height: 24px; }
   .compare .col.pro { margin-top: 48px; border-top: 3px solid var(--ink); }
 }
 @media (max-width: 700px) {
-  .hero .demo { --stage-h: 240px; }
   .compare .pics { gap: 20px 12px; }
   .compare .pic figcaption, .compare .txt { font-size: 14px; }
   .plain { grid-template-columns: minmax(0, 1fr); }
   .decide { padding: 18px; }
+  .hero-grid > div:first-child { padding-top: 8px; }
+  [data-sales="off"] .top { position: relative; }
+  [data-sales="off"] .top nav a[href="#install"]:not(.btn) {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 14px;
+    right: 0;
+    min-height: 30px;
+  }
 }
 
 video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; background: var(--ink, #14151a); }
@@ -473,6 +487,42 @@ a[href^="mailto:"]:focus-visible {
         <h1 id="title">PaperMac</h1>
         <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
         <p class="lede">A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.</p>
+        <figure class="demo scroller" data-strip-demo aria-labelledby="strip-caption">
+          <div class="rail" id="hero-strip" role="group" aria-label="Strip windows" tabindex="0">
+            <div class="win ph">
+              <b class="tb">Trail Guide</b>
+              <div class="photo" aria-hidden="true"></div>
+              <div class="window-body">
+                <strong>Morning at the ridge</strong>
+                <p>Follow the old fire road to the overlook.</p>
+              </div>
+            </div>
+            <div class="win dc">
+              <b class="tb">Field Notes</b>
+              <div class="window-body">
+                <strong>Weekend route</strong>
+                <p>Start at the trailhead. Take the creek path on the way back.</p>
+              </div>
+              <div class="ln" aria-hidden="true"><i style="--w:88%"></i><i style="--w:67%"></i><i style="--w:76%"></i></div>
+            </div>
+            <div class="win te">
+              <b class="tb">Terminal</b>
+              <div class="window-body"><code>$ ls<br>field-notes.txt<br>trail-guide.html</code></div>
+            </div>
+          </div>
+          <p class="sr-only" role="status"></p>
+          <figcaption>
+            <span id="strip-caption">Move focus and the Strip scrolls to it.</span>
+            <div class="demo-actions">
+              <div class="demo-controls" hidden>
+                <button class="btn quiet small pause" type="button" aria-controls="hero-strip">Pause</button>
+                <button class="btn quiet small prev" type="button" aria-controls="hero-strip" aria-label="Previous window" aria-disabled="true">Previous</button>
+                <button class="btn quiet small next" type="button" aria-controls="hero-strip" aria-label="Next window">Next</button>
+              </div>
+              <a class="btn ink small" href="#install">Install</a>
+            </div>
+          </figcaption>
+        </figure>
       </div>
       <aside class="decide" aria-label="Get PaperMac">
         <div class="tier">
@@ -510,27 +560,13 @@ a[href^="mailto:"]:focus-visible {
       </aside>
     </div>
 
-    <figure class="demo" data-strip-demo aria-label="Animated picture: windows side by side on a Strip wider than the screen. Focus moves, a window opens and widens, and the view zooms out to the whole Strip."
-      data-rest="Your windows, side by side on one Strip."
-      data-beats='["Move focus and the Strip scrolls to it.","Windows sit side by side on the Strip.","Resize windows in the Strip.","Zoom out to see the whole Strip in Overview.","Pick any window and the Strip brings it back.","Your windows, side by side on one Strip."]'>
-      <div class="stage" aria-hidden="true">
-        <div class="trk out"><div class="track"></div></div>
-        <div class="scr"></div>
-        <div class="trk in"><div class="track"></div></div>
-      </div>
-      <figcaption class="foot">
-        <p class="cap" aria-hidden="true"></p>
-        <span class="map" aria-hidden="true"></span>
-        <button class="pause" type="button"><svg class="i-pause" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8.5" y="2" width="3" height="10" rx="1" fill="currentColor"/></svg><svg class="i-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 2.2v9.6L11.8 7z" fill="currentColor"/></svg><span class="lbl">Pause</span></button>
-      </figcaption>
-    </figure>
   </section>
 
   <section class="native wrap" aria-labelledby="native-h" data-page>
     <h2 id="native-h">Native to macOS</h2>
     <div class="grid">
       <figure class="slot-live">
-        <video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
+        <video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/strip.jpg" aria-label="Four synthetic document windows; moving focus scrolls the Strip"><source src="../media/papermac/strip.mp4" type="video/mp4">Your browser cannot play this recording.</video>
         <figcaption>Moving focus scrolls the Strip. Real app; synthetic documents.</figcaption>
       </figure>
       <figure class="menubar">
@@ -555,7 +591,7 @@ a[href^="mailto:"]:focus-visible {
           <figure class="pic" data-pic="stack2"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of up to <b>2 windows</b></figcaption></figure>
           <figure class="pic" data-pic="strip"><div class="mini" aria-hidden="true"></div><figcaption>A Strip on every Desktop and display, in live motion</figcaption></figure>
           <figure class="pic" data-pic="resize"><div class="mini" aria-hidden="true"></div><figcaption>Move between windows and resize them</figcaption></figure>
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/overview.jpg" aria-label="Overview and the Minimap with eight synthetic document windows"><source src="../media/papermac/overview.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption>Zoom out to Overview. Real app; synthetic documents.</figcaption></figure>
           <figure class="pic" data-pic="minimap"><div class="mini" aria-hidden="true"></div><figcaption>The Minimap shows where you are</figcaption></figure>
           <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
@@ -568,7 +604,7 @@ a[href^="mailto:"]:focus-visible {
         <div class="col-head"><h3>PaperMac Pro 27</h3><b>$19 <s><span class="sr-only">was </span>$29</s></b></div>
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
           <figure class="pic" data-pic="stack3"><div class="mini" aria-hidden="true"></div><figcaption>Stacks of <b>3 or more windows</b></figcaption></figure>
           <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Lanes of different heights</figcaption></figure>
           <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>
@@ -653,7 +689,8 @@ a[href^="mailto:"]:focus-visible {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
-  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = () => motion.matches;
   const live = $("#live");
   const say = (t) => { if (!live) return; live.textContent = ""; setTimeout(() => (live.textContent = t), 30); };
 
@@ -720,105 +757,110 @@ a[href^="mailto:"]:focus-visible {
   };
   const winHTML = (k) => KIND[k] || KIND.dc;
 
-  // Geometry contract: strip units are fractions of the screen's usable width (1 = full width), the
-  // width presets PaperMac uses. Everything else is px of the stage, recomputed on resize.
   function StripDemo(fig) {
-    const stage = $(".stage", fig), layers = $$(".trk", fig), scr = $(".scr", fig), cap = $(".cap", fig), map = $(".map", fig), btn = $(".pause", fig);
-    let wins = [
-      { id: "a", k: "ph", w: .5 }, { id: "b", k: "ed", w: .5 }, { id: "c", k: "te", w: .34 },
-      { id: "d", k: "mu", w: .5 }, { id: "e", k: "dc", w: .67 }, { id: "f", k: "ed", w: .5 },
-    ];
-    const START = JSON.stringify(wins);
-    let focus = "b", zoom = false, G;
-    const els = new Map();
-    function make(win, hidden) {
-      const pair = layers.map((L) => {
-        const a = document.createElement("div");
-        a.className = "win " + win.k; a.innerHTML = winHTML(win.k);
-        if (hidden) a.style.opacity = "0";
-        $(".track", L).append(a); return a;
-      });
-      els.set(win.id, pair);
-    }
-    wins.forEach((w) => make(w));
-    function geo() {
-      const W = stage.clientWidth, H = stage.clientHeight;
-      let sh = H - 8, sw = sh * 1.6;
-      if (sw > W * .9) { sw = W * .9; sh = sw / 1.6; }
-      const sx = (W - sw) / 2, sy = (H - sh) / 2, b = Math.max(5, sw * .011);
-      const ix = sx + b, iy = sy + b, iw = sw - 2 * b, ih = sh - 2 * b;
-      const bar = Math.max(9, ih * .05), g = iw * .014, top = iy + bar + g, h = ih - bar - 2 * g;
-      G = { W, H, sx, sy, sw, sh, ix, iy, iw, ih, bar, g, top, h, U: iw - 2 * g };
-      Object.assign(scr.style, { left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px" });
-      scr.style.setProperty("--b", b + "px"); scr.style.setProperty("--bar", bar + "px");
-      const r = Math.max(4, sw * .012);
-      layers[1].style.clipPath = `inset(${iy + bar}px ${W - ix - iw}px ${H - iy - ih}px ${ix}px round 0 0 ${r}px ${r}px)`;
-      fig.style.setProperty("--u", (h / 30).toFixed(2) + "px");
-    }
-    const px = (w) => w * (G.U + G.g) - G.g;
-    function layout() {
-      let x = 0; const pos = new Map();
-      for (const w of wins) { pos.set(w.id, { x, wpx: px(w.w) }); x += px(w.w) + G.g; }
-      const T = x - G.g, f = pos.get(focus);
-      let s = 1, tx = G.ix + G.iw / 2 - (f.x + f.wpx / 2);
-      if (zoom) { s = Math.min(1, (G.iw - 2 * G.g) / T); tx = G.ix + G.iw / 2 - (s * T) / 2; }
-      for (const L of layers) {
-        const t = $(".track", L);
-        t.style.transformOrigin = `0 ${G.top + G.h / 2}px`;
-        t.style.transform = `translateX(${tx}px) scale(${s})`;
-      }
-      for (const w of wins) {
-        const p = pos.get(w.id);
-        for (const el of els.get(w.id)) {
-          Object.assign(el.style, { width: p.wpx + "px", height: G.h + "px", top: G.top + "px", transform: `translateX(${p.x}px)`, fontSize: G.h / 30 + "px" });
-          el.classList.toggle("f", w.id === focus);
-        }
-      }
-      // minimap: the whole Strip, the focused window, and the part the screen shows
-      if (map) {
-        const MW = map.clientWidth || 240, k = MW / T;
-        const v0 = Math.max(0, (G.ix - tx) / s), v1 = Math.min(T, (G.ix + G.iw - tx) / s);
-        map.innerHTML = wins.map((w) => { const p = pos.get(w.id); return `<b class="${w.id === focus ? "f" : ""}" style="left:${p.x * k}px;width:${Math.max(3, p.wpx * k - 2)}px"></b>`; }).join("")
-          + `<u style="left:${v0 * k - 3}px;width:${(v1 - v0) * k + 6}px"></u>`;
-      }
-    }
-    const setCap = (t) => {
-      if (!cap) return;
-      cap.classList.add("out");
-      setTimeout(() => { cap.textContent = t; cap.classList.remove("out"); }, 220);
+    const track = $(".rail", fig), windows = $$(".win", track);
+    const controls = $(".demo-controls", fig);
+    const pause = $(".pause", controls), prev = $(".prev", controls), next = $(".next", controls);
+    const status = $("[role=status]", fig);
+    const last = windows.length - 1;
+    let current = 0, pending = null, direction = 1;
+    let timer, visible = false, stopped = false;
+
+    const center = (win) => win.offsetLeft + (win.offsetWidth - track.clientWidth) / 2;
+    const nearest = () => {
+      const distance = (win) => Math.abs(track.scrollLeft - center(win));
+      return windows.reduce((best, win, i) => distance(win) < distance(windows[best]) ? i : best, 0);
     };
-    const BEATS = JSON.parse(fig.dataset.beats);
-    const ACTIONS = [
-      () => { focus = "c"; },
-      () => { const i = wins.findIndex((w) => w.id === "c"); const n = { id: "n", k: "dc", w: .5 }; wins.splice(i + 1, 0, n); make(n, true); focus = "n"; requestAnimationFrame(() => els.get("n").forEach((e) => (e.style.opacity = ""))); },
-      () => { wins.find((w) => w.id === "n").w = 1; },
-      () => { zoom = true; },
-      () => { zoom = false; focus = "e"; },
-      () => { const old = els.get("n"); old.forEach((e) => (e.style.opacity = "0")); setTimeout(() => old.forEach((e) => e.remove()), 600); wins = JSON.parse(START); focus = "b"; },
-    ];
-    let beat = -1, timer = null, playing = !reduced(), visible = false;
-    function step() {
-      beat = (beat + 1) % ACTIONS.length;
-      ACTIONS[beat](); layout(); setCap(BEATS[beat]);
-    }
-    function sched() {
-      clearInterval(timer); timer = null;
-      if (playing && visible) timer = setInterval(step, 2700);
-    }
-    btn?.addEventListener("click", () => {
-      playing = !playing;
-      btn.dataset.paused = String(!playing);
-      $(".lbl", btn).textContent = playing ? "Pause" : "Play";
-      sched();
+    const settle = () => {
+      pending = null;
+      const i = nearest();
+      if (i === current) return;
+      windows[current].removeAttribute("aria-current");
+      windows[i].setAttribute("aria-current", "true");
+      current = i;
+      prev.setAttribute("aria-disabled", String(i === 0));
+      next.setAttribute("aria-disabled", String(i === last));
+      status.textContent = `${$(".tb", windows[i]).textContent}, window ${i + 1} of ${windows.length}`;
+    };
+    const go = (index) => {
+      const i = Math.max(0, Math.min(last, index));
+      const left = center(windows[i]);
+      if (i === pending || (pending === null && Math.abs(left - track.scrollLeft) < 1)) return;
+      pending = i;
+      track.scrollTo({ left, behavior: reduced() ? "instant" : "smooth" });
+      if (reduced()) settle();
+    };
+    const schedule = () => {
+      clearInterval(timer);
+      pause.hidden = reduced();
+      if (!visible || stopped || reduced()) return;
+      timer = setInterval(() => {
+        if (current === 0) direction = 1;
+        if (current === last) direction = -1;
+        go(current + direction);
+      }, 2700);
+    };
+    const takeOver = () => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      pause.textContent = "Paused";
+      pause.setAttribute("aria-disabled", "true");
+    };
+    const step = (delta) => {
+      const from = stopped ? pending ?? nearest() : nearest();
+      takeOver();
+      go(from + delta);
+    };
+
+    pause.addEventListener("click", takeOver);
+    prev.addEventListener("click", () => step(-1));
+    next.addEventListener("click", () => step(1));
+    fig.addEventListener("keydown", (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target.closest("a")) return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      step(event.key === "ArrowLeft" ? -1 : 1);
     });
-    if (!playing && btn) { btn.dataset.paused = "true"; $(".lbl", btn).textContent = "Play"; }
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; sched(); }, { threshold: .15 }).observe(fig);
-    geo(); fig.classList.add("still"); layout();
-    if (cap) cap.textContent = fig.dataset.rest || "";
-    requestAnimationFrame(() => requestAnimationFrame(() => fig.classList.remove("still")));
-    let rz; addEventListener("resize", () => { clearTimeout(rz); fig.classList.add("still"); geo(); layout(); rz = setTimeout(() => fig.classList.remove("still"), 120); });
+    const nativeInput = () => { takeOver(); pending = null; };
+    track.addEventListener("pointerdown", nativeInput);
+    fig.addEventListener("wheel", nativeInput, { passive: true });
+    if ("onscrollend" in track) {
+      track.addEventListener("scrollend", settle);
+    } else {
+      let settling, touching = false;
+      const settleAfterScroll = () => {
+        clearTimeout(settling);
+        settling = setTimeout(() => {
+          if (!touching && Math.abs(track.scrollLeft - center(windows[nearest()])) < 1) settle();
+        }, 160);
+      };
+      track.addEventListener("touchstart", () => { touching = true; }, { passive: true });
+      const touchDone = () => { touching = false; settleAfterScroll(); };
+      track.addEventListener("touchend", touchDone, { passive: true });
+      track.addEventListener("touchcancel", touchDone, { passive: true });
+      track.addEventListener("scroll", settleAfterScroll, { passive: true });
+    }
+
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      schedule();
+    }, { threshold: .15 }).observe(track);
+    motion.addEventListener("change", schedule);
+    windows[current].setAttribute("aria-current", "true");
+    pause.hidden = reduced();
+    controls.hidden = false;
   }
-  for (const f of $$("[data-strip-demo]")) StripDemo(f);
+  StripDemo($("[data-strip-demo]"));
+
+  const posters = new IntersectionObserver((entries) => {
+    for (const { target, isIntersecting } of entries) {
+      if (!isIntersecting) continue;
+      target.poster = target.dataset.poster;
+      posters.unobserve(target);
+    }
+  });
+  $$("video[data-poster]").forEach((video) => posters.observe(video));
 
   // Coordinates are % of the screen's window area (below the menu bar); duo pictures use % of the figure.
   const W = (id, x, y, w, h, k = "ed", fl = "") => ({ id, x, y, w, h, k, fl });
