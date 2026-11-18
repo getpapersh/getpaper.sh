@@ -19,17 +19,22 @@ from fontTools.ttLib import TTFont
 
 page = pathlib.Path(sys.argv[1]).resolve()
 html = page.read_text()
-if "{{CHECKOUT_URL}}" in html:
-    checkout = (page.parent / "checkout-url.txt").read_text().strip()
-    sales_mode = "off" if checkout == "off" else "url"
+if "{{DODO_CHECKOUT_PRO_27}}" in html:
+    lines = (page.parent / "checkout-url.txt").read_text().splitlines()
+    checkouts = dict(line.split("=", 1) for line in lines if line.strip() and not line.startswith("#"))
+    links = [checkouts["DODO_CHECKOUT_PRO_27"].strip(), checkouts["DODO_CHECKOUT_LIFETIME"].strip()]
+    sales_mode = "off" if links == ["off", "off"] else "url"
+    if sales_mode == "url" and not all(link.startswith("https://") for link in links):
+        sys.exit("Set both Dodo checkout links in checkout-url.txt to https URLs, or both to off")
     html = re.sub(r"<!-- sales:(off|url) -->(.*?)<!-- /sales:\1 -->",
                   lambda match: match[2] if match[1] == sales_mode else "", html, flags=re.S)
     html = html.replace("{{SALES_MODE}}", sales_mode)
-    html = html.replace("{{CHECKOUT_URL}}", html_lib.escape(checkout, quote=True))
+    html = html.replace("{{DODO_CHECKOUT_PRO_27}}", html_lib.escape(links[0], quote=True))
+    html = html.replace("{{DODO_CHECKOUT_LIFETIME}}", html_lib.escape(links[1], quote=True))
     if "{{CHECKOUT_QR}}" in html:
         import segno
-        html = html.replace("{{CHECKOUT_QR}}", segno.make(checkout, error="m", micro=False).svg_inline(
-            border=4, omitsize=True, title="QR code for the PaperMac Pro checkout"))
+        html = html.replace("{{CHECKOUT_QR}}", segno.make(links[0], error="m", micro=False).svg_inline(
+            border=4, omitsize=True, title="QR code for the PaperMac Pro 27 checkout"))
 html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: "<style>\n" + (page.parent / m.group(1)).read_text() + "</style>", html)
 html = re.sub(r'<script src="([^"]+)"></script>', lambda m: "<script>\n" + (page.parent / m.group(1)).read_text() + "</script>", html)
 

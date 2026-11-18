@@ -62,6 +62,7 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     for email, href in page.emails:
         assert href == 'mailto:' + email, (route, email, href)
     assert 'made by' not in ' '.join(page.texts).lower(), route
+    assert 'lemon' not in text.lower() and 'posthog' not in text.lower(), route
     if route not in ['terms/index.html', 'privacy/index.html']:
         assert 'Jason Martin' not in text, route
     assert not re.search(r'(?:PAP|PAPER)-\d+', text), route
@@ -85,7 +86,10 @@ product = (site / 'mac/index.html').read_text()
 assert 'A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product
 assert 'Free forever' not in product
 assert '#activate=' not in product
-assert 'Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.' in product
+assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lifetime also covers every future version.' in product
+assert '<b>$39</b>' in product and '<b>$99</b>' in product and '<s>' not in product
+assert 'Lifetime costs about the same as two and a half versions of Pro.' in product
+assert 'Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.' in product
 assert 'Your edition never expires.' in product
 assert 'optional discounted upgrades' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
@@ -98,13 +102,14 @@ for video in videos:
     assert 'autoplay' not in video
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
-assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
-checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
+assert '{{' not in product
+config = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().splitlines()
+config = dict(line.split('=', 1) for line in config if line.strip() and not line.startswith('#'))
+pro_checkout, lifetime_checkout = config['DODO_CHECKOUT_PRO_27'].strip(), config['DODO_CHECKOUT_LIFETIME'].strip()
 buy_notice = '<p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert product.count(buy_notice) == 4
-if checkout == 'off':
-    assert 'lemonsqueezy' not in product.lower()
-    assert 'QR code for the PaperMac Pro checkout' not in product
+assert product.count(buy_notice) == 5
+if pro_checkout == lifetime_checkout == 'off':
+    assert 'QR code for the PaperMac Pro 27 checkout' not in product
     assert '<svg class="segno"' not in product
     assert 'class="qr-placeholder"' in product
     assert 'class="phone sales-unavailable"' in product
@@ -112,22 +117,22 @@ if checkout == 'off':
     assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
     assert product.count('Try Pro free for 14 days') == 3
     buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
-    assert len(buys) == 3
+    assert len(buys) == 4
     for attrs in buys:
         assert 'disabled' in attrs and 'href' not in attrs
         description = attrs['aria-describedby']
-        assert f'<p class="sales-closed" id="{description}">Buying Pro opens during the beta</p>' in product
+        assert re.search(f'<p class="sales-closed" id="{description}">Buying (Pro|Lifetime) opens during the beta</p>', product)
 else:
-    assert 'QR code for the PaperMac Pro checkout' in product
+    assert 'QR code for the PaperMac Pro 27 checkout' in product
     assert 'trial-cta"' not in product
     assert 'class="qr-placeholder"' not in product
     buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
-    assert buy_links == [checkout] * 3
-    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 3
+    assert buy_links == [pro_checkout] * 3 + [lifetime_checkout]
+    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 4
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Not included in Free or Pro.' in product
-assert product.count('BETABELIEVER') == 2 and 'EARLY' not in product
+assert 'BETABELIEVER' not in product and 'EARLY' not in product
 assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
@@ -141,16 +146,17 @@ for route in ['terms', 'privacy']:
     assert 'PaperMac\'s developer' in identity
     if route == 'terms':
         assert identity in re.findall(r'<li[^>]*>(.*?)</li>', legal_body, re.S)[-1]
-        assert legal_text.startswith('PaperMac Terms Effective October 27, 2026 These terms cover')
+        assert legal_text.startswith('PaperMac Terms Effective ') and 'These terms cover the free version' in legal_text
         assert 'PaperMac is beta software.' in legal_text and 'private macOS APIs' in legal_text
     else:
         assert re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S)
-    assert '[' not in legal_text and ']' not in legal_text
+    # Fails while a [TODO: ...] placeholder is left in a legal page, so it cannot ship.
+    assert '[' not in legal_text and ']' not in legal_text, (route, re.findall(r'\[[^\]]*\]', legal_text))
     assert 'Coming before sales open' not in legal_html
 assert '<h2>14-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
 assert '30 days' not in (site / 'terms/index.html').read_text()
 assert '<table>' in (site / 'privacy/index.html').read_text()
-assert 'only while it helps us improve PaperMac' in (site / 'privacy/index.html').read_text()
+assert 'Dodo Payments, through its public license service' in (site / 'privacy/index.html').read_text()
 main = (site / 'index.html').read_text()
 assert 'href="/mac/">Mac</a>' in main and 'href="/mac/">PaperMac</a>' in main
 
