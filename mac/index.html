@@ -194,7 +194,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; text-decoration: none; }
 .brand img { width: 30px; height: 30px; }
 .top nav { display: flex; align-items: center; gap: 24px; margin-left: auto; font-weight: 650; font-size: 15px; }
-.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:hover { color: var(--ink); }
+.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:not(.btn):hover { color: var(--ink); }
 .buy-notice { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.45; }
 .top.with-buy-notice { display: grid; grid-template-columns: 1fr auto; gap: 4px 28px; height: auto; padding-block: 14px 8px; }
 .top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
@@ -277,11 +277,9 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .slip .price { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 4px; }
 .slip .price b { font-weight: 900; font-stretch: 125%; font-size: 72px; line-height: .8; letter-spacing: -.04em; }
 .slip .price span { color: var(--ink-2); font-weight: 650; font-size: 15px; line-height: 1.3; }
-.slip .price s { text-decoration-thickness: 2px; }
 .slip .btn.pro { width: 100%; margin-top: 18px; min-height: 54px; font-size: 17px; }
 .slip .to { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; }
 .slip .buy-notice { margin-top: 8px; text-align: center; }
-.slip .trial { margin: 18px 0 0; font-size: 15px; font-weight: 650; line-height: 1.45; }
 .slip hr { margin: 22px 0; border: 0; border-top: 1.5px dashed var(--line); }
 .terms { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; font-size: 14px; line-height: 1.4; }
 .terms dt { font: 600 11.5px/1.75 "JetBrains Mono", monospace; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
@@ -345,6 +343,7 @@ footer .brand img { width: 24px; height: 24px; }
   .free .scroller { --rail-pad: 16px; }
   .slip { padding: 28px 20px; }
   .slip .price b { font-size: 60px; }
+  .slip .phone { display: none; }
   .theme { margin-left: 0; }
 }
 @media (max-width: 480px) {
@@ -371,10 +370,8 @@ footer .brand img { width: 24px; height: 24px; }
 .pro-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; }
 .decide .price { margin: 0; white-space: nowrap; }
 .decide .price b { font-weight: 900; font-stretch: 125%; font-size: 40px; line-height: 1; letter-spacing: -.035em; }
-.decide .price s { margin-left: 6px; color: var(--ink-2); font-weight: 650; font-size: 17px; text-decoration-thickness: 2px; }
 .facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 15px; font-weight: 650; color: var(--ink-2); }
 .facts b { color: var(--ink); font: 700 .92em/1 "JetBrains Mono", monospace; letter-spacing: .02em; }
-.decide .trial { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 
 .compare { padding: clamp(110px, 12vw, 170px) 0 0; }
 .compare .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 44px; border-top: 3px solid var(--ink); }
@@ -383,7 +380,6 @@ footer .brand img { width: 24px; height: 24px; }
 .col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .col-head h3 { margin: 0; font-weight: 900; font-stretch: 118%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.025em; }
 .col-head b { font-weight: 900; font-stretch: 125%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.03em; white-space: nowrap; }
-.col-head s { margin-left: 4px; color: var(--ink-2); font-weight: 650; font-size: .5em; text-decoration-thickness: 2px; }
 .col-intro { margin: -8px 0 6px; font-weight: 650; color: var(--ink-2); }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
@@ -427,6 +423,17 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 .legal table { width: 100%; min-width: 40rem; border-collapse: collapse; text-align: left; font-size: 15px; line-height: 1.5; }
 .legal th, .legal td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .legal th { font-weight: 750; }
+@media (max-width: 700px) {
+  /* Stack the privacy table's rows so no column scrolls out of view; ::before restores the column names. */
+  .legal table { min-width: 0; }
+  .legal thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .legal tr, .legal tbody th, .legal td { display: block; }
+  .legal tbody th { padding-bottom: 4px; border-bottom: 0; }
+  .legal td { padding-block: 4px; border-bottom: 0; }
+  .legal tr { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .legal td:nth-of-type(1)::before { content: "What is sent: "; font-weight: 750; }
+  .legal td:nth-of-type(2)::before { content: "To: "; font-weight: 750; }
+}
 
 .legal .identity { color: var(--ink-2); font-size: 14px; font-weight: 550; }
 </style>
@@ -455,7 +462,7 @@ a[href^="mailto:"]:focus-visible {
     <a href="#install">Install</a>
 
 
-<a class="btn pro small trial-cta" href="#install">Try Pro free for 14 days</a>
+<a class="btn pro small trial-cta" href="#install">Download</a>
 <button class="btn pro small" type="button" disabled aria-describedby="header-sales">Buy Pro</button>
 
   </nav>
@@ -496,16 +503,15 @@ a[href^="mailto:"]:focus-visible {
           <p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>
         </div>
         <div class="tier pro">
-          <div class="pro-head"><h2>PaperMac Pro 27</h2><p class="price"><b>$19</b> <s><span class="sr-only">was </span>$29</s></p></div>
-          <ul class="facts"><li>One-time purchase for macOS 27</li><li><b>BETABELIEVER</b> takes $10 off</li></ul>
+          <div class="pro-head"><h2>PaperMac Pro 27</h2><p class="price"><b>$39</b></p></div>
+          <ul class="facts"><li>One-time purchase for PaperMac 27, on up to 5 Macs</li><li>Or <a href="#lifetime">PaperMac Lifetime</a>, $99, for every future version</li></ul>
 
 
-<a class="btn pro wide trial-cta" href="#install">Try Pro free for 14 days</a>
+<a class="btn pro wide trial-cta" href="#install">Download</a>
 <button class="btn pro wide" type="button" disabled aria-describedby="hero-sales">Buy Pro</button>
 <p class="sales-closed" id="hero-sales">Buying Pro opens during the beta</p>
 
           <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <p class="trial">The 14-day Pro trial starts inside the app, when you choose.</p>
         </div>
       </aside>
     </div>
@@ -565,7 +571,7 @@ a[href^="mailto:"]:focus-visible {
         <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
       </div>
       <div class="col pro" id="pro">
-        <div class="col-head"><h3>PaperMac Pro 27</h3><b>$19 <s><span class="sr-only">was </span>$29</s></b></div>
+        <div class="col-head"><h3>PaperMac Pro 27</h3><b>$39</b></div>
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
           <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
@@ -578,39 +584,46 @@ a[href^="mailto:"]:focus-visible {
           <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Snooze a window until you need it</figcaption></figure>
           <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
         </div>
-        <aside class="slip" aria-label="Buy PaperMac Pro">
-          <div class="who"><img src="data:image/webp;base64,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" alt="" width="52" height="52"><div><b>PaperMac Pro 27</b><span>The edition for macOS 27</span></div></div>
-          <div class="price"><b>$19</b><span>beta price<br>then <s>$29</s></span></div>
+        <aside class="slip" id="buy" aria-label="Buy PaperMac Pro">
+          <div class="who"><img src="data:image/webp;base64,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" alt="" width="52" height="52"><div><b>PaperMac Pro</b><span>Pro 27 or Lifetime</span></div></div>
+          <div class="price"><b>$39</b><span>PaperMac Pro 27<br>one-time, up to 5 Macs</span></div>
 
 
-<a class="btn pro trial-cta" href="#install">Try Pro free for 14 days</a>
-<button class="btn pro" type="button" disabled aria-describedby="panel-sales">Buy PaperMac Pro</button>
+<a class="btn pro trial-cta" href="#install">Download</a>
+<button class="btn pro" type="button" disabled aria-describedby="panel-sales">Buy PaperMac Pro 27</button>
 <p class="sales-closed" id="panel-sales">Buying Pro opens during the beta</p>
 
           <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
-          <p class="to">Use BETABELIEVER for $10 off.</p>
-          <hr>
 
 
           <div class="phone sales-unavailable">
             <div class="qr-placeholder" aria-hidden="true"></div>
-            <div><b>Buy on your phone</b><p>Buying Pro opens during the beta</p></div>
+            <div><b>Buy Pro 27 on your phone</b><p>Buying Pro opens during the beta</p></div>
           </div>
 
-          <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
           <hr>
+          <div class="price" id="lifetime"><b>$99</b><span>PaperMac Lifetime<br>every future version, up to 5 Macs</span></div>
+
+
+<button class="btn pro" type="button" disabled aria-describedby="lifetime-sales">Buy PaperMac Lifetime</button>
+<p class="sales-closed" id="lifetime-sales">Buying Lifetime opens during the beta</p>
+
+          <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
+          <p class="to">Lifetime costs about 2½ times today's Pro 27 price.</p>
+          <hr>
+          <p class="bill">Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.</p>
           <p class="bill">Purchases and licenses: <a href="mailto:billing@getpaper.sh">billing@getpaper.sh</a></p>
         </aside>
       </div>
     </div>
     <p class="txt soon"><b>Coming soon</b>Stack scrolling and stack height controls. Not included in Free or Pro.</p>
     <p class="txt soon"><b>Beta software</b>PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things.</p>
-    <p class="lead">Your license covers PaperMac Pro 27 on macOS 27 Golden Gate.</p>
+    <p class="lead">PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lifetime also covers every future version.</p>
     <div class="plain" role="list" aria-label="Purchase terms">
       <div role="listitem"><strong>Pay once.</strong><p>No subscription.</p></div>
-      <div role="listitem"><strong>Your edition never expires.</strong><p>Keep using PaperMac Pro 27 on macOS 27. Future editions are optional discounted upgrades.</p></div>
+      <div role="listitem"><strong>Your edition never expires.</strong><p>Keep using PaperMac Pro 27 on macOS 27. Future editions are optional discounted upgrades, and Lifetime includes them.</p></div>
       <div role="listitem"><strong>One person, all your Macs.</strong><p>Use your license on up to 5 Macs at once.</p></div>
-      <div role="listitem"><strong>No grace window.</strong><p>A new edition is a separate purchase, even if you bought this one recently.</p></div>
+      <div role="listitem"><strong>No grace window.</strong><p>With Pro 27, a new edition is a separate purchase, even if you bought this one recently.</p></div>
     </div>
   </section>
 

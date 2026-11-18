@@ -178,15 +178,16 @@ sh scripts/build-site.sh /tmp/getpaper-site-preview
 The preview output has 25 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
-`src/mac/checkout-url.txt` is the single sales-mode input. The committed default
-is `off`: trial actions link to the install section, Buy buttons and their Terms
+`src/mac/checkout-url.txt` is the single sales-mode input: `DODO_CHECKOUT_PRO_27` and
+`DODO_CHECKOUT_LIFETIME`, the Dodo Payments checkout links for the two products. The committed
+default is `off` for both: Download actions link to the install section, Buy buttons and their Terms
 notices remain visible but muted, and the phone checkout frame has no QR code.
-Disabled Buy buttons explain that buying opens during the beta. No Lemon Squeezy
-URL is emitted in the product page. A checkout URL restores the Buy links and
-inline Segno QR; use the verified live checkout before taking payments. BETABELIEVER
-takes $10 off. The license covers PaperMac Pro 27 on macOS 27 Golden Gate, with
-up to five active Macs per person. The final legal text completed the
-owner-approved AI consensus review. Trial-only launch can precede sales; before
+Disabled Buy buttons explain that buying opens during the beta. Setting both to https
+links restores the Buy links and the inline Segno QR (for Pro 27); the bundler refuses a config
+with only one set. Use the live checkout links, never test-mode ones, before taking payments.
+PaperMac Pro 27 is $39 and covers PaperMac 27 on macOS 27 Golden Gate; PaperMac Lifetime is
+$99 and covers every future version. Both allow up to five active Macs per person. Dodo
+Payments is the merchant of record. A download-only launch can precede sales; before
 enabling payments, verify refund key deactivation and EU/UK digital-content
 withdrawal consent at checkout. Public activation also requires the hosting redirect to
 preserve `/mac/activate/?key=`, the no-referrer response header and a real receipt
