@@ -100,7 +100,7 @@ sources = [attributes['src'] for tag, attributes in Page(product).tags if tag ==
 assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
 assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
-buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'
+buy_notice = '<p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(buy_notice) == 4
 if checkout == 'off':
     assert 'lemonsqueezy' not in product.lower()
@@ -147,7 +147,8 @@ for route in ['terms', 'privacy']:
         assert re.search(r'<p class="identity">.*?</p>\s*<p>Questions:', legal_body, re.S)
     assert '[' not in legal_text and ']' not in legal_text
     assert 'Coming before sales open' not in legal_html
-assert '<h2>30-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
+assert '<h2>14-day refunds, for any reason</h2>' in (site / 'terms/index.html').read_text()
+assert '30 days' not in (site / 'terms/index.html').read_text()
 assert '<table>' in (site / 'privacy/index.html').read_text()
 assert 'only while it helps us improve PaperMac' in (site / 'privacy/index.html').read_text()
 main = (site / 'index.html').read_text()
