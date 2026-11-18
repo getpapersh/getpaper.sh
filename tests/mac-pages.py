@@ -116,7 +116,7 @@ if pro_checkout == lifetime_checkout == 'off':
     assert 'class="phone sales-unavailable"' in product
     trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
     assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
-    assert product.count('Try Pro free for 14 days') == 3
+    assert product.count('href="#install">Download</a>') == 3 and 'Try Pro free' not in product
     buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
     assert len(buys) == 4
     for attrs in buys:
