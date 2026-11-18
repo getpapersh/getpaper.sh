@@ -273,7 +273,6 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .slip .price { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 4px; }
 .slip .price b { font-weight: 900; font-stretch: 125%; font-size: 72px; line-height: .8; letter-spacing: -.04em; }
 .slip .price span { color: var(--ink-2); font-weight: 650; font-size: 15px; line-height: 1.3; }
-.slip .price s { text-decoration-thickness: 2px; }
 .slip .btn.pro { width: 100%; margin-top: 18px; min-height: 54px; font-size: 17px; }
 .slip .to { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; }
 .slip .buy-notice { margin-top: 8px; text-align: center; }
@@ -367,7 +366,6 @@ footer .brand img { width: 24px; height: 24px; }
 .pro-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; }
 .decide .price { margin: 0; white-space: nowrap; }
 .decide .price b { font-weight: 900; font-stretch: 125%; font-size: 40px; line-height: 1; letter-spacing: -.035em; }
-.decide .price s { margin-left: 6px; color: var(--ink-2); font-weight: 650; font-size: 17px; text-decoration-thickness: 2px; }
 .facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 15px; font-weight: 650; color: var(--ink-2); }
 .facts b { color: var(--ink); font: 700 .92em/1 "JetBrains Mono", monospace; letter-spacing: .02em; }
 .decide .trial { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
@@ -379,7 +377,6 @@ footer .brand img { width: 24px; height: 24px; }
 .col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .col-head h3 { margin: 0; font-weight: 900; font-stretch: 118%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.025em; }
 .col-head b { font-weight: 900; font-stretch: 125%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.03em; white-space: nowrap; }
-.col-head s { margin-left: 4px; color: var(--ink-2); font-weight: 650; font-size: .5em; text-decoration-thickness: 2px; }
 .col-intro { margin: -8px 0 6px; font-weight: 650; color: var(--ink-2); }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
@@ -457,7 +454,7 @@ a[href^="mailto:"]:focus-visible {
 <tbody>
 <tr>
 <th scope="row"><strong>You buy Pro</strong></th>
-<td>The name, email, payment and billing details you enter at checkout. We see your name, email, country and order.</td>
+<td>The name, email, payment and billing details you enter at checkout. We see your order and the billing details Dodo Payments shares with us, such as your name, email, phone number and billing address, and your card's network, type, issuing country, last four digits and cardholder name.</td>
 <td>Dodo Payments, the merchant of record (<a href="https://dodopayments.com/legal/privacy-policy">privacy policy</a>)</td>
 </tr>
 <tr>
@@ -478,7 +475,8 @@ a[href^="mailto:"]:focus-visible {
 </tbody>
 </table>
 </div>
-<p>None of these requests include window titles, app or file names, documents or anything else on screen.</p>
+<p>The licensing and update requests never include window titles, app or file names, documents or anything else on screen.</p>
+<p>A diagnostics file is different. PaperMac saves it only where you choose and never uploads it, but it contains your logs, settings, window titles, app names and file paths that include your account name. If you attach it to an email, we receive all of that.</p>
 <h2>What stays on your Mac</h2>
 <ul>
 <li><strong>Desktop names and summaries.</strong> Apple's on-device model creates them. Your window contents aren't sent anywhere.</li>
@@ -491,13 +489,7 @@ a[href^="mailto:"]:focus-visible {
 <h2>What we don't do</h2>
 <p>We don't sell your personal information, share it for advertising, or build profiles of you. We don't track you across sites, so Do Not Track signals change nothing.</p>
 <h2>Keeping and deleting data</h2>
-<p>We keep:</p>
-<ul>
-<li>purchase records for as long as tax and accounting law requires;</li>
-<li>license and activation records for as long as your license is valid;</li>
-<li>support email for as long as we need it to help you;</li>
-<li>website and update-server request data only as long as Cloudflare needs it to serve and protect them; we keep update-check totals that can't identify anyone.</li>
-</ul>
+<p>Dodo Payments keeps purchase, license and activation records under its own privacy policy, and Cloudflare keeps website and update-server request data under its own. We keep support email for as long as we need it to help you.</p>
 <p>Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a> to get a copy of your data, correct, delete or move it, limit or object to how we use it, or complain about how we handle it. Where the law gives you more privacy rights, including in California, the EU and the UK, you have them here too.</p>
 <h2>EU and UK</h2>
 <p>We use your data on these grounds:</p>
@@ -506,7 +498,7 @@ a[href^="mailto:"]:focus-visible {
 <li><strong>Legal obligation:</strong> to handle your privacy requests.</li>
 <li><strong>Legitimate interests:</strong> to keep tax and accounting records, deliver updates, answer general support email and keep the website secure.</li>
 </ul>
-<p>We're based in the US. Dodo Payments, Cloudflare and Fastmail process data in the US and other countries. Transfers out of the EU and UK rely on the EU-US Data Privacy Framework or standard contractual clauses, and their UK equivalents. Email us for a copy of those safeguards. You can complain to your local data protection authority.</p>
+<p>We're based in the US. Dodo Payments, Cloudflare and Fastmail process data in the US and other countries. Email us with questions about how your data is transferred. You can complain to your local data protection authority.</p>
 <h2>Other</h2>
 <ul>
 <li><strong>Children.</strong> PaperMac isn't directed to children under 13.</li>

@@ -262,7 +262,6 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .slip .price { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 4px; }
 .slip .price b { font-weight: 900; font-stretch: 125%; font-size: 72px; line-height: .8; letter-spacing: -.04em; }
 .slip .price span { color: var(--ink-2); font-weight: 650; font-size: 15px; line-height: 1.3; }
-.slip .price s { text-decoration-thickness: 2px; }
 .slip .btn.pro { width: 100%; margin-top: 18px; min-height: 54px; font-size: 17px; }
 .slip .to { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; }
 .slip .buy-notice { margin-top: 8px; text-align: center; }
@@ -356,7 +355,6 @@ footer .brand img { width: 24px; height: 24px; }
 .pro-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; }
 .decide .price { margin: 0; white-space: nowrap; }
 .decide .price b { font-weight: 900; font-stretch: 125%; font-size: 40px; line-height: 1; letter-spacing: -.035em; }
-.decide .price s { margin-left: 6px; color: var(--ink-2); font-weight: 650; font-size: 17px; text-decoration-thickness: 2px; }
 .facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 15px; font-weight: 650; color: var(--ink-2); }
 .facts b { color: var(--ink); font: 700 .92em/1 "JetBrains Mono", monospace; letter-spacing: .02em; }
 .decide .trial { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
@@ -368,7 +366,6 @@ footer .brand img { width: 24px; height: 24px; }
 .col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .col-head h3 { margin: 0; font-weight: 900; font-stretch: 118%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.025em; }
 .col-head b { font-weight: 900; font-stretch: 125%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.03em; white-space: nowrap; }
-.col-head s { margin-left: 4px; color: var(--ink-2); font-weight: 650; font-size: .5em; text-decoration-thickness: 2px; }
 .col-intro { margin: -8px 0 6px; font-weight: 650; color: var(--ink-2); }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }

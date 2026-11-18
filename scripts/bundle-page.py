@@ -14,6 +14,7 @@ CSS. Its copyright, RFN declaration and licence records stay as they are. JetBra
 reserves no name and keeps its own.
 """
 import base64, html as html_lib, io, pathlib, re, sys
+from urllib.parse import urlsplit
 from fontTools import subset
 from fontTools.ttLib import TTFont
 
@@ -24,7 +25,7 @@ if "{{DODO_CHECKOUT_PRO_27}}" in html:
     checkouts = dict(line.split("=", 1) for line in lines if line.strip() and not line.startswith("#"))
     links = [checkouts["DODO_CHECKOUT_PRO_27"].strip(), checkouts["DODO_CHECKOUT_LIFETIME"].strip()]
     sales_mode = "off" if links == ["off", "off"] else "url"
-    if sales_mode == "url" and not all(link.startswith("https://") for link in links):
+    if sales_mode == "url" and not all(urlsplit(link).scheme == "https" and urlsplit(link).hostname for link in links):
         sys.exit("Set both Dodo checkout links in checkout-url.txt to https URLs, or both to off")
     html = re.sub(r"<!-- sales:(off|url) -->(.*?)<!-- /sales:\1 -->",
                   lambda match: match[2] if match[1] == sales_mode else "", html, flags=re.S)
