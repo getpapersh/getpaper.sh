@@ -190,7 +190,7 @@ h2 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: clamp(40px, 5.4
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; text-decoration: none; }
 .brand img { width: 30px; height: 30px; }
 .top nav { display: flex; align-items: center; gap: 24px; margin-left: auto; font-weight: 650; font-size: 15px; }
-.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:hover { color: var(--ink); }
+.top nav a { text-decoration: none; color: var(--ink-2); } .top nav a:not(.btn):hover { color: var(--ink); }
 .buy-notice { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.45; }
 .top.with-buy-notice { display: grid; grid-template-columns: 1fr auto; gap: 4px 28px; height: auto; padding-block: 14px 8px; }
 .top.with-buy-notice > .buy-notice { grid-column: 1 / -1; justify-self: end; text-align: right; }
@@ -340,6 +340,7 @@ footer .brand img { width: 24px; height: 24px; }
   .free .scroller { --rail-pad: 16px; }
   .slip { padding: 28px 20px; }
   .slip .price b { font-size: 60px; }
+  .slip .phone { display: none; }
   .theme { margin-left: 0; }
 }
 @media (max-width: 480px) {
@@ -420,6 +421,17 @@ video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; backgrou
 .legal table { width: 100%; min-width: 40rem; border-collapse: collapse; text-align: left; font-size: 15px; line-height: 1.5; }
 .legal th, .legal td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .legal th { font-weight: 750; }
+@media (max-width: 700px) {
+  /* Stack the privacy table's rows so no column scrolls out of view; ::before restores the column names. */
+  .legal table { min-width: 0; }
+  .legal thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .legal tr, .legal tbody th, .legal td { display: block; }
+  .legal tbody th { padding-bottom: 4px; border-bottom: 0; }
+  .legal td { padding-block: 4px; border-bottom: 0; }
+  .legal tr { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .legal td:nth-of-type(1)::before { content: "What is sent: "; font-weight: 750; }
+  .legal td:nth-of-type(2)::before { content: "To: "; font-weight: 750; }
+}
 
 .legal .identity { color: var(--ink-2); font-size: 14px; font-weight: 550; }
 </style>
@@ -489,7 +501,7 @@ a[href^="mailto:"]:focus-visible {
 <h2>What we don't do</h2>
 <p>We don't sell your personal information, share it for advertising, or build profiles of you. We don't track you across sites, so Do Not Track signals change nothing.</p>
 <h2>Keeping and deleting data</h2>
-<p>Dodo Payments keeps purchase, license and activation records under its own privacy policy, and Cloudflare keeps website and update-server request data under its own. We keep support email for as long as we need it to help you.</p>
+<p>Dodo Payments keeps purchase, license and activation records under its own privacy policy, and Cloudflare keeps website and update-server request data under its own. We keep order and tax records for as long as tax law requires, and Dodo Payments keeps your card details under its own policy. We keep support email for as long as we need it to help you.</p>
 <p>Email <a href="mailto:support@getpaper.sh">support@getpaper.sh</a> to get a copy of your data, correct, delete or move it, limit or object to how we use it, or complain about how we handle it. Where the law gives you more privacy rights, including in California, the EU and the UK, you have them here too.</p>
 <h2>EU and UK</h2>
 <p>We use your data on these grounds:</p>

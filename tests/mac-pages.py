@@ -89,7 +89,7 @@ assert 'Free forever' not in product
 assert '#activate=' not in product
 assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lifetime also covers every future version.' in product
 assert '<b>$39</b>' in product and '<b>$99</b>' in product and '<s>' not in product
-assert 'Lifetime costs about the same as two and a half versions of Pro.' in product
+assert 'Lifetime costs about 2½ times today\'s Pro 27 price.' in product
 assert 'Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.' in product
 assert 'Your edition never expires.' in product
 assert 'optional discounted upgrades' in product
@@ -108,7 +108,7 @@ config = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read
 config = dict(line.split('=', 1) for line in config if line.strip() and not line.startswith('#'))
 pro_checkout, lifetime_checkout = config['DODO_CHECKOUT_PRO_27'].strip(), config['DODO_CHECKOUT_LIFETIME'].strip()
 buy_notice = '<p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert product.count(buy_notice) == 5
+assert product.count(buy_notice) == 4
 if pro_checkout == lifetime_checkout == 'off':
     assert 'QR code for the PaperMac Pro 27 checkout' not in product
     assert '<svg class="segno"' not in product
@@ -128,7 +128,7 @@ else:
     assert 'trial-cta"' not in product
     assert 'class="qr-placeholder"' not in product
     buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
-    assert buy_links == [pro_checkout] * 3 + [lifetime_checkout]
+    assert buy_links == ['#buy', pro_checkout, pro_checkout, lifetime_checkout]
     assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 4
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
