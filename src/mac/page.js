@@ -87,9 +87,17 @@
     const windows = $$(".win", fig), initialWindowCount = windows.length, windowLimit = 9;
     const canvas = $(".demo-canvas", fig), status = $("[role=status]", fig);
     const tourCue = $(".demo-tour", fig), app = $("[data-demo-app]", fig);
-    const minimap = $(".demo-minimap", fig), mapRows = $$(".map-row", minimap);
+    const minimap = $(".demo-minimap", fig), mapRows = $$(".map-row", minimap), mapTrack = $(".map-track", minimap);
+    // Floating windows have their own zone in the Minimap header, as in the app: a chip raises the window, dragging
+    // it onto a row tiles it there, and dropping a tile on the zone floats that window.
+    const floatZone = $(".map-float", minimap);
+    const floatChip = Object.assign(document.createElement("button"), { type: "button", className: "map-float-chip", hidden: true });
+    floatChip.append(Object.assign(document.createElement("kbd"), { className: "jump-badge", ariaHidden: "true" }));
+    floatZone.append(floatChip);
+    floatChip.addEventListener("click", () => { if (floating) run("jump", true, floating.win); });
     const statusMenu = $(".demo-status-menu", fig), menuSummary = $("summary", statusMenu);
-    const desktopCount = $("[data-desktop-count]", statusMenu);
+    const desktopCount = $("[data-desktop-count]", statusMenu), mapCount = $("[data-map-count]", minimap);
+    const footageVideo = $(".demo-footage video", fig), footageInput = $("#demo-view-footage", fig);
     const menuButtons = new Map();
     const mapTiles = new Map();
     const buttons = new Map($$("[data-command]", fig).map(button => [button.dataset.command, button]));
@@ -98,12 +106,14 @@
     const selections = strips.map(strip => strip.firstElementChild);
     const presets = ["var(--standard-width)", "72cqw", "89cqw", "max(155px, 36cqw)"];
     let row = 0, current, target, timer, announcement, frame, lastCue, finishSlide, floating, mapTimer;
-    let visible = false, stopped = false, beat = 0;
+    let visible = false, stopped = false, footage = false, beat = 0;
+    let jumping = false, switcherOpen = false, previews = true, chordTimer;
+    const tileWindows = new WeakMap();
     let mapOn = true, mapVisible = false;
 
     const track = () => strips[row];
     const active = () => target ?? selections[row];
-    const board = () => fig.classList.contains("overview") || fig.classList.contains("infinite");
+    const board = () => fig.classList.contains("infinite");
     const center = win => win.offsetLeft + (win.offsetWidth - track().clientWidth) / 2;
     const items = () => [...track().children];
     const placement = win => {
@@ -125,9 +135,20 @@
     const neighbor = delta => items()[items().indexOf(active()) + delta];
     const destination = delta => strips[row + delta];
     const full = win => win.hasAttribute("data-full");
-    const width = win => full(win) ? "calc(100cqw - 2 * var(--gap))" :
+    const width = win => full(win) ? "calc(100cqw - 2 * var(--gap))" : win.dataset.cqw ? `${win.dataset.cqw}cqw` :
       Number(win.dataset.preset) ? presets[Number(win.dataset.preset)] :
       win.hasAttribute("data-new") ? "max(180px, 50cqw)" : presets[0];
+    // A window's rendered width; one on the hidden Strip is resolved by a probe in the visible Strip, where the
+    // phone width rules and container units apply too.
+    const cssWidth = win => {
+      if (win.offsetWidth) return win.offsetWidth;
+      const probe = document.createElement("i");
+      probe.style.cssText = `position:absolute;visibility:hidden;width:${width(win)}`;
+      track().append(probe);
+      const px = probe.offsetWidth;
+      probe.remove();
+      return px;
+    };
     const syncMap = () => {
       if (minimap.hidden) return;
       $("[data-map-app]", minimap).textContent = current.dataset.app;
@@ -136,29 +157,52 @@
         else tile.removeAttribute("aria-current");
       }
       mapRows.forEach((mapRow, i) => { mapRow.toggleAttribute("data-active", i === row); });
+      paintFloats();
       if (board()) return;
       const rail = track(), start = rail.firstElementChild.offsetLeft;
       const end = rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth;
       const span = end - start;
       const left = Math.max(start, rail.scrollLeft);
       const right = Math.min(end, rail.scrollLeft + rail.clientWidth);
-      const mapRow = mapRows[row], lastTile = mapRow.lastElementChild;
-      const scale = (lastTile.offsetLeft + lastTile.offsetWidth) / span;
-      mapRow.style.setProperty("--view-left", `${scale * (left - start)}px`);
-      mapRow.style.setProperty("--view-width", `${scale * (right - left)}px`);
+      const scale = mapScale();
+      // The outline and the scrollbar thumb mark the same viewport at the tiles' scale.
+      for (const [element, offset] of [[mapRows[row], 0], [minimap, mapRows[row].offsetLeft - mapTrack.offsetLeft]]) {
+        element.style.setProperty("--view-left", `${offset + scale * (left - start)}px`);
+        element.style.setProperty("--view-width", `${scale * (right - left)}px`);
+      }
+    };
+    const mapScale = () => {
+      const rail = track(), lastTile = mapRows[row].lastElementChild;
+      const start = rail.firstElementChild.offsetLeft;
+      return (lastTile.offsetLeft + lastTile.offsetWidth) / (rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth - start);
     };
     const paintMap = () => {
-      minimap.hidden = !mapVisible || board();
+      const had = minimap.contains(document.activeElement);
+      minimap.hidden = !(mapVisible || jumping || fig.classList.contains("map-held")) || board();
+      if (minimap.hidden && minimap.contains(tipFor)) hideTip();
       fig.classList.toggle("has-map", !minimap.hidden);
       syncMap();
+      rescueFocus(had);
     };
-    const revealMap = (requested = false) => {
+    // A focused control that a board, a Strip change or a fading Minimap hides hands focus to the demo screen,
+    // so shortcuts and screen readers keep their place. Chrome moves focus to <body> as soon as layout sees the
+    // control hidden, so callers note whether the demo held focus before they hide anything.
+    const holdsFocus = () => fig.contains(document.activeElement) && document.activeElement !== canvas;
+    const rescueFocus = had => {
+      const focused = document.activeElement;
+      if (had && (!fig.contains(focused) || !focused.getClientRects().length)) canvas.focus({ preventScroll: true });
+    };
+    // Like the app, a Peek Minimap stays while the pointer or focus is on it.
+    const releaseMap = () => {
       clearTimeout(mapTimer);
-      mapVisible = mapOn && (settings.map !== "manual" || requested);
-      paintMap();
-      if (mapVisible && settings.map === "peek") {
+      if (mapVisible && settings.map === "peek" && !jumping && !minimap.matches(":hover, :focus-within, .dragging") && !minimap.querySelector(".carried")) {
         mapTimer = setTimeout(() => { mapVisible = false; paintMap(); }, 2000);
       }
+    };
+    const revealMap = (requested = false) => {
+      mapVisible = mapOn && (settings.map !== "manual" || requested);
+      paintMap();
+      releaseMap();
     };
     const syncWidths = strip => {
       strip.style.setProperty("--first-width", width(strip.firstElementChild));
@@ -171,39 +215,63 @@
           tile.type = "button";
           tile.className = "map-tile";
           tile.dataset.app = win.dataset.app;
-          tile.textContent = title(win);
-          tile.title = `Focus ${title(win)} in the Strip (Enter or Space)`;
+          tile.append(Object.assign(document.createElement("b"), { textContent: title(win) }),
+            Object.assign(document.createElement("small"), { textContent: win.dataset.app, ariaHidden: "true" }),
+            Object.assign(document.createElement("kbd"), { className: "jump-badge", ariaHidden: "true" }));
+          tileWindows.set(tile, win);
+          tile.dataset.tip = `Focus ${title(win)} on its Strip. Drag it to move the window, or drag an edge to resize it.`;
+          for (const side of ["start", "end"]) {
+            const edge = Object.assign(document.createElement("i"), { className: "tile-edge", ariaHidden: "true" });
+            Object.assign(edge.dataset, { edge: side, tip: `Drag to resize ${title(win)}.` });
+            tile.append(edge);
+          }
           tile.addEventListener("click", () => run("jump", true, win));
           mapTiles.set(win, tile);
         }
         const defaultWeight = win.hasAttribute("data-new") ? .5 : .53;
-        const weight = full(win) ? 1 : [defaultWeight, .72, .89, .36][Number(win.dataset.preset ?? 0)];
+        const weight = full(win) ? 1 : win.dataset.cqw ? win.dataset.cqw / 100 : [defaultWeight, .72, .89, .36][Number(win.dataset.preset ?? 0)];
         tile.style.setProperty("--map-weight", weight);
         win.style.setProperty("--map-weight", weight);
         if (mapRow.children[i + 1] !== tile) mapRow.insertBefore(tile, mapRow.children[i + 1] ?? null);
       });
+      minimap.style.setProperty("--map-total", Math.max(...strips.map(rail =>
+        [...rail.children].reduce((sum, win) => sum + Number(win.style.getPropertyValue("--map-weight")), 0))));
+      paintJump();
+    };
+    // Why each command is unavailable right now; an empty reason means it is available.
+    const blocked = () => {
+      const zoomed = board() && "Close Infinite Canvas first.";
+      const side = delta => !neighbor(delta) && `There is no window to the ${delta < 0 ? "left" : "right"}.`;
+      const strip = delta => !destination(delta) && `There is no Strip ${delta < 0 ? "above" : "below"}.`;
+      const last = items().length === 1 && "The last window stays on its Strip.";
+      return {
+        left: side(-1), right: side(1), above: strip(-1), below: strip(1),
+        moveLeft: zoomed || side(-1), moveRight: zoomed || side(1),
+        moveAbove: zoomed || strip(-1) || last, moveBelow: zoomed || strip(1) || last,
+        full: zoomed, resize: zoomed, jumpTo: board() && "Infinite Canvas already shows the letters.",
+        newWindow: zoomed || (windows.length >= windowLimit && `The demo holds up to ${windowLimit} windows.`),
+        float: zoomed || (!floating && items().length < 2 && "The last window stays on its Strip."),
+      };
     };
     const syncButtons = () => {
-      for (const [id, unavailable] of [
-        ["left", !neighbor(-1)], ["right", !neighbor(1)], ["above", !destination(-1)], ["below", !destination(1)],
-        ["moveLeft", !neighbor(-1) || board()], ["moveRight", !neighbor(1) || board()],
-        ["moveAbove", !destination(-1) || items().length === 1 || board()],
-        ["moveBelow", !destination(1) || items().length === 1 || board()],
-        ["full", board()], ["resize", board()], ["newWindow", board() || windows.length >= windowLimit],
-        ["float", board() || (!floating && items().length < 2)],
-      ]) buttons.get(id).setAttribute("aria-disabled", String(unavailable));
+      for (const [id, reason] of Object.entries(blocked())) buttons.get(id).setAttribute("aria-disabled", String(Boolean(reason)));
       buttons.get("full").setAttribute("aria-pressed", String(full(active())));
       buttons.get("float").setAttribute("aria-checked", String(Boolean(floating)));
       buttons.get("limelight").setAttribute("aria-checked", String(fig.classList.contains("limelight")));
       buttons.get("outline").setAttribute("aria-checked", String(fig.classList.contains("outline")));
       buttons.get("minimap").setAttribute("aria-checked", String(mapOn));
-      buttons.get("overview").setAttribute("aria-pressed", String(fig.classList.contains("overview")));
-      buttons.get("infinite").setAttribute("aria-pressed", String(fig.classList.contains("infinite")));
+      buttons.get("overview").setAttribute("aria-pressed", String(switcherOpen));
+      buttons.get("jumpTo").setAttribute("aria-pressed", String(jumping));
+      buttons.get("infinite").setAttribute("aria-pressed", String(board()));
+      buttons.get("previews").setAttribute("aria-checked", String(previews));
       for (const { button, setting, value } of settingButtons) {
         button.setAttribute("aria-pressed", String(settings[setting] === value));
         button.disabled = setting === "map" && !mapOn;
       }
-      desktopCount.textContent = windows.length;
+      desktopCount.textContent = mapCount.textContent = windows.length;
+      const pin = $("[data-map-tool=pin]", minimap), pinned = settings.map === "pinned";
+      pin.setAttribute("aria-pressed", String(pinned));
+      pin.dataset.tip = pinned ? "Unpin the Minimap so it fades after focus changes." : "Pin the Minimap so it stays on screen.";
       for (const [id, proxy] of menuButtons) {
         const button = buttons.get(id);
         for (const attr of ["aria-disabled", "aria-checked", "aria-pressed"]) {
@@ -227,6 +295,7 @@
     const syncScroll = () => {
       frame = null;
       if (board()) return;
+      if (carry?.on || tileDrag?.on || sizing?.on) return syncMap();
       if (target && Math.abs(track().scrollLeft - placement(target)) < 1.5) {
         const win = target;
         target = null;
@@ -250,12 +319,13 @@
       }
     };
     const showStrip = (index, win = selections[index]) => {
+      const had = holdsFocus();
       finishSlide?.();
       const delta = index - row, previous = track();
       row = index;
-      $("[data-strip-label]", fig).textContent = `Strip ${row + 1}`;
       strips.forEach((strip, i) => { strip.hidden = !board() && i !== row; });
       focus(win);
+      rescueFocus(had);
       if (!delta || reduced() || board()) return;
 
       const incoming = track();
@@ -312,28 +382,39 @@
       $("kbd", pauseButton).hidden = paused;
       if (paused) pauseButton.removeAttribute("aria-keyshortcuts");
       else pauseButton.setAttribute("aria-keyshortcuts", "Escape");
-      pauseButton.title = paused ? "Continue from the next tour step." : `${commands.pause[2]} (Esc)`;
       if (!paused && !visible) canvas.scrollIntoView({ block: "center", behavior: "instant" });
       schedule();
     };
     const takeOver = () => { if (!stopped) setTourPaused(true); };
     const showBoard = mode => {
-      fig.classList.toggle("overview", mode === "overview");
+      const had = holdsFocus();
+      // Entering from the Strip view, the camera starts where the focused window already sits.
+      const from = mode && !board() && !reduced() ? active().getBoundingClientRect() : null;
+      cancelAnimationFrame(boardMove);
+      if (pan) {
+        if (canvas.hasPointerCapture(pan.id)) canvas.releasePointerCapture(pan.id);
+        canvas.classList.remove("panning");
+        pan = null;
+      }
+      if (mode) {
+        closeSwitcher();
+        setJumping(false);
+      }
       fig.classList.toggle("infinite", mode === "infinite");
-      $(".demo-board-title", fig).hidden = mode !== "infinite";
-      $$(".rail .overview-pick", fig).forEach((button, i) => {
-        button.hidden = !board();
-        const key = mode === "overview" ? "asdfghjkl"[i] : "";
-        $("kbd", button).textContent = key.toUpperCase();
-        if (key) button.setAttribute("aria-keyshortcuts", key.toUpperCase());
-        else button.removeAttribute("aria-keyshortcuts");
-      });
+      $(".demo-board-title", fig).hidden = !mode;
+      for (const button of $$(".rail .overview-pick", fig)) button.hidden = !mode;
+      hideTip();
       showStrip(row, active());
       paintMap();
+      paintJump();
+      if (mode) fitBoard();
+      if (from) flyIn(from);
+      if (floating && !board()) moveFloat(floating.x, floating.y);
+      rescueFocus(had);
     };
     const toggleBoard = mode => {
       showBoard(fig.classList.contains(mode) ? null : mode);
-      announce(board() ? "Choose a window to return to its Strip." : `Strip ${row + 1}, ${title(active())}`);
+      announce(board() ? "Infinite Canvas. Drag to pan, zoom with the buttons, or type a window's letter." : `Strip ${row + 1}, ${title(active())}`);
     };
     const addWindow = () => {
       const positions = new Map(items().map(win => [win, win.offsetLeft]));
@@ -356,28 +437,62 @@
       focus(win, true);
       announce(`${title(win)} opened. ${windows.length} of ${windowLimit} windows.`);
     };
-    const toggleFloat = () => {
-      if (floating) {
-        const { win, strip, next } = floating;
-        floating = null;
-        strip.insertBefore(win, next?.parentElement === strip ? next : null);
-        syncWidths(strip);
-        showStrip(strips.indexOf(strip), win);
-        announce(`${title(win)} returned to the Strip.`);
-      } else {
-        const win = active(), strip = track(), next = win.nextElementSibling;
-        const remaining = next ?? win.previousElementSibling;
-        floating = { win, strip, next };
-        canvas.append(win);
-        mapTiles.get(win).remove();
-        syncWidths(strip);
-        focus(remaining);
-        announce(`${title(win)} floated above the Strip.`);
-      }
+    const grip = win => $(".tb", win);
+    const paintFloats = () => {
+      floatZone.hidden = !floating && !fig.classList.contains("map-dragging");
+      floatChip.hidden = !floating;
+      if (!floating) return;
+      const { win } = floating;
+      floatChip.dataset.app = win.dataset.app;
+      floatChip.setAttribute("aria-label", `${title(win)}, floating window`);
+      floatChip.dataset.tip = `Raise ${title(win)}. Drag it onto a row to tile it there.`;
+      floatChip.classList.toggle("focused", document.activeElement === grip(win));
+    };
+    // Returns the floating window to a Strip: where it came from, or a slot chosen in the Minimap.
+    const unfloat = (strip = floating.strip, next = floating.next, navigate = true) => {
+      const { win } = floating;
+      floating = drag = null;
+      win.style.removeProperty("--float-x");
+      win.style.removeProperty("--float-y");
+      for (const attr of ["tabindex", "role", "aria-label", "data-tip"]) grip(win).removeAttribute(attr);
+      strip.insertBefore(win, next?.parentElement === strip ? next : null);
+      syncWidths(strip);
+      if (navigate) showStrip(strips.indexOf(strip), win);
+      paintFloats();
+      announce(`${title(win)} returned to the Strip.`);
+    };
+    // The demo keeps one floating window, so floating another returns the first to its Strip.
+    const floatWindow = win => {
+      const strip = win.parentElement, index = strips.indexOf(strip), next = win.nextElementSibling;
+      const remaining = next ?? win.previousElementSibling;
+      if (floating) unfloat(undefined, undefined, false);
+      floating = { win, strip, next, x: 0, y: 0 };
+      Object.assign(grip(win), { tabIndex: 0 });
+      grip(win).setAttribute("role", "button");
+      grip(win).setAttribute("aria-label", `${title(win)}, floating`);
+      grip(win).dataset.tip = "Drag the title bar or use the arrow keys to move this window. Press Enter to return it to the Strip.";
+      canvas.append(win);
+      mapTiles.get(win).remove();
+      if (selections[index] === win) selections[index] = remaining;
+      syncWidths(strip);
+      // Focus moves only if the floated window had it; either way the current Strip settles on its focused window.
+      focus(active());
+      paintFloats();
+      announce(`${title(win)} floated above the Strip.`);
+    };
+    const toggleFloat = () => floating ? unfloat() : floatWindow(active());
+    // Offsets are CSS px from the window's resting place; the window stays inside the screen.
+    const moveFloat = (x, y) => {
+      const { win } = floating, area = canvas.getBoundingClientRect(), box = win.getBoundingClientRect();
+      const left = box.left - floating.x, top = box.top - floating.y;
+      floating.x = Math.round(Math.min(Math.max(x, area.left - left), area.right - box.width - left));
+      floating.y = Math.round(Math.min(Math.max(y, area.top - top), area.bottom - box.height - top));
+      win.style.setProperty("--float-x", `${floating.x}px`);
+      win.style.setProperty("--float-y", `${floating.y}px`);
     };
     const commands = {
-      left: ["Meta+Alt+ArrowLeft", () => focus(neighbor(-1), true), "Focus the window to the left."],
-      right: ["Meta+Alt+ArrowRight", () => focus(neighbor(1), true), "Focus the window to the right."],
+      left: ["Meta+Alt+ArrowLeft ArrowLeft", () => focus(neighbor(-1), true), "Focus the window to the left."],
+      right: ["Meta+Alt+ArrowRight ArrowRight", () => focus(neighbor(1), true), "Focus the window to the right."],
       above: ["Meta+Alt+ArrowUp", () => showStrip(row - 1), "Focus the Strip above."],
       below: ["Meta+Alt+ArrowDown", () => showStrip(row + 1), "Focus the Strip below."],
       moveLeft: ["Meta+Alt+Shift+ArrowLeft", () => move(-1), "Move the focused window one place left."],
@@ -391,6 +506,7 @@
       resize: ["Meta+Alt+Shift+Enter", () => {
         const win = active();
         win.removeAttribute("data-full");
+        delete win.dataset.cqw;
         win.dataset.preset = (Number(win.dataset.preset ?? 0) + 1) % presets.length;
         setWidth(win, "next width preset");
       }, "Resize the focused window to the next width preset."],
@@ -399,56 +515,112 @@
         const on = fig.classList.toggle("limelight");
         syncButtons();
         announce(`Limelight ${on ? "on" : "off"}`);
-      }, "Dim the other windows when Limelight is on."],
+      }, "Dim the other windows so the focused one is easier to see."],
       outline: ["Meta+Alt+Control+KeyB", () => {
         const on = fig.classList.toggle("outline");
         syncButtons();
         announce(`Outline ${on ? "on" : "off"}`);
       }, "Draw a border around the focused window when Outline is on."],
       minimap: ["Meta+Alt+KeyM", () => {
-        mapOn = !mapOn || (settings.map === "manual" && !mapVisible);
+        mapOn = !mapOn || (settings.map !== "pinned" && !mapVisible);
         revealMap(true);
         syncButtons();
         announce(`Minimap ${mapOn ? "on" : "off"}`);
       }, "Show or hide a map of the windows and viewport."],
-      overview: ["Meta+Alt+KeyO", () => toggleBoard("overview"), "See both Strips and pick a window to focus."],
-      infinite: ["Shift+KeyI", () => toggleBoard("infinite"), "See the Desktop’s canvas with windows scaled by width."],
+      // Option–Tab first; ⌥⌘O for systems that take Option–Tab before the page sees it.
+      overview: ["Alt+Tab Meta+Alt+KeyO", (_, manual) => toggleSwitcher(manual), "Search or jump to any window on both Strips. Option–Tab works while the demo screen has focus."],
+      jumpTo: ["Meta+Alt+KeyJ", (_, manual) => {
+        setJumping(!jumping);
+        // Safari leaves focus where it was when a button is clicked, and the letters are typed into the demo.
+        if (jumping && manual && !fig.contains(document.activeElement)) canvas.focus({ preventScroll: true });
+      }, "Show a letter on every window. Let go of the keys, then type a letter to jump there. Holding ⌥⇧⌘ works too."],
+      infinite: ["Shift+KeyI", () => toggleBoard("infinite"), "Zoom out over the whole Desktop. Drag to pan and type a letter to jump."],
+      previews: ["", () => {
+        previews = !previews;
+        syncButtons();
+        announce(`Window previews ${previews ? "on" : "off"}`);
+      }, "Preview a window when you hover its Minimap tile."],
       newWindow: ["Shift+KeyN", addWindow, "Open a note and make room on the Strip."],
       pause: ["Escape", () => { if (!board()) focus(nearest()); }, "Stop the tour and take control of the demo."],
       focus: ["", win => focus(win, true)],
       jump: ["", win => {
         canvas.focus({ preventScroll: true });
+        closeSwitcher(true);
+        setJumping(false);
         if (board()) showBoard(null);
-        showStrip(strips.indexOf(win.parentElement), win);
+        if (floating?.win === win) {
+          grip(win).focus({ preventScroll: true });
+          announce(`${title(win)}, floating`);
+        } else showStrip(strips.indexOf(win.parentElement), win);
       }],
     };
     const run = (id, manual, arg) => {
+      if (carry || tileDrag || sizing) cancelDrags();
       const enabled = buttons.get(id)?.getAttribute("aria-disabled") !== "true";
+      if (manual && footage && (!enabled || id === "pause")) return;
+      if (manual && footage) showView(false);
       if (manual) takeOver();
-      if (enabled) commands[id][1](arg);
+      if (jumping && id !== "jumpTo") setJumping(false);
+      if (switcherOpen && id !== "overview" && id !== "jump") closeSwitcher();
+      if (enabled) commands[id][1](arg, manual);
     };
+    const showView = showFootage => {
+      footageInput.checked = showFootage;
+      $("#demo-view-demo", fig).checked = !showFootage;
+      applyView();
+    };
+    // The demo stays laid out under the recording, so its scroll positions and windows survive a switch.
+    const applyView = () => {
+      footage = footageInput.checked;
+      if (footage) {
+        // Nothing modal survives into the recording: a drag, a pending hold, latched letters or an open Overview.
+        cancelDrags();
+        setJumping(false);
+        closeSwitcher();
+      }
+      for (const element of [$(".demo-menu", fig), canvas, minimap]) element.inert = footage;
+      if (footage) {
+        statusMenu.open = false;
+        hideTip();
+        if (!reduced()) footageVideo.play().catch(() => {});
+      } else {
+        footageVideo.pause();
+        syncMap();
+      }
+      schedule();
+    };
+    for (const input of $$("[name=demo-view]", fig)) input.addEventListener("change", applyView);
 
+    const shortcuts = id => commands[id][0].split(" ").filter(Boolean);
     const shortcutText = shortcut => shortcut
       .replace(/^Meta\+Alt\+(Control\+|Shift\+)?/, (_, modifier) =>
         modifier === "Control+" ? "⌃⌥⌘" : modifier === "Shift+" ? "⌥⇧⌘" : "⌥⌘")
+      .replace(/^Alt\+/, "⌥").replace("Tab", "⇥")
       .replace("ArrowLeft", "←").replace("ArrowRight", "→").replace("ArrowUp", "↑").replace("ArrowDown", "↓")
       .replace("Shift+", "⇧").replace("Enter", "↵").replace("Key", "").replace("Escape", "Esc");
-    const keymap = new Map([["ArrowLeft", "left"], ["ArrowRight", "right"]]);
+    const keymap = new Map();
     for (const [id, button] of buttons) {
-      const [shortcut, , description] = commands[id];
       const kbd = document.createElement("kbd");
-      kbd.textContent = shortcutText(shortcut);
+      kbd.textContent = shortcuts(id).length ? shortcutText(shortcuts(id)[0]) : "";
       kbd.setAttribute("aria-hidden", "true");
+      kbd.hidden = button.hasAttribute("data-key-in-label") || !kbd.textContent;
+      // shortcut: spells out Option chords only, the one kind a label names today.
+      if (button.hasAttribute("data-key-in-label")) {
+        const label = document.createElement("span");
+        label.append(button.firstChild.textContent.trim(),
+          Object.assign(document.createElement("span"), { className: "key-in-label", textContent: ` (${shortcuts(id)[0].replace("Alt+", "Option–")})` }));
+        button.firstChild.replaceWith(label);
+      }
       button.append(kbd);
-      button.title = `${description} (${kbd.textContent})`;
+      button.dataset.tipFor = id;
       button.setAttribute("aria-controls", "demo-canvas");
-      const accessibleKey = shortcut.replace("Key", "");
-      button.setAttribute("aria-keyshortcuts", id === "left" || id === "right" ?
-        `${accessibleKey} ${accessibleKey.split("+").at(-1)}` : accessibleKey);
-      keymap.set(shortcut, id);
+      if (shortcuts(id).length) button.setAttribute("aria-keyshortcuts", shortcuts(id).map(key => key.replace("Key", "")).join(" "));
+      for (const key of shortcuts(id)) keymap.set(key, id);
       button.addEventListener("click", () => {
-        if (id === "pause" && stopped) setTourPaused(false);
-        else run(id, true);
+        if (id === "pause" && stopped) {
+          showView(false);
+          setTourPaused(false);
+        } else run(id, true);
       });
     }
     for (const group of $$("[data-menu-commands]", statusMenu)) {
@@ -475,23 +647,977 @@
       proxy.addEventListener("click", () => run(id, true));
       menuButtons.set(id, proxy);
     }
+    const setSetting = (setting, value) => {
+      settings[setting] = value;
+      if (setting === "map") {
+        fig.dataset.mapMode = value;
+        revealMap();
+      } else if (setting === "focus") {
+        fig.dataset.focusMode = value;
+        focus(active());
+      }
+      syncButtons();
+    };
+    const settingHelp = {
+      "map:pinned": "Keep the Minimap visible.",
+      "map:peek": "Show the Minimap briefly when focus changes.",
+      "map:manual": "Show the Minimap only when requested.",
+      "focus:centered": "Center each focused window, including the first and last.",
+      "focus:fill": "Center when possible and align the Strip at its edges.",
+      "focus:packed": "Scroll only enough to reveal the focused window.",
+      "place:after": "Insert new windows immediately after the focused window.",
+      "place:end": "Append new windows to the end of the Strip.",
+    };
     const settingButtons = $$("[data-setting]", fig).map(button => {
       const { setting, value } = button.dataset;
       button.addEventListener("click", () => {
+        if (footage) showView(false);
         takeOver();
-        settings[setting] = value;
-        if (setting === "map") {
-          fig.dataset.mapMode = value;
-          revealMap();
-        } else if (setting === "focus") {
-          fig.dataset.focusMode = value;
-          focus(active());
-        }
-        syncButtons();
+        setSetting(setting, value);
       });
       return { button, setting, value };
     });
-    statusMenu.addEventListener("toggle", () => { if (statusMenu.open) takeOver(); });
+
+    // Jump to Window: Strip 1 takes the top letter row and Strip 2 the home row, as in the app; a floating window
+    // takes the next free key, like the app's auxiliary windows. Letters are typed bare and only show once ⌘, ⌥ and
+    // ⌃ are up, because macOS acts on chords such as ⌥⇧⌘Q (log out at once) before a web page sees them.
+    const jumpRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+    const jumpKeys = () => {
+      const keys = new Map();
+      strips.forEach((rail, i) => [...rail.children].forEach((win, n) => { if (jumpRows[i][n]) keys.set(win, jumpRows[i][n]); }));
+      if (floating) {
+        const used = new Set(keys.values());
+        const free = [...jumpRows.join("")].find(key => !used.has(key));
+        if (free) keys.set(floating.win, free);
+      }
+      return keys;
+    };
+    const paintJump = () => {
+      const keys = jumpKeys();
+      for (const win of windows) {
+        const key = keys.get(win) ?? "";
+        $(".win-badge", win).textContent = key;
+        const pick = $(":scope > .overview-pick", win);
+        $(".jump-badge", pick).textContent = pick.dataset.tipKeys = board() ? key : "";
+        if (board() && key) pick.setAttribute("aria-keyshortcuts", key);
+        else pick.removeAttribute("aria-keyshortcuts");
+        const badge = mapTiles.get(win)?.querySelector(".jump-badge");
+        if (badge) badge.textContent = key;
+      }
+      $(".jump-badge", floatChip).textContent = floating ? keys.get(floating.win) ?? "" : "";
+      // The floating window is hidden on the canvas; its letter lives on a labelled target in the title bar.
+      const floatTarget = $(".board-float", fig);
+      floatTarget.hidden = !(board() && floating);
+      if (floating) {
+        $("span", floatTarget).textContent = `${title(floating.win)} (floating)`;
+        floatTarget.setAttribute("aria-label", `Jump to ${title(floating.win)}, floating`);
+        $(".jump-badge", floatTarget).textContent = keys.get(floating.win) ?? "";
+      }
+    };
+    const setJumping = on => {
+      clearTimeout(chordTimer);
+      if (on === jumping) return;
+      jumping = on;
+      fig.classList.toggle("jumping", on);
+      paintJump();
+      if (on) {
+        closeSwitcher();
+        clearTimeout(mapTimer);
+        announce(`Jump to Window. Let go of the keys, then type a letter: ${[...jumpKeys()].map(([win, key]) => `${key} ${title(win)}`).join(", ")}. Escape cancels.`);
+      }
+      // The Minimap carries the other Strip's letters, so Jump shows it even when it is off or collapsed.
+      paintMap();
+      if (on) reclampMap();
+      if (!on) releaseMap();
+      syncButtons();
+    };
+    const jumpCue = Object.assign(document.createElement("p"), { className: "jump-cue", ariaHidden: "true" });
+    jumpCue.innerHTML = '<span class="cue-held">Let go of the keys</span><span class="cue-free">Type a letter · Esc cancels</span>';
+    // In the Minimap header's centre, which Jump always shows, so it never covers a window title.
+    $(".map-heading", minimap).insertBefore(jumpCue, $(".map-tools", minimap));
+
+    // Overview: the Option–Tab switcher. Type to filter by title or app, move with Tab or the arrows, Return switches.
+    const switcher = $(".demo-switcher", fig), search = $("input", switcher), results = $("#switcher-results", fig);
+    const cardWindows = new Map(), modeButtons = $$(".switcher-modes button", switcher), screenEl = $(".demo-screen", fig);
+    let selectedCard = null, opener = null, tabPass = false, savedQuery = "";
+    // Only WebKit browsers move between buttons with Option–Tab, so only they need it handed back after a dismissal.
+    // shortcut: user-agent check, since no API reports the setting; replace it if a browser ever exposes one.
+    const optionTabMoves = /Safari\//.test(navigator.userAgent) && !/Chrome|Chromium|Edg|OPR/.test(navigator.userAgent);
+    const fuzzy = (query, text) => {
+      let at = 0;
+      for (const char of query) {
+        at = text.indexOf(char, at) + 1;
+        if (!at) return false;
+      }
+      return true;
+    };
+    const buildSwitcher = () => {
+      cardWindows.clear();
+      selectedCard = null;
+      results.replaceChildren();
+      results.style.setProperty("--map-total", minimap.style.getPropertyValue("--map-total"));
+      const keys = jumpKeys(), groups = strips.map((rail, i) => [`Strip ${i + 1}`, [...rail.children]]);
+      if (floating) groups.push(["Floating", [floating.win]]);
+      for (const [label, wins] of groups) {
+        const group = Object.assign(document.createElement("div"), { className: "switcher-row" });
+        group.setAttribute("role", "group");
+        group.setAttribute("aria-label", label);
+        group.append(Object.assign(document.createElement("span"), { className: "switcher-label", textContent: label, ariaHidden: "true" }));
+        for (const win of wins) {
+          const card = Object.assign(document.createElement("div"), { className: "switcher-card", id: `switcher-option-${cardWindows.size}` });
+          card.setAttribute("role", "option");
+          card.dataset.app = win.dataset.app;
+          card.style.setProperty("--map-weight", win.style.getPropertyValue("--map-weight") || .53);
+          card.dataset.key = keys.get(win) ?? "";
+          card.append(Object.assign(document.createElement("b"), { textContent: title(win) }),
+            Object.assign(document.createElement("small"), { textContent: win.dataset.app }),
+            Object.assign(document.createElement("kbd"), { className: "jump-badge", textContent: card.dataset.key, ariaHidden: "true" }));
+          card.addEventListener("click", () => commitSwitcher(card));
+          card.addEventListener("pointermove", () => selectCard(card));
+          cardWindows.set(card, win);
+          group.append(card);
+        }
+        results.append(group);
+      }
+    };
+    const matches = () => [...cardWindows.keys()].filter(card => card.getAttribute("aria-disabled") !== "true");
+    const selectCard = card => {
+      if (!card || card.getAttribute("aria-disabled") === "true") return;
+      selectedCard?.setAttribute("aria-selected", "false");
+      selectedCard = card;
+      card.setAttribute("aria-selected", "true");
+      search.setAttribute("aria-activedescendant", card.id);
+    };
+    // Ranked like the app: every word must match the title or the app; a prefix beats a word start, which beats
+    // initials ("tl" for Trail Log), which beat letters in order. Ties keep Strip order.
+    const tier = (word, text) => text.startsWith(word) ? 0 : text.split(/\s+/).some(part => part.startsWith(word)) ? 1
+      : text.split(/\s+/).map(part => part[0]).join("").includes(word) ? 1.5 : fuzzy(word, text.replace(/\s+/g, "")) ? 2 : Infinity;
+    const rank = (words, win) => words.reduce((sum, word) =>
+      sum + Math.min(tier(word, title(win).toLowerCase()), tier(word, win.dataset.app.toLowerCase())), 0);
+    const filterSwitcher = () => {
+      const words = search.value.toLowerCase().split(/\s+/).filter(Boolean), query = words.join(" ");
+      let best, bestScore = Infinity;
+      for (const [card, win] of cardWindows) {
+        const score = rank(words, win), hit = score < Infinity;
+        card.setAttribute("aria-disabled", String(!hit));
+        card.setAttribute("aria-selected", "false");
+        card.classList.toggle("dim", !hit);
+        if (score < bestScore) [best, bestScore] = [card, score];
+      }
+      const list = matches();
+      selectedCard = null;
+      selectCard(query ? best : list.find(card => cardWindows.get(card) === current) ?? list[0]);
+      if (!list.length) search.removeAttribute("aria-activedescendant");
+      if (query) announce(list.length ? `${list.length} ${list.length === 1 ? "window matches" : "windows match"}` : "No windows match");
+    };
+    // Search filters by typing; Jump shows every window's letter and a letter switches, as in the app's switcher.
+    const setSwitcherMode = mode => {
+      if (mode === "jump" && switcher.dataset.mode !== "jump") [savedQuery, search.value] = [search.value, ""];
+      else if (mode === "search" && switcher.dataset.mode === "jump") search.value = savedQuery;
+      switcher.dataset.mode = mode;
+      search.setAttribute("aria-label", mode === "jump" ? "Type a window's letter" : "Search windows");
+      search.readOnly = mode === "jump";
+      search.placeholder = mode === "jump" ? "Type a window's letter" : "Search windows";
+      for (const button of modeButtons) button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+      if (mode === "search") return filterSwitcher();
+      for (const card of cardWindows.keys()) {
+        card.setAttribute("aria-disabled", "false");
+        card.classList.remove("dim");
+      }
+      if (!selectedCard) selectCard(matches()[0]);
+      announce(`Jump. Type a letter: ${[...cardWindows].map(([card, win]) => `${card.dataset.key} ${title(win)}`).join(", ")}.`);
+    };
+    for (const button of modeButtons) button.addEventListener("click", () => {
+      setSwitcherMode(button.dataset.mode);
+      search.focus({ preventScroll: true });
+    });
+    const moveSelection = step => {
+      const list = matches();
+      if (list.length) selectCard(list[(list.indexOf(selectedCard) + step + list.length) % list.length]);
+    };
+    const openSwitcher = manual => {
+      if (board()) showBoard(null);
+      setJumping(false);
+      opener = fig.contains(document.activeElement) ? document.activeElement : null;
+      switcherOpen = true;
+      buildSwitcher();
+      delete switcher.dataset.mode;
+      search.value = manual ? "" : "notes";
+      setSwitcherMode("search");
+      switcher.hidden = false;
+      hideTip();
+      if (manual) {
+        // Opened from the toolbar with the screen scrolled away, the panel comes into view before it takes focus.
+        const box = canvas.getBoundingClientRect();
+        if (box.top < 0 || box.bottom > innerHeight) canvas.scrollIntoView({ block: "nearest", behavior: reduced() ? "instant" : "smooth" });
+        search.focus({ preventScroll: true });
+        announce("Overview. Type to search, Tab to move, Return to switch, Escape to close. Option–J shows jump letters.");
+      }
+      syncButtons();
+    };
+    const closeSwitcher = (switched = false) => {
+      if (!switcherOpen) return;
+      switcherOpen = false;
+      const had = switcher.contains(document.activeElement);
+      switcher.hidden = true;
+      if (had) {
+        // Dismissed from the keyboard: focus goes back to what opened it, and the next Option–Tab on the screen
+        // belongs to the browser until focus leaves the screen, so Safari's Option–Tab navigation can move on.
+        tabPass = !switched && optionTabMoves;
+        (opener?.isConnected && opener.getClientRects().length ? opener : canvas).focus({ preventScroll: true });
+      }
+      syncButtons();
+    };
+    const toggleSwitcher = manual => switcherOpen ? closeSwitcher() : openSwitcher(manual);
+    const commitSwitcher = card => {
+      const win = cardWindows.get(card ?? selectedCard);
+      if (win && (card ?? selectedCard).getAttribute("aria-disabled") !== "true") run("jump", true, win);
+    };
+    search.addEventListener("input", filterSwitcher);
+    search.addEventListener("keydown", event => {
+      // The panel owns its keys: demo shortcuts stay out of the search field.
+      event.stopPropagation();
+      if ((event.altKey || event.metaKey) && !event.ctrlKey && (event.code === "KeyJ" || event.code === "KeyF")) {
+        event.preventDefault();
+        setSwitcherMode(event.code === "KeyJ" ? "jump" : "search");
+        return;
+      }
+      if (switcher.dataset.mode === "jump" && /^[a-z]$/i.test(event.key) && !event.altKey && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        const card = [...cardWindows.keys()].find(card => card.dataset.key === event.key.toUpperCase());
+        if (card) commitSwitcher(card);
+        return;
+      }
+      const step = { Tab: event.shiftKey ? -1 : 1, ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (step && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        moveSelection(step);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        commitSwitcher();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        if (search.value && switcher.dataset.mode !== "jump") {
+          search.value = "";
+          filterSwitcher();
+        } else closeSwitcher();
+      }
+    });
+    switcher.addEventListener("pointerdown", event => { if (event.target === switcher) closeSwitcher(); });
+
+    // Infinite Canvas lays both Strips out at full size and scales them as one board. Zoom is a factor, pan is in
+    // canvas px; Fit shows both Strips, and zoom runs from the smaller of 50% and Fit up to 200%, as in the app.
+    const view = { zoom: 1, x: 0, y: 0, fit: 1 };
+    const boardTitle = $(".demo-board-title", fig);
+    const boardSize = () => [Math.max(...strips.map(rail => rail.offsetWidth)), 2 * canvas.clientHeight + 64];
+    const minZoom = () => Math.min(.5, view.fit);
+    const paintBoard = () => {
+      const rowH = parseFloat(canvas.style.getPropertyValue("--board-h")) || canvas.clientHeight, z = view.zoom;
+      // Keep at least 80 px of a real row on screen. The box around both rows has a blank corner beside the
+      // shorter Strip, so each row is clamped on its own and the nearest result wins.
+      let best;
+      strips.forEach((rail, i) => {
+        const top = i * (rowH + 64) * z;
+        const x = Math.min(Math.max(view.x, 80 - rail.offsetWidth * z), canvas.clientWidth - 80);
+        const y = Math.min(Math.max(view.y, 80 - top - rowH * z), canvas.clientHeight - 80 - top);
+        const distance = Math.hypot(x - view.x, y - view.y);
+        if (!best || distance < best.distance) best = { x, y, distance };
+      });
+      [view.x, view.y] = [best.x, best.y];
+      canvas.style.setProperty("--zoom", view.zoom);
+      canvas.style.setProperty("--pan-x", `${view.x}px`);
+      canvas.style.setProperty("--pan-y", `${view.y}px`);
+      $("[data-board=out]", boardTitle).setAttribute("aria-disabled", String(view.zoom <= minZoom() + 1e-3));
+      $("[data-board=in]", boardTitle).setAttribute("aria-disabled", String(view.zoom >= 2 - 1e-3));
+    };
+    // Zooming out is one camera move: the focused window shrinks from its place on the Strip into its place on the
+    // fitted board while the other Strip comes into view. Zoom eases geometrically so its speed feels even, and the
+    // window's corner travels in a straight line. Any zoom, pan or key takes over from the current frame.
+    let boardMove;
+    const flyIn = from => {
+      const win = active(), box = canvas.getBoundingClientRect(), end = { ...view };
+      const rowH = parseFloat(canvas.style.getPropertyValue("--board-h")) || canvas.clientHeight;
+      const bx = win.offsetLeft, by = strips.indexOf(win.parentElement) * (rowH + 64) + win.offsetTop;
+      const z0 = from.width / win.offsetWidth, l0 = from.left - box.left, t0 = from.top - box.top;
+      const l1 = bx * end.zoom + end.x, t1 = by * end.zoom + end.y, start = performance.now();
+      const step = now => {
+        const t = reduced() ? 1 : Math.min(1, (now - start) / 480), e = t < .5 ? 4 * t ** 3 : 1 - (2 - 2 * t) ** 3 / 2;
+        view.zoom = z0 * (end.zoom / z0) ** e;
+        view.x = l0 + (l1 - l0) * e - bx * view.zoom;
+        view.y = t0 + (t1 - t0) * e - by * view.zoom;
+        if (t === 1) Object.assign(view, end);
+        paintBoard();
+        if (t < 1) boardMove = requestAnimationFrame(step);
+      };
+      step(start);
+    };
+    const fitBoard = () => {
+      cancelAnimationFrame(boardMove);
+      canvas.style.setProperty("--board-h", `${canvas.clientHeight}px`);
+      const [width, height] = boardSize(), top = boardTitle.offsetHeight + 16;
+      view.fit = view.zoom = Math.min(1, (canvas.clientWidth - 48) / width, (canvas.clientHeight - top - 24) / height);
+      view.x = (canvas.clientWidth - width * view.zoom) / 2;
+      view.y = top + (canvas.clientHeight - top - height * view.zoom) / 2;
+      paintBoard();
+    };
+    const zoomBoard = (factor, x = canvas.clientWidth / 2, y = canvas.clientHeight / 2) => {
+      cancelAnimationFrame(boardMove);
+      const zoom = Math.min(2, Math.max(minZoom(), view.zoom * factor));
+      view.x = x - (x - view.x) * zoom / view.zoom;
+      view.y = y - (y - view.y) * zoom / view.zoom;
+      view.zoom = zoom;
+      paintBoard();
+    };
+    $(".board-float", boardTitle).addEventListener("click", () => { if (floating) run("jump", true, floating.win); });
+    boardTitle.addEventListener("click", event => {
+      const control = event.target.closest("[data-board]");
+      if (!control || control.getAttribute("aria-disabled") === "true") return;
+      takeOver();
+      if (control.dataset.board === "fit") fitBoard();
+      else zoomBoard(control.dataset.board === "in" ? 1.25 : .8);
+    });
+    // Tabbing to a window off the canvas pans the board to it, since the clipped canvas itself never scrolls.
+    canvas.addEventListener("focusin", event => {
+      // Keyboard focus only: a click focuses the window too, and panning under the pointer would move the target.
+      if (!board() || !event.target.matches(".overview-pick:focus-visible")) return;
+      const box = event.target.getBoundingClientRect(), frame = canvas.getBoundingClientRect();
+      if (box.left >= frame.left && box.right <= frame.right && box.top >= frame.top && box.bottom <= frame.bottom) return;
+      cancelAnimationFrame(boardMove);
+      view.x += frame.left + frame.width / 2 - (box.left + box.width / 2);
+      view.y += frame.top + frame.height / 2 - (box.top + box.height / 2);
+      paintBoard();
+    });
+    canvas.addEventListener("wheel", event => {
+      const pinch = event.ctrlKey || event.metaKey;
+      // A visitor scrolling past the tour keeps the page scroll; a pinch is deliberate and takes over.
+      if (!board() || (!pinch && !stopped)) return;
+      cancelAnimationFrame(boardMove);
+      const box = canvas.getBoundingClientRect(), [x, y] = [view.x, view.y];
+      if (pinch) {
+        takeOver();
+        zoomBoard(Math.exp(-event.deltaY * .01), event.clientX - box.left, event.clientY - box.top);
+      } else {
+        view.x -= event.deltaX;
+        view.y -= event.deltaY;
+        paintBoard();
+      }
+      // At the pan limit the page scrolls instead of stalling.
+      if (pinch || x !== view.x || y !== view.y) event.preventDefault();
+    }, { passive: false });
+    // After a drag that moved, the click the browser may still send to the element under the pointer (WebKit can
+    // ignore pointer capture for it) must not pick a window.
+    let swallowClick = false;
+    const swallowNextClick = () => {
+      swallowClick = true;
+      setTimeout(() => { swallowClick = false; });
+    };
+    fig.addEventListener("click", event => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      event.stopPropagation();
+      event.preventDefault();
+    }, true);
+    let pan;
+    canvas.addEventListener("pointerdown", event => {
+      if (!board() || event.button || pan || event.target.closest(".demo-board-title")) return;
+      pan = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    });
+    canvas.addEventListener("pointermove", event => {
+      if (pan?.id !== event.pointerId) return;
+      // A press released outside before the drag began never reaches these handlers; no button means it ended.
+      if (!pan.moved && !(event.buttons & 1)) {
+        pan = null;
+        return;
+      }
+      const dx = event.clientX - pan.x, dy = event.clientY - pan.y;
+      if (!pan.moved && Math.hypot(dx, dy) < 4) return;
+      if (!pan.moved) {
+        cancelAnimationFrame(boardMove);
+        takeOver();
+        pan.moved = true;
+        canvas.setPointerCapture(event.pointerId);
+        canvas.classList.add("panning");
+      }
+      Object.assign(pan, { x: event.clientX, y: event.clientY });
+      view.x += dx;
+      view.y += dy;
+      paintBoard();
+    });
+    // Touch gives the pressed child implicit capture; moving capture to the canvas or Minimap fires a bubbling
+    // lostpointercapture from that child, which must not end the gesture that just took capture.
+    const lostElsewhere = (event, owner) => event.type === "lostpointercapture" && event.target !== owner;
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(type, event => {
+      if (pan?.id !== event.pointerId || lostElsewhere(event, canvas)) return;
+      if (pan.moved) swallowNextClick();
+      pan = null;
+      canvas.classList.remove("panning");
+    });
+
+    // Drag to move: a tiled window by its title bar on the Desktop, or its tile in the Minimap. A blue line marks the
+    // insertion point; near the screen's top or bottom edge a Desktop drag goes to the Strip above or below. The Move
+    // buttons remain the keyboard and single-tap way to do the same.
+    const placeWindow = (win, to, index) => {
+      const from = win.parentElement, source = strips.indexOf(from), into = strips[to];
+      if (source < 0) return false;
+      const before = [...into.children].filter(other => other !== win)[index] ?? null;
+      // A drop back in its own slot, or one that would empty a Strip, leaves focus and the view where they were.
+      if (from !== into ? from.children.length < 2 : win.nextElementSibling === before) return false;
+      if (from !== into && selections[source] === win) selections[source] = win.nextElementSibling ?? win.previousElementSibling;
+      into.insertBefore(win, before);
+      syncWidths(from);
+      if (from !== into) syncWidths(into);
+      showStrip(to, win);
+      announce(`${title(win)} moved to Strip ${to + 1}, position ${[...into.children].indexOf(win) + 1}`);
+      return true;
+    };
+    const caret = Object.assign(document.createElement("i"), { className: "drop-caret", hidden: true });
+    fig.append(caret);
+    const slotFor = (list, x) => list.filter(element => {
+      const box = element.getBoundingClientRect();
+      return box.left + box.width / 2 < x;
+    }).length;
+    const showCaret = (list, index, band) => {
+      const boxes = list.map(element => element.getBoundingClientRect());
+      // Between two neighbours the line sits mid-gap, so it lands inside the carried item's own slot when nothing moves.
+      const x = !boxes.length ? band.left + 6 : !index ? boxes[0].left - 3 : index === boxes.length ? boxes.at(-1).right + 3 : (boxes[index - 1].right + boxes[index].left) / 2;
+      Object.assign(caret.style, { left: `${Math.round(x - 1.5)}px`, top: `${Math.round(band.top)}px`, height: `${Math.round(band.height)}px` });
+      caret.hidden = false;
+    };
+    let carry;
+    canvas.addEventListener("pointerdown", event => {
+      const bar = event.target.closest(".rail > .win > .tb");
+      // Touch keeps the Strip's own swipe and the page scroll; touch visitors move windows with the Minimap or Move buttons.
+      if (!bar || bar.parentElement.parentElement !== track() || event.button || event.pointerType === "touch" || board() || carry) return;
+      carry = { id: event.pointerId, win: bar.parentElement, x: event.clientX, y: event.clientY, rail: track(), from: row, scroll: track().scrollLeft, on: false };
+    });
+    const moveCarry = (x, y, scroll) => {
+      const rail = carry.rail, box = canvas.getBoundingClientRect(), edge = box.height * .14;
+      carry.band = x < box.left + 48 ? -1 : x > box.right - 48 ? 1 : 0;
+      if (scroll) rail.scrollLeft += 12 * carry.band;
+      // The offset keeps the window under the pointer as the Strip scrolls beneath it.
+      carry.win.style.translate = `${x - carry.x + rail.scrollLeft - carry.scroll}px ${y - carry.y}px`;
+      // Title bars sit inside the top band, so an edge move also needs travel toward that edge.
+      const up = y < Math.min(box.top + edge, carry.y - 24), down = y > Math.max(box.bottom - edge, carry.y + 24);
+      carry.to = up && destination(-1) ? row - 1 : down && destination(1) ? row + 1 : row;
+      if (carry.to !== row && items().length === 1) carry.to = row;
+      canvas.dataset.drop = carry.to < row ? "above" : carry.to > row ? "below" : "";
+      if (carry.to === row) {
+        const others = items().filter(win => win !== carry.win), bar = rail.getBoundingClientRect();
+        carry.index = slotFor(others, x);
+        showCaret(others, carry.index, { left: bar.left, top: bar.top + 8, height: bar.height - 20 });
+      } else caret.hidden = true;
+    };
+    // Near a side edge the Strip keeps scrolling while the pointer rests there, not only while it moves.
+    const scrollCarry = () => {
+      if (!carry?.on || !carry.band) {
+        if (carry) carry.loop = 0;
+        return;
+      }
+      moveCarry(carry.px, carry.py, true);
+      carry.loop = requestAnimationFrame(scrollCarry);
+    };
+    canvas.addEventListener("pointermove", event => {
+      if (carry?.id !== event.pointerId) return;
+      if (!carry.on && !(event.buttons & 1)) {
+        carry = null;
+        return;
+      }
+      if (!carry.on) {
+        if (Math.hypot(event.clientX - carry.x, event.clientY - carry.y) < 6) return;
+        carry.on = true;
+        if (jumping) setJumping(false);
+        canvas.setPointerCapture(event.pointerId);
+        carry.win.classList.add("carried");
+        carry.rail.style.scrollSnapType = "none";
+        target = null;
+        hideTip();
+      }
+      [carry.px, carry.py] = [event.clientX, event.clientY];
+      moveCarry(carry.px, carry.py, false);
+      if (carry.band && !carry.loop) carry.loop = requestAnimationFrame(scrollCarry);
+    });
+    const liftCarry = drag => {
+      cancelAnimationFrame(drag.loop);
+      drag.win.classList.remove("carried");
+      drag.win.style.removeProperty("translate");
+      drag.rail.style.removeProperty("scroll-snap-type");
+    };
+    const endCarry = event => {
+      if (carry?.id !== event.pointerId || lostElsewhere(event, canvas)) return;
+      const drag = carry;
+      carry = null;
+      caret.hidden = true;
+      delete canvas.dataset.drop;
+      if (!drag.on) return;
+      liftCarry(drag);
+      swallowNextClick();
+      const { win, to, index } = drag;
+      const moved = event.type === "pointerup" && placeWindow(win, to, to === row ? index : [...strips[to].children].indexOf(selections[to]) + 1);
+      // Cancelled or dropped back in place: focus stays, and only the scroll the drag caused is undone.
+      if (!moved) focus(active());
+    };
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(type, endCarry);
+    let tileDrag;
+    minimap.addEventListener("pointerdown", event => {
+      const tile = event.target.closest(".map-tile, .map-float-chip");
+      if (!tile || event.target.closest(".tile-edge") || event.button || tileDrag) return;
+      const float = tile === floatChip, win = float ? floating?.win : tileWindows.get(tile);
+      if (win) tileDrag = { id: event.pointerId, tile, win, float, x: event.clientX, y: event.clientY, on: false };
+    });
+    minimap.addEventListener("pointermove", event => {
+      if (tileDrag?.id !== event.pointerId) return;
+      if (!tileDrag.on && !(event.buttons & 1)) {
+        tileDrag = null;
+        return;
+      }
+      const dx = event.clientX - tileDrag.x, dy = event.clientY - tileDrag.y;
+      if (!tileDrag.on) {
+        if (Math.hypot(dx, dy) < 5) return;
+        tileDrag.on = true;
+        takeOver();
+        // Both rows stay out and expanded for the whole drag, even when Jump revealed them or phone Peek shows one.
+        fig.classList.add("map-held", "map-dragging");
+        if (jumping) setJumping(false);
+        paintMap();
+        reclampMap();
+        paintFloats();
+        minimap.setPointerCapture(event.pointerId);
+        tileDrag.tile.classList.add("carried");
+        clearTimeout(mapTimer);
+        hideTip();
+      }
+      tileDrag.tile.style.translate = `${dx}px ${dy}px`;
+      tileDrag.to = null;
+      caret.hidden = true;
+      // Rows win over the Floating zone: a drop on a row reorders, one inside the zone and off the rows floats the
+      // window (never a Strip's last one), and a floating window's chip tiles only when it lands on a row.
+      const inside = box => event.clientX > box.left - 4 && event.clientX < box.right + 4 && event.clientY > box.top - 4 && event.clientY < box.bottom + 4;
+      const overRow = mapRows.some(mapRow => mapRow.getBoundingClientRect().height && inside(mapRow.getBoundingClientRect()));
+      tileDrag.toFloat = !tileDrag.float && !overRow && tileDrag.win.parentElement.children.length > 1 && inside(floatZone.getBoundingClientRect());
+      floatZone.classList.toggle("active", tileDrag.toFloat);
+      if (tileDrag.toFloat || (tileDrag.float && !overRow)) return;
+      // Well outside the panel the drop is abandoned, as the app treats its gutter.
+      const panel = minimap.getBoundingClientRect();
+      if (event.clientX < panel.left - 24 || event.clientX > panel.right + 24 || event.clientY < panel.top - 24 || event.clientY > panel.bottom + 24) return;
+      let nearest = Infinity;
+      mapRows.forEach((mapRow, i) => {
+        const box = mapRow.getBoundingClientRect(), distance = Math.abs(event.clientY - box.top - box.height / 2);
+        if (box.height && distance < nearest) [nearest, tileDrag.to] = [distance, i];
+      });
+      // A Strip is never emptied, so its only window can move only within its own row.
+      if (!tileDrag.float && tileDrag.win.parentElement.children.length < 2) tileDrag.to = strips.indexOf(tileDrag.win.parentElement);
+      if (tileDrag.to == null) return;
+      const others = $$(".map-tile", mapRows[tileDrag.to]).filter(tile => tile !== tileDrag.tile);
+      tileDrag.index = slotFor(others, event.clientX);
+      showCaret(others, tileDrag.index, mapRows[tileDrag.to].getBoundingClientRect());
+    });
+    const releaseMapHold = () => {
+      fig.classList.remove("map-held", "map-dragging");
+      floatZone.classList.remove("active");
+      paintMap();
+      releaseMap();
+      paintFloats();
+    };
+    const settleTile = drag => {
+      drag.tile.classList.remove("carried");
+      drag.tile.style.removeProperty("translate");
+      releaseMapHold();
+    };
+    const endTileDrag = event => {
+      if (tileDrag?.id !== event.pointerId || lostElsewhere(event, minimap)) return;
+      const drag = tileDrag;
+      tileDrag = null;
+      caret.hidden = true;
+      if (!drag.on) return;
+      settleTile(drag);
+      swallowNextClick();
+      if (event.type !== "pointerup") return;
+      if (drag.toFloat) floatWindow(drag.win);
+      else if (drag.to != null && drag.float) unfloat(strips[drag.to], [...strips[drag.to].children][drag.index] ?? null);
+      else if (drag.to != null) placeWindow(drag.win, drag.to, drag.index);
+    };
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) minimap.addEventListener(type, endTileDrag);
+
+    // Resize by an edge, as in the app: either side edge of a tiled window on the Desktop, or of its Minimap tile.
+    // The opposite edge stays where it is while dragging; on release the view settles on the focused window, which
+    // does not change. Widths are kept as a share of the screen, between about the app's 240 px floor on a laptop
+    // display and full width. Mouse and pen only, so a touch swipe still scrolls; Resize and Full are the
+    // keyboard and single-tap way.
+    const widthRange = win => {
+      const screenWidth = screenEl.clientWidth, gap = 2 * parseFloat(getComputedStyle(win).marginLeft) || 0;
+      return [Math.max(120, .16 * screenWidth), screenWidth - 2 * gap];
+    };
+    const setCustomWidth = (win, px) => {
+      const screenWidth = screenEl.clientWidth, [min, max] = widthRange(win);
+      const value = Math.min(max, Math.max(min, px));
+      win.removeAttribute("data-full");
+      delete win.dataset.preset;
+      win.dataset.cqw = (value / screenWidth * 100).toFixed(2);
+      win.style.setProperty("--window-width", width(win));
+      syncWidths(win.parentElement);
+    };
+    let sizing;
+    fig.addEventListener("pointerdown", event => {
+      const edge = event.target.closest(".win-edge, .tile-edge");
+      if (!edge || event.button || event.pointerType === "touch" || sizing || board()) return;
+      const map = edge.classList.contains("tile-edge"), win = map ? tileWindows.get(edge.parentElement) : edge.parentElement;
+      if (!strips.includes(win?.parentElement)) return;
+      event.preventDefault();
+      // Width comes from the share of the screen, so a window on the hidden Strip resizes from its tile too; a tile
+      // converts pointer travel at its own scale.
+      const start = cssWidth(win);
+      const rail = win.parentElement;
+      sizing = { id: event.pointerId, win, edge, map, on: false, side: edge.dataset.edge, x: event.clientX, start, rail,
+        ratio: map ? start / edge.parentElement.offsetWidth : 1,
+        spacers: ["--first-width", "--last-width"].map(name => rail.style.getPropertyValue(name)), lead: 0, trail: 0 };
+      // On the Desktop a shared edge trades width with the neighbour, as the app's edge zones do, so the Strip keeps
+      // its length; an outer edge, and any Minimap box edge, resizes the window alone.
+      const neighbour = !map && (edge.dataset.edge === "end" ? win.nextElementSibling : win.previousElementSibling);
+      if (neighbour) Object.assign(sizing, { neighbour, neighbourStart: cssWidth(neighbour) });
+    });
+    const beginSizing = () => {
+      const { edge, map, rail, id } = sizing;
+      sizing.on = true;
+      // A tile resize keeps the Minimap out and expanded even when Jump revealed it.
+      if (map) fig.classList.add("map-held");
+      takeOver();
+      setJumping(false);
+      hideTip();
+      edge.setPointerCapture(id);
+      fig.classList.add("sizing");
+      rail.style.scrollSnapType = "none";
+      if (map) {
+        paintMap();
+        reclampMap();
+      }
+    };
+    fig.addEventListener("pointermove", event => {
+      if (sizing?.id !== event.pointerId) return;
+      if (!sizing.on) {
+        // A click near an edge stays a click: resizing starts only after 3 px of sideways travel.
+        if (!(event.buttons & 1)) {
+          sizing = null;
+          return;
+        }
+        if (Math.abs(event.clientX - sizing.x) < 3) return;
+        beginSizing();
+      }
+      const { win, side, rail, neighbour } = sizing, anchor = () => side === "start" ? win.getBoundingClientRect().right : win.getBoundingClientRect().left;
+      const before = anchor();
+      let delta = (event.clientX - sizing.x) * sizing.ratio * (side === "start" ? -1 : 1);
+      sizing.moved ||= Math.abs(delta) >= 1;
+      if (neighbour) {
+        const [min, max] = widthRange(win);
+        delta = Math.min(max - sizing.start, sizing.neighbourStart - min, Math.max(min - sizing.start, sizing.neighbourStart - max, delta));
+        setCustomWidth(neighbour, sizing.neighbourStart - delta);
+      }
+      setCustomWidth(win, sizing.start + delta);
+      // The centring spacers follow the first and last widths; held until release, they cannot push the fixed edge,
+      // and they widen when the Strip cannot scroll far enough at either end to keep that edge still.
+      const spacers = () => {
+        rail.style.setProperty("--first-width", `calc(${sizing.spacers[0]} - ${2 * sizing.lead}px)`);
+        rail.style.setProperty("--last-width", `calc(${sizing.spacers[1]} - ${2 * sizing.trail}px)`);
+      };
+      spacers();
+      if (rail !== track()) return;
+      rail.scrollLeft += anchor() - before;
+      const left = anchor() - before;
+      if (left < -.5) sizing.lead -= left;
+      else if (left > .5) sizing.trail += left;
+      else return;
+      spacers();
+      if (left > .5) rail.scrollLeft += left;
+    });
+    const finishSizing = drag => {
+      fig.classList.remove("sizing");
+      syncWidths(drag.rail);
+      drag.rail.style.removeProperty("scroll-snap-type");
+      if (fig.classList.contains("map-held")) releaseMapHold();
+      if (drag.rail === track()) focus(active(), true);
+    };
+    const endSizing = event => {
+      if (sizing?.id !== event.pointerId || lostElsewhere(event, sizing.edge)) return;
+      const drag = sizing;
+      sizing = null;
+      if (!drag.on) return;
+      finishSizing(drag);
+      swallowNextClick();
+      if (drag.moved) announce(`${title(drag.win)} resized to ${Math.round(drag.win.dataset.cqw)}% of the screen width`);
+    };
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) fig.addEventListener(type, endSizing);
+    // A command, the board or the recording during a drag ends it where it started; the release then does nothing,
+    // not even the click it would end with.
+    let cancelledPointer = null;
+    fig.addEventListener("pointerup", event => {
+      if (event.pointerId !== cancelledPointer) return;
+      cancelledPointer = null;
+      swallowNextClick();
+    }, true);
+    const cancelDrags = () => {
+      cancelledPointer = [carry, tileDrag, sizing].find(drag => drag?.on)?.id ?? null;
+      if (carry?.on) liftCarry(carry);
+      if (tileDrag?.on) settleTile(tileDrag);
+      if (sizing?.on) finishSizing(sizing);
+      carry = tileDrag = sizing = null;
+      caret.hidden = true;
+      delete canvas.dataset.drop;
+    };
+
+    // The Minimap moves by its background, like the app's panel, and stays on the screen below the menu bar.
+    const mapOffset = { x: 0, y: 0 };
+    let mapDrag;
+    const moveMap = (x, y) => {
+      // Inside the glass, not the bezel around it.
+      const outer = screenEl.getBoundingClientRect(), bar = $(".demo-menu", fig).getBoundingClientRect();
+      const screen = { left: outer.left + screenEl.clientLeft, top: outer.top + screenEl.clientTop };
+      Object.assign(screen, { right: screen.left + screenEl.clientWidth, bottom: screen.top + screenEl.clientHeight });
+      const box = minimap.getBoundingClientRect(), left = box.left - mapOffset.x, top = box.top - mapOffset.y;
+      mapOffset.x = Math.round(Math.min(Math.max(x, screen.left + 4 - left), screen.right - 4 - box.width - left));
+      mapOffset.y = Math.round(Math.min(Math.max(y, bar.bottom + 4 - top), screen.bottom - 4 - box.height - top));
+      minimap.style.setProperty("--map-x", `${mapOffset.x}px`);
+      minimap.style.setProperty("--map-y", `${mapOffset.y}px`);
+    };
+    // Expanding a collapsed Minimap moved up near the menu bar would push it off the top; pull it back in.
+    const reclampMap = () => {
+      if (!minimap.hidden && getComputedStyle(minimap).position === "absolute") moveMap(mapOffset.x, mapOffset.y);
+    };
+    minimap.addEventListener("pointerdown", event => {
+      if (event.button || mapDrag || event.target.closest("button, .map-track, .map-float") || getComputedStyle(minimap).position !== "absolute") return;
+      mapDrag = { id: event.pointerId, x: event.clientX - mapOffset.x, y: event.clientY - mapOffset.y };
+      takeOver();
+      minimap.setPointerCapture(event.pointerId);
+      minimap.classList.add("dragging");
+    });
+    minimap.addEventListener("pointermove", event => {
+      if (mapDrag?.id === event.pointerId) moveMap(event.clientX - mapDrag.x, event.clientY - mapDrag.y);
+    });
+    minimap.addEventListener("lostpointercapture", event => {
+      if (mapDrag?.id !== event.pointerId || event.target !== minimap) return;
+      mapDrag = null;
+      minimap.classList.remove("dragging");
+      releaseMap();
+    });
+
+    // Hover previews (Pro): a scaled copy of the window, and for the Desktop pill a to-scale map of both Strips.
+    const previewOf = win => {
+      const reference = win.offsetWidth ? win : track().firstElementChild;
+      const height = reference.offsetHeight;
+      const width = cssWidth(win);
+      const scale = Math.min(296 / width, 170 / height);
+      const frame = Object.assign(document.createElement("div"), { className: "tip-shot", ariaHidden: "true" });
+      frame.style.cssText = `width:${Math.round(width * scale)}px;height:${Math.round(height * scale)}px`;
+      const shot = win.cloneNode(true);
+      for (const node of shot.querySelectorAll("[id], .overview-pick, .jump-badge")) node.matches("[id]") ? node.removeAttribute("id") : node.remove();
+      for (const attr of ["aria-current", "tabindex", "role", "aria-label"]) shot.removeAttribute(attr);
+      shot.inert = true;
+      shot.style.cssText = `width:${width}px;height:${height}px;transform:scale(${scale})`;
+      frame.append(shot);
+      return [frame, Object.assign(document.createElement("span"), { className: "tip-pro", textContent: "Pro · Window preview" })];
+    };
+    const desktopOf = () => {
+      const card = Object.assign(document.createElement("div"), { className: "tip-desktop", ariaHidden: "true" });
+      card.style.setProperty("--map-total", minimap.style.getPropertyValue("--map-total"));
+      for (const rail of strips) {
+        const lane = Object.assign(document.createElement("div"), { className: "tip-lane" });
+        for (const win of rail.children) {
+          const box = Object.assign(document.createElement("i"), { textContent: title(win), className: win === current ? "current" : "" });
+          box.style.setProperty("--map-weight", win.style.getPropertyValue("--map-weight"));
+          lane.append(box);
+        }
+        card.append(lane);
+      }
+      return [card];
+    };
+
+    // One tooltip for the whole demo: hover after a pause, keyboard focus at once, a tap for two seconds.
+    const tip = Object.assign(document.createElement("div"), { className: "demo-tip", id: "demo-tip", hidden: true });
+    tip.setAttribute("role", "tooltip");
+    tip.innerHTML = '<span></span><kbd aria-hidden="true"></kbd><div class="tip-extra"></div>';
+    fig.append(tip);
+    let tipFor = null, tipNext = null, tipTimer, tipHide, lastPointer = "mouse";
+    const tipTarget = element => $("input", element) ?? element;
+    const helpFor = element => {
+      const found = element?.closest?.("[data-tip-for], [data-setting], [data-tip], .rail > .win > .tb, .rail > .win");
+      return found && fig.contains(found) ? found : null;
+    };
+    const help = element => {
+      const id = element.dataset.tipFor;
+      if (element.dataset.setting) {
+        const text = settingHelp[`${element.dataset.setting}:${element.dataset.value}`];
+        return { text: element.disabled ? `${text} Turn the Minimap on first.` : text, keys: "" };
+      }
+      if (element.matches(".win")) return { text: board() || !stopped || element.hasAttribute("aria-current") ? "" : `Focus ${title(element)}.`, keys: "" };
+      if (element.matches(".rail > .win > .tb")) return { text: board() || !stopped || !matchMedia("(any-pointer: fine)").matches ? "" : `Drag the title bar to move ${title(element.parentElement)} along the Strip, or to the top or bottom edge for the other Strip.`, keys: "" };
+      if (element.matches(".map-tile") && previews) return { text: element.dataset.tip, keys: "", preview: tileWindows.get(element) };
+      if (element === menuSummary) return { text: element.dataset.tip, keys: "", desktop: true };
+      if (!id) return { text: element.dataset.tip, keys: element.dataset.tipKeys ?? "" };
+      if (id === "pause" && stopped) return { text: "Continue the tour from its next step.", keys: "" };
+      const reason = blocked()[id];
+      return { text: reason ? `${commands[id][2]} ${reason}` : commands[id][2], keys: shortcuts(id).map(shortcutText).join(" or ") };
+    };
+    const hideTip = () => {
+      clearTimeout(tipTimer);
+      clearTimeout(tipHide);
+      const fromMap = minimap.contains(tipFor);
+      if (tipFor) tipTarget(tipFor).removeAttribute("aria-describedby");
+      tipFor = tipNext = tipHide = null;
+      tip.hidden = true;
+      if (fromMap) setTimeout(releaseMap);
+    };
+    const showTip = (element, brief) => {
+      const { text, keys, preview, desktop } = help(element);
+      hideTip();
+      if (!text || !element.getClientRects().length) return;
+      tipFor = element;
+      $("span", tip).textContent = text;
+      $("kbd", tip).textContent = keys;
+      $(".tip-extra", tip).replaceChildren(...(preview ? previewOf(preview) : desktop ? desktopOf() : []));
+      tip.hidden = false;
+      tipTarget(element).setAttribute("aria-describedby", tip.id);
+      const anchor = (element.matches(".rail > .win") ? grip(element) : element).getBoundingClientRect(), box = tip.getBoundingClientRect();
+      // Help for things on the simulated screen stays on the screen rather than over the enclosure.
+      const screen = element.closest(".demo-screen")?.getBoundingClientRect();
+      const below = anchor.top - 8 - box.height < Math.max(0, screen?.top ?? 0);
+      const inside = screen && screen.width > box.width + 16;
+      const low = Math.max(8, inside ? screen.left + 8 : 8), high = Math.min(innerWidth, inside ? screen.right : innerWidth) - box.width - 8;
+      const left = Math.min(Math.max(low, anchor.left + (anchor.width - box.width) / 2), high);
+      tip.style.translate = `${Math.round(left)}px ${Math.round(below ? anchor.bottom + 8 : anchor.top - 8 - box.height)}px`;
+      if (brief) tipHide = setTimeout(hideTip, 2400);
+    };
+    fig.addEventListener("pointerdown", event => {
+      lastPointer = event.pointerType;
+      if (event.pointerType !== "touch") hideTip();
+    }, true);
+    // The tooltip lets clicks through to the controls under it, yet stays while the pointer rests on it or crosses the gap.
+    const overTip = (x, y) => {
+      if (tip.hidden) return false;
+      const box = tip.getBoundingClientRect();
+      return x >= box.left && x <= box.right && y >= box.top - 8 && y <= box.bottom + 8;
+    };
+    const keyboardFocused = element => element.contains(document.activeElement) && document.activeElement.matches(":focus-visible");
+    document.addEventListener("pointermove", event => {
+      if (event.pointerType === "touch") return;
+      // Same help target, or resting on the tooltip: keep it. A part with its own help (a window's title bar or resize
+      // edge) takes over even though the window contains it.
+      if (tipFor && (helpFor(event.target) === tipFor || overTip(event.clientX, event.clientY))) {
+        clearTimeout(tipHide);
+        clearTimeout(tipTimer);
+        tipHide = null;
+        tipNext = tipFor;
+        return;
+      }
+      if (tipFor && !tipHide && !keyboardFocused(tipFor)) tipHide = setTimeout(hideTip, 150);
+      const element = helpFor(event.target);
+      if (element === tipNext) return;
+      clearTimeout(tipTimer);
+      tipNext = element;
+      if (element) tipTimer = setTimeout(() => showTip(element), tipFor ? 0 : 450);
+    });
+    document.documentElement.addEventListener("pointerleave", () => {
+      clearTimeout(tipTimer);
+      tipNext = null;
+      if (tipFor && !keyboardFocused(tipFor)) hideTip();
+    });
+    fig.addEventListener("focusin", event => {
+      const element = helpFor(event.target);
+      if (element && event.target.matches(":focus-visible")) showTip(element);
+    });
+    fig.addEventListener("focusout", event => {
+      if (tipFor?.contains(event.target) && !tipFor.contains(event.relatedTarget)) hideTip();
+    });
+    fig.addEventListener("click", event => {
+      const element = helpFor(event.target);
+      if (!element) return;
+      if (lastPointer === "touch" && event.detail) showTip(element, true);
+      else if (!event.detail) requestAnimationFrame(() => { if (element.contains(document.activeElement)) showTip(element); });
+    });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") hideTip(); });
+    addEventListener("scroll", event => {
+      if (event.target === document || event.target.contains?.(tipFor) || event.target.contains?.(tipNext)) hideTip();
+    }, { capture: true, passive: true });
+    addEventListener("resize", hideTip);
+
+    minimap.addEventListener("click", event => {
+      const tool = event.target.closest("[data-map-tool]");
+      if (!tool) return;
+      takeOver();
+      if (tool.dataset.mapTool === "pin") setSetting("map", settings.map === "pinned" ? "peek" : "pinned");
+      else if (tool.dataset.mapTool === "collapse") {
+        const collapsed = minimap.classList.toggle("collapsed");
+        tool.setAttribute("aria-expanded", String(!collapsed));
+        tool.setAttribute("aria-label", collapsed ? "Expand the Minimap" : "Collapse the Minimap");
+        if (getComputedStyle(minimap).position === "absolute") moveMap(mapOffset.x, mapOffset.y);
+        syncMap();
+      } else {
+        canvas.focus({ preventScroll: true });
+        clearTimeout(mapTimer);
+        mapVisible = false;
+        paintMap();
+        announce("Minimap hidden until focus moves");
+      }
+    });
+    for (const type of ["pointerleave", "focusout"]) minimap.addEventListener(type, () => setTimeout(releaseMap));
+    for (const type of ["pointerenter", "focusin"]) minimap.addEventListener(type, () => clearTimeout(mapTimer));
+    let scrub;
+    mapTrack.addEventListener("pointerdown", event => {
+      if (scrub || event.button || board()) return;
+      nativeInput();
+      const rail = track(), scale = mapScale(), thumb = $("i", mapTrack).getBoundingClientRect();
+      rail.style.scrollSnapType = "none";
+      if (event.clientX < thumb.left || event.clientX > thumb.right) {
+        const x = event.clientX - mapRows[row].getBoundingClientRect().left;
+        rail.scrollLeft = rail.firstElementChild.offsetLeft + x / scale - rail.clientWidth / 2;
+      }
+      scrub = { id: event.pointerId, x: event.clientX, left: rail.scrollLeft, scale, rail };
+      mapTrack.setPointerCapture(event.pointerId);
+    });
+    mapTrack.addEventListener("pointermove", event => {
+      if (scrub?.id === event.pointerId) scrub.rail.scrollLeft = scrub.left + (event.clientX - scrub.x) / scrub.scale;
+    });
+    mapTrack.addEventListener("lostpointercapture", event => {
+      if (scrub?.id !== event.pointerId || event.target !== mapTrack) return;
+      scrub.rail.style.removeProperty("scroll-snap-type");
+      scrub = null;
+    });
+
+    let drag;
+    canvas.addEventListener("pointerdown", event => {
+      if (drag || !floating || event.button || event.target !== grip(floating.win)) return;
+      drag = { id: event.pointerId, x: event.clientX - floating.x, y: event.clientY - floating.y };
+      event.target.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener("pointermove", event => {
+      if (drag?.id === event.pointerId) moveFloat(event.clientX - drag.x, event.clientY - drag.y);
+    });
+    canvas.addEventListener("lostpointercapture", event => { if (drag?.id === event.pointerId) drag = null; });
+    canvas.addEventListener("click", event => {
+      if (!floating || event.detail || event.target !== grip(floating.win)) return;
+      run("float", true);
+      canvas.focus({ preventScroll: true });
+    });
+    canvas.addEventListener("keydown", event => {
+      if (!floating || event.target !== grip(floating.win) || event.metaKey || event.altKey || event.ctrlKey) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+        run("float", true);
+        canvas.focus({ preventScroll: true });
+        return;
+      }
+      const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const distance = event.shiftKey ? 64 : 16;
+      moveFloat(floating.x + step[0] * distance, floating.y + step[1] * distance);
+    });
+    statusMenu.addEventListener("toggle", () => {
+      if (statusMenu.open) {
+        takeOver();
+        closeSwitcher();
+      }
+      else if (statusMenu.contains(tipFor)) hideTip();
+    });
     document.addEventListener("click", event => {
       if (statusMenu.open && !statusMenu.contains(event.target)) statusMenu.open = false;
     });
@@ -503,24 +1629,32 @@
       button.type = "button";
       button.className = "overview-pick";
       button.hidden = true;
-      button.append(document.createElement("kbd"));
-      $("kbd", button).setAttribute("aria-hidden", "true");
+      button.append(Object.assign(document.createElement("kbd"), { className: "jump-badge", ariaHidden: "true" }));
+      win.append(Object.assign(document.createElement("kbd"), { className: "jump-badge win-badge", ariaHidden: "true" }));
       button.setAttribute("aria-label", `Focus ${title(win)}`);
-      button.title = `Focus ${title(win)} in the Strip (Enter or Space)`;
+      button.dataset.tip = `Focus ${title(win)} and return to its Strip.`;
       button.addEventListener("click", () => run("jump", true, win));
       win.append(button);
+      for (const side of ["start", "end"]) {
+        const edge = Object.assign(document.createElement("i"), { className: "win-edge", ariaHidden: "true" });
+        Object.assign(edge.dataset, { edge: side, tip: `Drag to resize ${title(win)}.` });
+        win.append(edge);
+      }
     };
     windows.forEach(bindPicker);
     fig.addEventListener("click", event => {
-      if (!event.detail || event.target.closest("a, [data-command=pause], .demo-status-menu")) return;
+      if (!event.detail || event.target.closest("a, [data-command=pause], .demo-status-menu, .demo-view, .demo-footage")) return;
       if (!fig.contains(document.activeElement)) canvas.focus({ preventScroll: true });
       const win = event.target.closest(".rail > .win");
       if (win && !board() && !event.target.closest("button")) run("focus", true, win);
     });
     fig.addEventListener("focusin", event => {
-      if (!stopped && event.target.matches(":focus-visible")) run("pause", true);
+      if (!stopped && !footage && event.target.matches(":focus-visible") && !event.target.closest(".demo-view")) run("pause", true);
     });
+    fig.addEventListener("keyup", () => clearTimeout(chordTimer));
     fig.addEventListener("keydown", event => {
+      if (event.target.closest(".demo-footage") || (event.target.type === "radio" && event.key.startsWith("Arrow"))) return;
+      if (footage && !event.target.closest(".demo-controls, .demo-caption")) return;
       if (event.target.closest("a")) return;
       if (event.code === "Escape" && statusMenu.open) {
         event.preventDefault();
@@ -528,17 +1662,40 @@
         menuSummary.focus({ preventScroll: true });
         return;
       }
-      if (event.code === "Escape" && board()) {
-        event.preventDefault();
-        run(fig.classList.contains("overview") ? "overview" : "infinite", true);
+      // Holding ⌥⇧⌘ for a moment shows the jump letters; they stay after release until a letter or Escape.
+      if (["Meta", "Alt", "Shift"].includes(event.key) && event.metaKey && event.altKey && event.shiftKey && !event.ctrlKey) {
+        if (!jumping && !board() && !switcherOpen && !footage) {
+          clearTimeout(chordTimer);
+          chordTimer = setTimeout(() => { takeOver(); setJumping(true); }, 300);
+        }
         return;
       }
-      if (fig.classList.contains("overview") && !event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey) {
-        const key = /^Key[A-Z]$/.test(event.code) ? event.code.at(-1) : "";
-        const pick = key && $(`.overview-pick[aria-keyshortcuts="${key}"]`, fig);
-        if (pick) {
+      clearTimeout(chordTimer);
+      if (event.code === "Escape" && (jumping || switcherOpen || board())) {
+        event.preventDefault();
+        takeOver();
+        if (jumping) setJumping(false);
+        else if (switcherOpen) closeSwitcher();
+        else run("infinite", true);
+        return;
+      }
+      if ((jumping || board()) && !event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey) {
+        // The printed letter, not the key position, so AZERTY and Dvorak visitors type what the badge shows.
+        const key = /^[a-z]$/i.test(event.key) ? event.key.toUpperCase() : "";
+        const win = key && [...jumpKeys()].find(([, letter]) => letter === key)?.[0];
+        if (win) {
           event.preventDefault();
-          pick.click();
+          run("jump", true, win);
+          return;
+        }
+      }
+      if (board() && !event.metaKey && !event.altKey && !event.ctrlKey) {
+        const zoom = { Equal: 1.25, NumpadAdd: 1.25, Minus: .8, NumpadSubtract: .8 }[event.code];
+        if (zoom || event.code === "Digit0" || event.code === "Numpad0") {
+          event.preventDefault();
+          takeOver();
+          if (zoom) zoomBoard(zoom);
+          else fitBoard();
           return;
         }
       }
@@ -547,13 +1704,37 @@
       ].filter(Boolean).join("+");
       const id = keymap.get(shortcut);
       if (!id || (id === "pause" && stopped)) return;
+      // Safari moves between buttons with Option–Tab by default, so it opens Overview only from the demo screen
+      // (windows, Minimap, menu bar), where the app's own Option–Tab lives; elsewhere, and after a keyboard
+      // dismissal until focus leaves the screen, it belongs to the browser. Inside the open panel the search field
+      // takes it and cycles the selection.
+      if (shortcut === "Alt+Tab" && (footage || switcherOpen || tabPass || !screenEl.contains(event.target))) return;
       event.preventDefault();
       run(id, true);
     });
-    const nativeInput = () => { takeOver(); target = null; syncButtons(); };
-    canvas.addEventListener("pointerdown", nativeInput);
+    const nativeInput = () => { takeOver(); setJumping(false); target = null; syncButtons(); };
+    // The float chip turns solid orange while the floating window has focus.
+    fig.addEventListener("focusin", paintFloats);
+    fig.addEventListener("focusout", event => {
+      setTimeout(paintFloats);
+      if (!fig.contains(event.relatedTarget)) setJumping(false);
+      if (!screenEl.contains(event.relatedTarget)) tabPass = false;
+    });
+    screenEl.addEventListener("pointerdown", () => { tabPass = false; });
+    // Letters hide while ⌘, ⌥ or ⌃ is down, so no badge invites a chord macOS acts on before the page can.
+    const trackChord = event => fig.classList.toggle("chord-held", event.metaKey || event.altKey || event.ctrlKey);
+    addEventListener("keydown", trackChord, true);
+    addEventListener("keyup", trackChord, true);
+    addEventListener("blur", () => {
+      fig.classList.remove("chord-held");
+      clearTimeout(chordTimer);
+      setJumping(false);
+    });
+    // A touch on the open canvas may be the start of a page scroll, so it takes over only once it pans the board.
+    canvas.addEventListener("pointerdown", event => { if (!(board() && event.pointerType === "touch")) nativeInput(); });
     canvas.addEventListener("wheel", ({ deltaX, deltaY, shiftKey }) => {
-      if (deltaX || (shiftKey && deltaY)) nativeInput();
+      // On the board the wheel belongs to the board's own handler, which leaves the tour alone while it runs.
+      if (!board() && (deltaX || (shiftKey && deltaY))) nativeInput();
     }, { passive: true });
     for (const strip of strips) {
       strip.addEventListener("scroll", () => {
@@ -562,12 +1743,13 @@
     }
 
     const tour = ["right", "newWindow", "resize", "below", "above", "moveLeft", "limelight", "outline",
-      "full", "full", "overview", "infinite", "infinite", "outline", "limelight", "left"];
+      "full", "full", "jumpTo", "overview", "overview", "infinite", "infinite", "outline", "limelight", "left"];
     const schedule = () => {
       clearInterval(timer);
       clearCue();
       pauseButton.hidden = reduced();
-      if (visible && !stopped && !reduced()) {
+      fig.classList.toggle("touring", visible && !stopped && !footage && !reduced());
+      if (visible && !stopped && !footage && !reduced()) {
         timer = setInterval(() => {
           const id = tour[beat];
           beat = (beat + 1) % tour.length;
@@ -582,15 +1764,33 @@
         }, 2200);
       }
     };
+    // A short viewport can never show 35% of the taller 16:10 screen, so filling the viewport also counts.
     new IntersectionObserver(([entry]) => {
-      visible = entry.intersectionRatio >= .35;
-      schedule();
-    }, { threshold: .35 }).observe(canvas);
+      const was = visible;
+      visible = entry.intersectionRatio >= .35 || entry.intersectionRect.height >= .9 * (entry.rootBounds?.height ?? innerHeight);
+      if (visible !== was) schedule();
+    }, { threshold: Array.from({ length: 101 }, (_, i) => i / 100) }).observe(canvas);
     motion.addEventListener("change", () => {
-      if (reduced()) finishSlide?.();
+      if (reduced()) {
+        finishSlide?.();
+        footageVideo.pause();
+      }
       schedule();
     });
-    new ResizeObserver(syncMap).observe(canvas);
+    new ResizeObserver(() => {
+      syncMap();
+      if (floating?.win.getClientRects().length) moveFloat(floating.x, floating.y);
+      if (board()) fitBoard();
+      if (getComputedStyle(minimap).position === "absolute" && minimap.getClientRects().length) moveMap(mapOffset.x, mapOffset.y);
+    }).observe(canvas);
+    strips.forEach((strip, i) => strip.style.setProperty("--row", i));
+    const clock = $("[data-clock]", fig);
+    const tick = () => {
+      clock.textContent = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })
+        .format(new Date()).replaceAll(",", "");
+    };
+    tick();
+    setInterval(tick, 30000);
     strips[0].tabIndex = -1;
     canvas.tabIndex = 0;
     strips.forEach(syncWidths);
@@ -599,6 +1799,7 @@
     pauseButton.hidden = reduced();
     statusMenu.hidden = false;
     $(".demo-controls", fig).hidden = false;
+    applyView();
     $("#strip-caption", fig).textContent = matchMedia("(pointer: coarse)").matches
       ? "Swipe the Strip or tap a control."
       : "Click a window or use the controls. Shortcuts work while focus is inside the demo.";
