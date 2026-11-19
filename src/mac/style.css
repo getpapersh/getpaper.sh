@@ -366,6 +366,7 @@ footer .brand img { width: 24px; height: 24px; }
 .col-head h3 { margin: 0; font-weight: 900; font-stretch: 118%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.025em; }
 .col-head b { font-weight: 900; font-stretch: 125%; font-size: clamp(26px, 2.4vw, 36px); letter-spacing: -.03em; white-space: nowrap; }
 .col-intro { margin: -8px 0 6px; font-weight: 650; color: var(--ink-2); }
+html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
 .compare .pic figcaption { font-size: 15.5px; font-weight: 700; }
