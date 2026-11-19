@@ -28,7 +28,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
 | `terms/index.html`, `privacy/index.html` | Terms and privacy policy, built from `src/terms/` and `src/privacy/`. |
-| `media/papermac/` | Three real-app recordings with synthetic documents, plus JPEG posters. Delivery clips are 1920×1200, 8–12 seconds, H264 without audio. Native-resolution masters stay outside the repository. |
+| `media/papermac/` | The hero promo loop and three real-app recordings with synthetic documents, plus JPEG posters. The clips use H.264 without audio. Native-resolution masters stay outside the repository. |
 | `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0), and `FONTS.txt` on the subsets; served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
@@ -175,7 +175,7 @@ uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > priv
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
 
-The preview output has 25 entries including directories. To test an uncommitted
+The preview output has 27 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
 `src/mac/checkout-url.txt` is the single sales-mode input. The committed default

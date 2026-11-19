@@ -12,7 +12,7 @@ expected = {'index.html', '_headers', 'install', 'og.png', 'licenses',
 expected.update('licenses/' + name for name in
                 ['OFL-monasans.txt', 'OFL-jetbrainsmono.txt', 'LOGOS-SOURCE.txt', 'FONTS.txt'])
 expected.update('media/papermac/' + name + suffix
-                for name in ['strip', 'overview', 'pro-layout'] for suffix in ['.mp4', '.jpg'])
+                for name in ['promo', 'strip', 'overview', 'pro-layout'] for suffix in ['.mp4', '.jpg'])
 assert {str(path.relative_to(site)) for path in site.rglob('*')} == expected
 
 
@@ -92,12 +92,17 @@ assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in prod
 assert 'up to 5 Macs at once' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
-assert len(videos) == 3
+assert len(videos) == 4
+assert videos[0]['class'] == 'hero-promo'
+assert videos[0]['poster'] == '../media/papermac/promo.jpg'
+assert videos[0]['preload'] == 'none'
 for video in videos:
     assert all(key in video for key in ('controls', 'muted', 'playsinline', 'loop', 'poster'))
+    # The hero enables autoplay only after checking the visitor's motion preference.
     assert 'autoplay' not in video
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
-assert set(sources) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
+assert sources[0] == '../media/papermac/promo.mp4'
+assert set(sources[1:]) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'overview', 'pro-layout']}
 assert '{{CHECKOUT_' not in product and '{{SALES_MODE}}' not in product
 checkout = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().strip()
 buy_notice = '<p class="buy-notice">By buying, you agree to the <a href="/terms">Terms</a>.</p>'

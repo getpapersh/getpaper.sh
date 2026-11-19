@@ -70,99 +70,538 @@
   };
   const winHTML = (k) => KIND[k] || KIND.dc;
 
+  const promo = $(".hero-promo");
+  if (!reduced()) {
+    promo.autoplay = true;
+    promo.play().catch(() => {});
+  }
+  motion.addEventListener("change", () => {
+    if (reduced()) {
+      promo.autoplay = false;
+      promo.pause();
+    }
+  });
+
   function StripDemo(fig) {
-    const track = $(".rail", fig), windows = $$(".win", track);
-    const controls = $(".demo-controls", fig);
-    const pause = $(".pause", controls), prev = $(".prev", controls), next = $(".next", controls);
-    const status = $("[role=status]", fig);
-    const last = windows.length - 1;
-    let current = 0, pending = null, direction = 1;
-    let timer, visible = false, stopped = false;
+    const strips = $$("[data-strip]", fig);
+    const windows = $$(".win", fig), initialWindowCount = windows.length, windowLimit = 9;
+    const canvas = $(".demo-canvas", fig), status = $("[role=status]", fig);
+    const tourCue = $(".demo-tour", fig), app = $("[data-demo-app]", fig);
+    const minimap = $(".demo-minimap", fig), mapRows = $$(".map-row", minimap);
+    const statusMenu = $(".demo-status-menu", fig), menuSummary = $("summary", statusMenu);
+    const desktopCount = $("[data-desktop-count]", statusMenu);
+    const menuButtons = new Map();
+    const mapTiles = new Map();
+    const buttons = new Map($$("[data-command]", fig).map(button => [button.dataset.command, button]));
+    const pauseButton = buttons.get("pause");
+    const settings = { map: "peek", focus: "centered", place: "after" };
+    const selections = strips.map(strip => strip.firstElementChild);
+    const presets = ["var(--standard-width)", "72cqw", "89cqw", "max(155px, 36cqw)"];
+    let row = 0, current, target, timer, announcement, frame, lastCue, finishSlide, floating, mapTimer;
+    let visible = false, stopped = false, beat = 0;
+    let mapOn = true, mapVisible = false;
 
-    const center = (win) => win.offsetLeft + (win.offsetWidth - track.clientWidth) / 2;
-    const nearest = () => {
-      const distance = (win) => Math.abs(track.scrollLeft - center(win));
-      return windows.reduce((best, win, i) => distance(win) < distance(windows[best]) ? i : best, 0);
+    const track = () => strips[row];
+    const active = () => target ?? selections[row];
+    const board = () => fig.classList.contains("overview") || fig.classList.contains("infinite");
+    const center = win => win.offsetLeft + (win.offsetWidth - track().clientWidth) / 2;
+    const items = () => [...track().children];
+    const placement = win => {
+      if (settings.focus === "centered") return center(win);
+      const rail = track(), first = rail.firstElementChild, last = rail.lastElementChild;
+      const start = first.offsetLeft, end = last.offsetLeft + last.offsetWidth - rail.clientWidth;
+      if (settings.focus === "fill") return end < start ? (start + end) / 2 : Math.max(start, Math.min(end, center(win)));
+      const left = win.offsetLeft, right = left + win.offsetWidth - rail.clientWidth;
+      const reveal = Math.min(left, Math.max(right, rail.scrollLeft));
+      return Math.max(start, Math.min(end, reveal));
     };
-    const settle = () => {
-      pending = null;
-      const i = nearest();
-      if (i === current) return;
-      windows[current].removeAttribute("aria-current");
-      windows[i].setAttribute("aria-current", "true");
-      current = i;
-      prev.setAttribute("aria-disabled", String(i === 0));
-      next.setAttribute("aria-disabled", String(i === last));
-      status.textContent = `${$(".tb", windows[i]).textContent}, window ${i + 1} of ${windows.length}`;
+    const nearest = () => items().reduce((best, win) =>
+      Math.abs(track().scrollLeft - center(win)) < Math.abs(track().scrollLeft - center(best)) ? win : best);
+    const title = win => $(".tb", win).textContent;
+    const announce = message => {
+      clearTimeout(announcement);
+      if (stopped) announcement = setTimeout(() => { status.textContent = message; }, 80);
     };
-    const go = (index) => {
-      const i = Math.max(0, Math.min(last, index));
-      const left = center(windows[i]);
-      if (i === pending || (pending === null && Math.abs(left - track.scrollLeft) < 1)) return;
-      pending = i;
-      track.scrollTo({ left, behavior: reduced() ? "instant" : "smooth" });
-      if (reduced()) settle();
+    const neighbor = delta => items()[items().indexOf(active()) + delta];
+    const destination = delta => strips[row + delta];
+    const full = win => win.hasAttribute("data-full");
+    const width = win => full(win) ? "calc(100cqw - 2 * var(--gap))" :
+      Number(win.dataset.preset) ? presets[Number(win.dataset.preset)] :
+      win.hasAttribute("data-new") ? "max(180px, 50cqw)" : presets[0];
+    const syncMap = () => {
+      if (minimap.hidden) return;
+      $("[data-map-app]", minimap).textContent = current.dataset.app;
+      for (const [win, tile] of mapTiles) {
+        if (win === current) tile.setAttribute("aria-current", "true");
+        else tile.removeAttribute("aria-current");
+      }
+      mapRows.forEach((mapRow, i) => { mapRow.toggleAttribute("data-active", i === row); });
+      if (board()) return;
+      const rail = track(), start = rail.firstElementChild.offsetLeft;
+      const end = rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth;
+      const span = end - start;
+      const left = Math.max(start, rail.scrollLeft);
+      const right = Math.min(end, rail.scrollLeft + rail.clientWidth);
+      const mapRow = mapRows[row], lastTile = mapRow.lastElementChild;
+      const scale = (lastTile.offsetLeft + lastTile.offsetWidth) / span;
+      mapRow.style.setProperty("--view-left", `${scale * (left - start)}px`);
+      mapRow.style.setProperty("--view-width", `${scale * (right - left)}px`);
     };
-    const schedule = () => {
-      clearInterval(timer);
-      pause.hidden = reduced();
-      if (!visible || stopped || reduced()) return;
-      timer = setInterval(() => {
-        if (current === 0) direction = 1;
-        if (current === last) direction = -1;
-        go(current + direction);
-      }, 2700);
+    const paintMap = () => {
+      minimap.hidden = !mapVisible || board();
+      fig.classList.toggle("has-map", !minimap.hidden);
+      syncMap();
     };
-    const takeOver = () => {
-      if (stopped) return;
-      stopped = true;
-      clearInterval(timer);
-      pause.textContent = "Paused";
-      pause.setAttribute("aria-disabled", "true");
+    const revealMap = (requested = false) => {
+      clearTimeout(mapTimer);
+      mapVisible = mapOn && (settings.map !== "manual" || requested);
+      paintMap();
+      if (mapVisible && settings.map === "peek") {
+        mapTimer = setTimeout(() => { mapVisible = false; paintMap(); }, 2000);
+      }
     };
-    const step = (delta) => {
-      const from = stopped ? pending ?? nearest() : nearest();
-      takeOver();
-      go(from + delta);
+    const syncWidths = strip => {
+      strip.style.setProperty("--first-width", width(strip.firstElementChild));
+      strip.style.setProperty("--last-width", width(strip.lastElementChild));
+      const mapRow = mapRows[strips.indexOf(strip)];
+      [...strip.children].forEach((win, i) => {
+        let tile = mapTiles.get(win);
+        if (!tile) {
+          tile = document.createElement("button");
+          tile.type = "button";
+          tile.className = "map-tile";
+          tile.dataset.app = win.dataset.app;
+          tile.textContent = title(win);
+          tile.title = `Focus ${title(win)} in the Strip (Enter or Space)`;
+          tile.addEventListener("click", () => run("jump", true, win));
+          mapTiles.set(win, tile);
+        }
+        const defaultWeight = win.hasAttribute("data-new") ? .5 : .53;
+        const weight = full(win) ? 1 : [defaultWeight, .72, .89, .36][Number(win.dataset.preset ?? 0)];
+        tile.style.setProperty("--map-weight", weight);
+        win.style.setProperty("--map-weight", weight);
+        if (mapRow.children[i + 1] !== tile) mapRow.insertBefore(tile, mapRow.children[i + 1] ?? null);
+      });
     };
+    const syncButtons = () => {
+      for (const [id, unavailable] of [
+        ["left", !neighbor(-1)], ["right", !neighbor(1)], ["above", !destination(-1)], ["below", !destination(1)],
+        ["moveLeft", !neighbor(-1) || board()], ["moveRight", !neighbor(1) || board()],
+        ["moveAbove", !destination(-1) || items().length === 1 || board()],
+        ["moveBelow", !destination(1) || items().length === 1 || board()],
+        ["full", board()], ["resize", board()], ["newWindow", board() || windows.length >= windowLimit],
+        ["float", board() || (!floating && items().length < 2)],
+      ]) buttons.get(id).setAttribute("aria-disabled", String(unavailable));
+      buttons.get("full").setAttribute("aria-pressed", String(full(active())));
+      buttons.get("float").setAttribute("aria-checked", String(Boolean(floating)));
+      buttons.get("limelight").setAttribute("aria-checked", String(fig.classList.contains("limelight")));
+      buttons.get("outline").setAttribute("aria-checked", String(fig.classList.contains("outline")));
+      buttons.get("minimap").setAttribute("aria-checked", String(mapOn));
+      buttons.get("overview").setAttribute("aria-pressed", String(fig.classList.contains("overview")));
+      buttons.get("infinite").setAttribute("aria-pressed", String(fig.classList.contains("infinite")));
+      for (const { button, setting, value } of settingButtons) {
+        button.setAttribute("aria-pressed", String(settings[setting] === value));
+        button.disabled = setting === "map" && !mapOn;
+      }
+      desktopCount.textContent = windows.length;
+      for (const [id, proxy] of menuButtons) {
+        const button = buttons.get(id);
+        for (const attr of ["aria-disabled", "aria-checked", "aria-pressed"]) {
+          if (button.hasAttribute(attr)) proxy.setAttribute(attr, button.getAttribute(attr));
+        }
+      }
+      syncMap();
+    };
+    const select = win => {
+      selections[row] = win;
+      if (win !== current) {
+        current?.removeAttribute("aria-current");
+        win.setAttribute("aria-current", "true");
+        current = win;
+        app.textContent = win.dataset.app;
+        if (settings.map !== "manual") revealMap();
+        announce(`Strip ${row + 1}, ${title(win)}`);
+      }
+      syncButtons();
+    };
+    const syncScroll = () => {
+      frame = null;
+      if (board()) return;
+      if (target && Math.abs(track().scrollLeft - placement(target)) < 1.5) {
+        const win = target;
+        target = null;
+        select(win);
+        return;
+      }
+      if (target && settings.focus !== "centered") return;
+      select(nearest());
+    };
+    const focus = (win, smooth = false) => {
+      target = null;
+      if (board()) { select(win); return; }
+      const left = placement(win);
+      if (smooth && !reduced() && Math.abs(left - track().scrollLeft) >= 1.5) {
+        target = win;
+        syncButtons();
+        track().scrollTo({ left, behavior: "smooth" });
+      } else {
+        track().scrollTo({ left, behavior: "instant" });
+        select(win);
+      }
+    };
+    const showStrip = (index, win = selections[index]) => {
+      finishSlide?.();
+      const delta = index - row, previous = track();
+      row = index;
+      $("[data-strip-label]", fig).textContent = `Strip ${row + 1}`;
+      strips.forEach((strip, i) => { strip.hidden = !board() && i !== row; });
+      focus(win);
+      if (!delta || reduced() || board()) return;
 
-    pause.addEventListener("click", takeOver);
-    prev.addEventListener("click", () => step(-1));
-    next.addEventListener("click", () => step(1));
-    fig.addEventListener("keydown", (event) => {
-      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target.closest("a")) return;
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-      event.preventDefault();
-      step(event.key === "ArrowLeft" ? -1 : 1);
-    });
-    const nativeInput = () => { takeOver(); pending = null; };
-    track.addEventListener("pointerdown", nativeInput);
-    fig.addEventListener("wheel", nativeInput, { passive: true });
-    if ("onscrollend" in track) {
-      track.addEventListener("scrollend", settle);
-    } else {
-      let settling, touching = false;
-      const settleAfterScroll = () => {
-        clearTimeout(settling);
-        settling = setTimeout(() => {
-          if (!touching && Math.abs(track.scrollLeft - center(windows[nearest()])) < 1) settle();
-        }, 160);
+      const incoming = track();
+      previous.hidden = false;
+      previous.inert = true;
+      previous.setAttribute("data-slide", "");
+      incoming.setAttribute("data-slide", "");
+      const timing = { duration: 340, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" };
+      const outgoing = previous.animate([{ translate: "0 0" }, { translate: `0 ${-100 * delta}%` }], timing);
+      const arriving = incoming.animate([{ translate: `0 ${100 * delta}%` }, { translate: "0 0" }], timing);
+      finishSlide = () => {
+        finishSlide = null;
+        arriving.onfinish = null;
+        previous.hidden = true;
+        previous.inert = false;
+        previous.removeAttribute("data-slide");
+        incoming.removeAttribute("data-slide");
+        outgoing.cancel();
+        arriving.cancel();
       };
-      track.addEventListener("touchstart", () => { touching = true; }, { passive: true });
-      const touchDone = () => { touching = false; settleAfterScroll(); };
-      track.addEventListener("touchend", touchDone, { passive: true });
-      track.addEventListener("touchcancel", touchDone, { passive: true });
-      track.addEventListener("scroll", settleAfterScroll, { passive: true });
+      arriving.onfinish = finishSlide;
+    };
+    const move = delta => {
+      const win = active(), next = neighbor(delta);
+      if (!next) return;
+      if (delta < 0) next.before(win);
+      else next.after(win);
+      syncWidths(track());
+      focus(win);
+      announce(`${title(win)} moved ${delta < 0 ? "left" : "right"}`);
+    };
+    const send = delta => {
+      const win = active(), from = track(), to = destination(delta);
+      selections[row] = neighbor(1) ?? neighbor(-1);
+      selections[row + delta].after(win);
+      syncWidths(from);
+      syncWidths(to);
+      showStrip(row + delta, win);
+      announce(`${title(win)} moved to Strip ${row + 1}`);
+    };
+    const setWidth = (win, message) => {
+      win.style.setProperty("--window-width", width(win));
+      syncWidths(track());
+      focus(win);
+      announce(`${title(win)}, ${message}`);
+    };
+    const clearCue = () => {
+      lastCue?.removeAttribute("data-tour-active");
+      tourCue.hidden = true;
+    };
+    const setTourPaused = paused => {
+      stopped = paused;
+      pauseButton.firstChild.textContent = paused ? "Resume tour " : "Pause tour ";
+      $("kbd", pauseButton).hidden = paused;
+      if (paused) pauseButton.removeAttribute("aria-keyshortcuts");
+      else pauseButton.setAttribute("aria-keyshortcuts", "Escape");
+      pauseButton.title = paused ? "Continue from the next tour step." : `${commands.pause[2]} (Esc)`;
+      if (!paused && !visible) canvas.scrollIntoView({ block: "center", behavior: "instant" });
+      schedule();
+    };
+    const takeOver = () => { if (!stopped) setTourPaused(true); };
+    const showBoard = mode => {
+      fig.classList.toggle("overview", mode === "overview");
+      fig.classList.toggle("infinite", mode === "infinite");
+      $(".demo-board-title", fig).hidden = mode !== "infinite";
+      $$(".rail .overview-pick", fig).forEach((button, i) => {
+        button.hidden = !board();
+        const key = mode === "overview" ? "asdfghjkl"[i] : "";
+        $("kbd", button).textContent = key.toUpperCase();
+        if (key) button.setAttribute("aria-keyshortcuts", key.toUpperCase());
+        else button.removeAttribute("aria-keyshortcuts");
+      });
+      showStrip(row, active());
+      paintMap();
+    };
+    const toggleBoard = mode => {
+      showBoard(fig.classList.contains(mode) ? null : mode);
+      announce(board() ? "Choose a window to return to its Strip." : `Strip ${row + 1}, ${title(active())}`);
+    };
+    const addWindow = () => {
+      const positions = new Map(items().map(win => [win, win.offsetLeft]));
+      const win = $("#demo-new-window", fig).content.firstElementChild.cloneNode(true);
+      $(".tb", win).textContent = `New Note ${windows.length - initialWindowCount + 1}`;
+      win.style.setProperty("--window-width", width(win));
+      if (settings.place === "after") active().after(win);
+      else track().append(win);
+      windows.push(win);
+      bindPicker(win);
+      syncWidths(track());
+      if (!reduced()) {
+        const timing = { duration: 300, easing: "ease-out" };
+        for (const [neighbor, left] of positions) {
+          const shift = left - neighbor.offsetLeft;
+          if (shift) neighbor.animate([{ translate: `${shift}px` }, { translate: "0px" }], timing);
+        }
+        win.animate([{ opacity: .3, scale: ".93" }, { opacity: 1, scale: "1" }], timing);
+      }
+      focus(win, true);
+      announce(`${title(win)} opened. ${windows.length} of ${windowLimit} windows.`);
+    };
+    const toggleFloat = () => {
+      if (floating) {
+        const { win, strip, next } = floating;
+        floating = null;
+        strip.insertBefore(win, next?.parentElement === strip ? next : null);
+        syncWidths(strip);
+        showStrip(strips.indexOf(strip), win);
+        announce(`${title(win)} returned to the Strip.`);
+      } else {
+        const win = active(), strip = track(), next = win.nextElementSibling;
+        const remaining = next ?? win.previousElementSibling;
+        floating = { win, strip, next };
+        canvas.append(win);
+        mapTiles.get(win).remove();
+        syncWidths(strip);
+        focus(remaining);
+        announce(`${title(win)} floated above the Strip.`);
+      }
+    };
+    const commands = {
+      left: ["Meta+Alt+ArrowLeft", () => focus(neighbor(-1), true), "Focus the window to the left."],
+      right: ["Meta+Alt+ArrowRight", () => focus(neighbor(1), true), "Focus the window to the right."],
+      above: ["Meta+Alt+ArrowUp", () => showStrip(row - 1), "Focus the Strip above."],
+      below: ["Meta+Alt+ArrowDown", () => showStrip(row + 1), "Focus the Strip below."],
+      moveLeft: ["Meta+Alt+Shift+ArrowLeft", () => move(-1), "Move the focused window one place left."],
+      moveRight: ["Meta+Alt+Shift+ArrowRight", () => move(1), "Move the focused window one place right."],
+      moveAbove: ["Meta+Alt+Shift+ArrowUp", () => send(-1), "Move the focused window to the Strip above."],
+      moveBelow: ["Meta+Alt+Shift+ArrowDown", () => send(1), "Move the focused window to the Strip below."],
+      full: ["Meta+Alt+KeyF", () => {
+        const win = active();
+        setWidth(win, win.toggleAttribute("data-full") ? "full width" : "restored width");
+      }, "Expand the focused window to full width or restore it."],
+      resize: ["Meta+Alt+Shift+Enter", () => {
+        const win = active();
+        win.removeAttribute("data-full");
+        win.dataset.preset = (Number(win.dataset.preset ?? 0) + 1) % presets.length;
+        setWidth(win, "next width preset");
+      }, "Resize the focused window to the next width preset."],
+      float: ["Meta+Alt+KeyT", toggleFloat, "Float the focused window above the Strip or return it."],
+      limelight: ["Meta+Alt+Control+KeyL", () => {
+        const on = fig.classList.toggle("limelight");
+        syncButtons();
+        announce(`Limelight ${on ? "on" : "off"}`);
+      }, "Dim the other windows when Limelight is on."],
+      outline: ["Meta+Alt+Control+KeyB", () => {
+        const on = fig.classList.toggle("outline");
+        syncButtons();
+        announce(`Outline ${on ? "on" : "off"}`);
+      }, "Draw a border around the focused window when Outline is on."],
+      minimap: ["Meta+Alt+KeyM", () => {
+        mapOn = !mapOn || (settings.map === "manual" && !mapVisible);
+        revealMap(true);
+        syncButtons();
+        announce(`Minimap ${mapOn ? "on" : "off"}`);
+      }, "Show or hide a map of the windows and viewport."],
+      overview: ["Meta+Alt+KeyO", () => toggleBoard("overview"), "See both Strips and pick a window to focus."],
+      infinite: ["Shift+KeyI", () => toggleBoard("infinite"), "See the Desktop’s canvas with windows scaled by width."],
+      newWindow: ["Shift+KeyN", addWindow, "Open a note and make room on the Strip."],
+      pause: ["Escape", () => { if (!board()) focus(nearest()); }, "Stop the tour and take control of the demo."],
+      focus: ["", win => focus(win, true)],
+      jump: ["", win => {
+        canvas.focus({ preventScroll: true });
+        if (board()) showBoard(null);
+        showStrip(strips.indexOf(win.parentElement), win);
+      }],
+    };
+    const run = (id, manual, arg) => {
+      const enabled = buttons.get(id)?.getAttribute("aria-disabled") !== "true";
+      if (manual) takeOver();
+      if (enabled) commands[id][1](arg);
+    };
+
+    const shortcutText = shortcut => shortcut
+      .replace(/^Meta\+Alt\+(Control\+|Shift\+)?/, (_, modifier) =>
+        modifier === "Control+" ? "⌃⌥⌘" : modifier === "Shift+" ? "⌥⇧⌘" : "⌥⌘")
+      .replace("ArrowLeft", "←").replace("ArrowRight", "→").replace("ArrowUp", "↑").replace("ArrowDown", "↓")
+      .replace("Shift+", "⇧").replace("Enter", "↵").replace("Key", "").replace("Escape", "Esc");
+    const keymap = new Map([["ArrowLeft", "left"], ["ArrowRight", "right"]]);
+    for (const [id, button] of buttons) {
+      const [shortcut, , description] = commands[id];
+      const kbd = document.createElement("kbd");
+      kbd.textContent = shortcutText(shortcut);
+      kbd.setAttribute("aria-hidden", "true");
+      button.append(kbd);
+      button.title = `${description} (${kbd.textContent})`;
+      button.setAttribute("aria-controls", "demo-canvas");
+      const accessibleKey = shortcut.replace("Key", "");
+      button.setAttribute("aria-keyshortcuts", id === "left" || id === "right" ?
+        `${accessibleKey} ${accessibleKey.split("+").at(-1)}` : accessibleKey);
+      keymap.set(shortcut, id);
+      button.addEventListener("click", () => {
+        if (id === "pause" && stopped) setTourPaused(false);
+        else run(id, true);
+      });
+    }
+    for (const group of $$("[data-menu-commands]", statusMenu)) {
+      for (const id of group.dataset.menuCommands.split(" ")) {
+        const proxy = buttons.get(id).cloneNode(true);
+        proxy.removeAttribute("data-command");
+        proxy.removeAttribute("class");
+        $("i", proxy)?.remove();
+        proxy.addEventListener("click", () => {
+          statusMenu.open = false;
+          menuSummary.focus({ preventScroll: true });
+          run(id, true);
+        });
+        menuButtons.set(id, proxy);
+        group.append(proxy);
+      }
+    }
+    const menuSettings = $(".demo-switches", fig).cloneNode(true);
+    $("[data-menu-settings]", statusMenu).append(menuSettings);
+    for (const proxy of $$("[data-command]", menuSettings)) {
+      const id = proxy.dataset.command;
+      proxy.removeAttribute("data-command");
+      proxy.classList.remove("btn", "quiet", "small");
+      proxy.addEventListener("click", () => run(id, true));
+      menuButtons.set(id, proxy);
+    }
+    const settingButtons = $$("[data-setting]", fig).map(button => {
+      const { setting, value } = button.dataset;
+      button.addEventListener("click", () => {
+        takeOver();
+        settings[setting] = value;
+        if (setting === "map") {
+          fig.dataset.mapMode = value;
+          revealMap();
+        } else if (setting === "focus") {
+          fig.dataset.focusMode = value;
+          focus(active());
+        }
+        syncButtons();
+      });
+      return { button, setting, value };
+    });
+    statusMenu.addEventListener("toggle", () => { if (statusMenu.open) takeOver(); });
+    document.addEventListener("click", event => {
+      if (statusMenu.open && !statusMenu.contains(event.target)) statusMenu.open = false;
+    });
+    document.addEventListener("focusin", event => {
+      if (statusMenu.open && !statusMenu.contains(event.target)) statusMenu.open = false;
+    });
+    const bindPicker = win => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "overview-pick";
+      button.hidden = true;
+      button.append(document.createElement("kbd"));
+      $("kbd", button).setAttribute("aria-hidden", "true");
+      button.setAttribute("aria-label", `Focus ${title(win)}`);
+      button.title = `Focus ${title(win)} in the Strip (Enter or Space)`;
+      button.addEventListener("click", () => run("jump", true, win));
+      win.append(button);
+    };
+    windows.forEach(bindPicker);
+    fig.addEventListener("click", event => {
+      if (!event.detail || event.target.closest("a, [data-command=pause], .demo-status-menu")) return;
+      if (!fig.contains(document.activeElement)) canvas.focus({ preventScroll: true });
+      const win = event.target.closest(".rail > .win");
+      if (win && !board() && !event.target.closest("button")) run("focus", true, win);
+    });
+    fig.addEventListener("focusin", event => {
+      if (!stopped && event.target.matches(":focus-visible")) run("pause", true);
+    });
+    fig.addEventListener("keydown", event => {
+      if (event.target.closest("a")) return;
+      if (event.code === "Escape" && statusMenu.open) {
+        event.preventDefault();
+        statusMenu.open = false;
+        menuSummary.focus({ preventScroll: true });
+        return;
+      }
+      if (event.code === "Escape" && board()) {
+        event.preventDefault();
+        run(fig.classList.contains("overview") ? "overview" : "infinite", true);
+        return;
+      }
+      if (fig.classList.contains("overview") && !event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey) {
+        const key = /^Key[A-Z]$/.test(event.code) ? event.code.at(-1) : "";
+        const pick = key && $(`.overview-pick[aria-keyshortcuts="${key}"]`, fig);
+        if (pick) {
+          event.preventDefault();
+          pick.click();
+          return;
+        }
+      }
+      const shortcut = [
+        event.metaKey && "Meta", event.altKey && "Alt", event.ctrlKey && "Control", event.shiftKey && "Shift", event.code,
+      ].filter(Boolean).join("+");
+      const id = keymap.get(shortcut);
+      if (!id || (id === "pause" && stopped)) return;
+      event.preventDefault();
+      run(id, true);
+    });
+    const nativeInput = () => { takeOver(); target = null; syncButtons(); };
+    canvas.addEventListener("pointerdown", nativeInput);
+    canvas.addEventListener("wheel", ({ deltaX, deltaY, shiftKey }) => {
+      if (deltaX || (shiftKey && deltaY)) nativeInput();
+    }, { passive: true });
+    for (const strip of strips) {
+      strip.addEventListener("scroll", () => {
+        if (strip === track() && frame == null) frame = requestAnimationFrame(syncScroll);
+      }, { passive: true });
     }
 
+    const tour = ["right", "newWindow", "resize", "below", "above", "moveLeft", "limelight", "outline",
+      "full", "full", "overview", "infinite", "infinite", "outline", "limelight", "left"];
+    const schedule = () => {
+      clearInterval(timer);
+      clearCue();
+      pauseButton.hidden = reduced();
+      if (visible && !stopped && !reduced()) {
+        timer = setInterval(() => {
+          const id = tour[beat];
+          beat = (beat + 1) % tour.length;
+          const button = buttons.get(id);
+          if (button.getAttribute("aria-disabled") === "true" || (id === "newWindow" && windows.length > initialWindowCount)) return;
+          clearCue();
+          run(id, false);
+          lastCue = button;
+          lastCue.setAttribute("data-tour-active", "");
+          tourCue.textContent = commands[id][2];
+          tourCue.hidden = false;
+        }, 2200);
+      }
+    };
     new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
+      visible = entry.intersectionRatio >= .35;
       schedule();
-    }, { threshold: .15 }).observe(track);
-    motion.addEventListener("change", schedule);
-    windows[current].setAttribute("aria-current", "true");
-    pause.hidden = reduced();
-    controls.hidden = false;
+    }, { threshold: .35 }).observe(canvas);
+    motion.addEventListener("change", () => {
+      if (reduced()) finishSlide?.();
+      schedule();
+    });
+    new ResizeObserver(syncMap).observe(canvas);
+    strips[0].tabIndex = -1;
+    canvas.tabIndex = 0;
+    strips.forEach(syncWidths);
+    fig.dataset.mapMode = settings.map;
+    showStrip(0);
+    pauseButton.hidden = reduced();
+    statusMenu.hidden = false;
+    $(".demo-controls", fig).hidden = false;
+    $("#strip-caption", fig).textContent = matchMedia("(pointer: coarse)").matches
+      ? "Swipe the Strip or tap a control."
+      : "Click a window or use the controls. Shortcuts work while focus is inside the demo.";
   }
   StripDemo($("[data-strip-demo]"));
 
