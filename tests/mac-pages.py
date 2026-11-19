@@ -88,7 +88,9 @@ assert 'A scrolling window manager for macOS that sets your windows side by side
 assert 'Free forever' not in product
 assert '#activate=' not in product
 assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lifetime also covers every future version.' in product
-assert '<b>$39</b>' in product and '<b>$99</b>' in product and '<s>' not in product
+assert '<b data-regular>$39</b><b data-launch>$19.50</b>' in product and '<b data-regular>$99</b><b data-launch>$49.50</b>' in product
+assert not any(tag in product for tag in ['<s>', '<del', '<strike', 'line-through'])
+assert 'Date.now() < Date.parse("2026-12-02T07:59:00Z")' in product and 'html:not(.launch) [data-launch], .launch [data-regular] { display: none; }' in product
 assert 'Lifetime costs about 2½ times today\'s Pro 27 price.' in product
 assert 'Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.' in product
 assert 'Your edition never expires.' in product
