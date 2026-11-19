@@ -69,8 +69,8 @@
               <div class="demo-menu-header"><span aria-hidden="true">Pm</span><div><b>PaperMac</b><small>Arranging windows</small></div></div>
               <div data-menu-settings></div>
               <div data-menu-commands="overview jumpTo infinite"></div>
-              <div role="group" aria-label="Window" data-menu-commands="full resize"></div>
-              <div role="group" aria-label="Strips" data-menu-commands="above below"></div>
+              <div role="group" aria-label="Window" data-menu-commands="full resize newWindow minimize close"></div>
+              <div role="group" aria-label="Strips" data-menu-commands="above below moveAbove moveBelow"></div>
             </div>
           </details>
           <span class="demo-system" aria-hidden="true">
@@ -85,7 +85,7 @@
             <button type="button" class="board-float" data-tip="Jump to the floating window; it sits above the Strips." hidden><kbd class="jump-badge" aria-hidden="true"></kbd><span></span></button>
             <span class="board-zoom" role="group" aria-label="Zoom">
               <button type="button" data-board="out" aria-label="Zoom out" data-tip="Zoom out to see more of the Desktop." data-tip-keys="−"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8"/></svg></button>
-              <button type="button" data-board="fit" data-tip="Fit both Strips on the screen." data-tip-keys="0">Fit</button>
+              <button type="button" data-board="fit" data-tip="Fit every Strip on the screen." data-tip-keys="0">Fit</button>
               <button type="button" data-board="in" aria-label="Zoom in" data-tip="Zoom in for a closer look." data-tip-keys="="><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8M8 4v8"/></svg></button>
             </span>
           </div>
@@ -175,6 +175,7 @@ Weather: clear
             <b class="map-desktop">1<sup data-map-count></sup></b>
             <span data-map-app data-tip="Drag the Minimap by its background to move it."></span>
             <span class="map-tools">
+              <span class="map-min" role="group" aria-label="Minimized windows" data-tip="Minimized windows wait here. Click one to restore it, or drag a tile here to minimize its window." hidden><span class="map-min-label" aria-hidden="true">Minimized</span></span>
               <span class="map-float" role="group" aria-label="Floating windows" data-tip="Floating windows sit above the Strips. Drag a tile here to float its window, or a chip onto a row to tile it." hidden><span class="map-float-label" aria-hidden="true">Floating</span></span>
               <button class="map-tool" type="button" data-map-tool="pin" aria-label="Pin the Minimap" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5h4M7 2.5v4.2L4.8 9.2h6.4L9 6.7V2.5M8 9.2v4.3"/><path class="pin-slash" d="m3.5 3.5 9 9"/></svg></button>
               <button class="map-tool" type="button" data-map-tool="collapse" aria-label="Collapse the Minimap" aria-expanded="true" data-tip="Fold the Minimap down to its header, or open it again."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 9.8 3.5-3.6 3.5 3.6"/></svg></button>
@@ -196,6 +197,7 @@ Weather: clear
       <div class="demo-caption">
         <span id="strip-caption">Scroll the Strip to explore the windows.</span>
         <span class="footage-caption">Moving focus scrolls the Strip. Real app; synthetic documents.</span>
+        <button class="btn quiet small demo-expand" data-expand type="button" hidden data-tip="Show the demo as large as the browser window allows. Escape returns to the page."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5V3h3.5M9.5 3H13v3.5M13 9.5V13H9.5M6.5 13H3V9.5"/></svg><span class="expand-label">Expand</span><span class="exit-label">Exit expanded view</span></button>
         <button class="btn quiet small" data-command="pause" type="button" hidden>Pause tour</button>
         <a class="btn ink small" href="#install" data-tip="Jump to the ways to install PaperMac.">Install</a>
       </div>
@@ -216,6 +218,8 @@ Weather: clear
           <button class="btn quiet small" data-command="full" type="button" aria-pressed="false">Full Width</button>
           <button class="btn quiet small" data-command="resize" type="button">Next Width Preset</button>
           <button class="btn quiet small" data-command="newWindow" type="button">New Window</button>
+          <button class="btn quiet small" data-command="minimize" type="button">Minimize</button>
+          <button class="btn quiet small" data-command="close" type="button">Close Window</button>
           <button class="btn quiet small" data-command="overview" type="button" data-key-in-label>Overview</button>
           <button class="btn quiet small" data-command="jumpTo" type="button">Jump to Window</button>
           <button class="btn quiet small" data-command="infinite" type="button">Infinite Canvas</button>

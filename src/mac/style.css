@@ -214,11 +214,27 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 :root[data-mode="dark"] .demo-view input:checked + span { box-shadow: inset 0 0 0 2px var(--ink-2); }
 @media (prefers-color-scheme: dark) { :root:not([data-mode]) .demo-view input:checked + span { box-shadow: inset 0 0 0 2px var(--ink-2); } }
 .demo-view input:focus-visible + span { outline: 3px solid var(--hi); outline-offset: 2px; }
+/* Expanded view: the screen alone, as large as the browser window allows at 16:10, over a dimmed page. */
+.demo-expand { display: inline-flex; align-items: center; gap: 6px; }
+.demo-expand[hidden] { display: none; }
+.demo-expand svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.demo:not(.expanded) .exit-label, .demo.expanded .expand-label { display: none; }
+html.demo-expanded { overflow: hidden; }
+.demo.expanded::before { content: ""; position: fixed; inset: 0; z-index: 60; background: rgba(9,11,16,.88); }
+.demo.expanded .demo-screen {
+  position: fixed; z-index: 61; top: 50%; left: 50%; translate: -50% -50%;
+  /* 68 px above and below leaves the exit button clear of the screen. */
+  width: min(calc(100vw - 48px), calc((100dvh - 136px) * 1.6));
+}
+.demo.expanded .demo-expand { position: fixed; z-index: 62; top: 16px; right: 16px; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.28); }
+.demo.expanded .demo-expand:hover { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
+/* Too short a window cannot hold the screen and the exit button. */
+@media (max-height: 520px) { .demo:not(.expanded) .demo-expand { display: none; } }
 /* One aluminum shell: a thin rim, black display glass, a chin and a stand in the same finish. */
 .demo-monitor {
   position: relative;
   /* 16:10 screen height = viewport minus the switch, chin, stand, caption and one row of controls. */
-  max-width: clamp(560px, (100svh - 350px) * 1.6 + 36px, 1100px);
+  max-width: clamp(560px, (100svh - 350px) * 1.6 + 36px, 1320px);
   padding: clamp(3px, .45vw, 6px) clamp(3px, .45vw, 6px) clamp(24px, 4.2vw, 56px);
   border-radius: clamp(12px, 1.6vw, 22px);
   background: linear-gradient(var(--alu-hi), var(--alu) 52%, var(--alu-lo));
@@ -271,6 +287,27 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
   background: color-mix(in srgb, var(--paper) 88%, transparent); color: var(--ink);
   backdrop-filter: blur(22px); box-shadow: 0 8px 24px #10182760;
 }
+/* Right-click menu for Minimap items and Overview cards, styled like the status menu; destructive items are red,
+   as in macOS. */
+.demo-context {
+  position: fixed; z-index: 75; min-width: 210px; padding: 5px; border: 1px solid var(--line); border-radius: 10px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink);
+  -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 10px 28px #10182766;
+  font: 13px/1.3 system-ui, sans-serif;
+}
+.demo-context[hidden] { display: none; }
+.demo-context [role="menuitem"] {
+  display: block; width: 100%; padding: 5px 10px; border: 0; border-radius: 5px;
+  background: none; color: inherit; font: inherit; text-align: left; cursor: default;
+}
+.demo-context [role="menuitem"]:is(:hover, :focus):not([aria-disabled="true"]) { background: #0b68d6; color: #fff; outline: none; }
+.demo-context [role="menuitem"][aria-disabled="true"] { color: var(--ink-2); }
+.demo-context [role="menuitem"][aria-disabled="true"]:focus { outline: 2px solid #0b68d6; outline-offset: -2px; }
+.demo-context [data-destructive]:not(:hover, :focus) { color: #c4002b; }
+:root[data-mode="dark"] .demo-context [data-destructive]:not(:hover, :focus) { color: #ff6961; }
+@media (prefers-color-scheme: dark) { :root:not([data-mode]) .demo-context [data-destructive]:not(:hover, :focus) { color: #ff6961; } }
+.demo-context [role="separator"] { height: 1px; margin: 4px 8px; background: var(--line); }
+.demo-context .menu-heading { padding: 4px 10px 2px; color: var(--ink-2); font-size: 11px; font-weight: 700; }
 .demo-menu-header { display: flex; gap: 9px; align-items: center; padding: 6px 8px; }
 .demo-menu-header > span { padding: 5px 6px; border-radius: 7px; background: #0b5db8; color: #fff; font-weight: 750; }
 .demo-menu-header small { display: block; font-size: 12px; color: var(--ink-2); }
@@ -300,7 +337,7 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .footage-caption, .demo:has(#demo-view-footage:checked) #strip-caption { display: none; }
 .demo:has(#demo-view-footage:checked) .footage-caption { display: block; }
 .demo-tip {
-  position: fixed; z-index: 40; left: 0; top: 0; max-width: min(320px, calc(100vw - 16px));
+  position: fixed; z-index: 80; left: 0; top: 0; max-width: min(320px, calc(100vw - 16px));
   display: grid; gap: 5px; padding: 7px 10px 8px; border-radius: 9px;
   /* Dark in both themes, like a macOS help tag, so window previews read the same on a dark page. */
   border: 1px solid rgba(255,255,255,.12); background: #1b1c21; color: #f2efe7; box-shadow: 0 10px 24px -10px rgba(12,24,39,.55);
@@ -345,7 +382,9 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .map-heading [data-map-app] { color: rgba(255,255,255,.78); }
 .map-desktop { justify-self: start; padding: 0 7px; border-radius: 9px; background: #0b68d6; line-height: 18px; }
 .map-desktop sup { margin-left: 1px; font-size: 9px; }
-.map-tools { justify-self: end; display: flex; gap: 4px; }
+.map-tools { justify-self: end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) [data-map-app] { visibility: hidden; }
 .map-tool {
   display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
   background: none; color: rgba(255,255,255,.82); cursor: pointer;
@@ -381,11 +420,32 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .map-tile[data-app="Terminal"]::before { background: #263745; outline: 1px solid #a5b6c7; }
 /* The Floating zone in the header, as in the app: a labelled group of app chips with an orange edge. During a tile
    drag it is also the drop target that floats a window: dashed, then solid orange with the tile over it. */
+.map-min { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 4px 0 7px; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: rgba(255,255,255,.08); }
+.map-min[hidden] { display: none; }
+.map-min-label { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.8); }
+.demo.box-dragging .map-min { border-style: dashed; border-color: rgba(10,132,255,.9); }
+.demo.box-dragging .map-min.active { border-style: solid; border-color: #0a84ff; background: rgba(10,132,255,.25); }
+.map-min-chip { position: relative; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid rgba(255,255,255,.22); border-radius: 5px; background: rgba(255,255,255,.12); cursor: pointer; }
+.map-min-chip::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: #f6dc96; opacity: .85; }
+.map-min-chip[data-app="Browser"]::before { background: #badfff; }
+.map-min-chip[data-app="Terminal"]::before { background: #263745; outline: 1px solid #a5b6c7; }
+.map-min-chip .jump-badge { position: absolute; right: -7px; bottom: -7px; padding: 0 3px; font-size: 10px; }
+.map-min-chip.carried { z-index: 4; pointer-events: none; box-shadow: 0 8px 18px rgba(0,0,0,.45); }
+/* Strip 3 and later are Pro, as on the Free and Pro list. */
+.map-row[data-pro]::after {
+  content: "Pro"; position: absolute; z-index: 2; top: -5px; left: -3px; padding: 0 4px; border-radius: 4px;
+  background: var(--pro); color: var(--pro-ink); font: 800 9px/14px system-ui, sans-serif; pointer-events: none;
+}
+/* Dropping below the last row starts a new Strip; the target sits over the scrollbar so the panel never jumps. */
+.demo-minimap.new-strip::after {
+  content: attr(data-new-strip); position: absolute; inset: auto 8px 4px; height: 24px; display: grid; place-items: center;
+  border: 1.5px dashed #0a84ff; border-radius: 7px; background: rgba(10,132,255,.3); color: #fff; font: 650 11px/1 system-ui, sans-serif; pointer-events: none;
+}
 .map-float { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 4px 0 7px; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: rgba(255,255,255,.08); }
 .map-float[hidden] { display: none; }
 .map-float-label { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.8); }
-.demo.map-dragging .map-float { border-style: dashed; border-color: rgba(255,159,10,.8); }
-.demo.map-dragging .map-float.active { border-style: solid; border-color: #ff9f0a; background: rgba(255,159,10,.22); }
+.demo.box-dragging .map-float { border-style: dashed; border-color: rgba(255,159,10,.8); }
+.demo.box-dragging .map-float.active { border-style: solid; border-color: #ff9f0a; background: rgba(255,159,10,.22); }
 .map-float.active .map-float-label { color: #ffc266; }
 .map-float-chip { position: relative; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid #ff9f0a; border-radius: 5px; background: rgba(255,255,255,.12); cursor: pointer; }
 .map-float-chip[hidden] { display: none; }
@@ -483,14 +543,14 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .demo .win.carried, .map-tile.carried { z-index: 6; pointer-events: none; box-shadow: 0 22px 44px -12px rgba(0,0,0,.65); }
 .demo-canvas:has(.carried), .demo-minimap:has(.carried) { cursor: grabbing; }
 .map-tile.carried { z-index: 4; opacity: .92; }
-.drop-caret { position: fixed; z-index: 30; width: 3px; border-radius: 2px; background: #0a84ff; box-shadow: 0 0 0 1px rgba(255,255,255,.85); pointer-events: none; }
+.drop-caret { position: fixed; z-index: 70; width: 3px; border-radius: 2px; background: #0a84ff; box-shadow: 0 0 0 1px rgba(255,255,255,.85); pointer-events: none; }
 .drop-caret[hidden] { display: none; }
 .demo-canvas[data-drop="above"]::after, .demo-canvas[data-drop="below"]::after {
   position: absolute; z-index: 5; inset-inline: 10px; height: 14%; display: grid; place-items: center; border: 2px dashed rgba(255,255,255,.8);
   border-radius: 10px; background: rgba(10,132,255,.32); color: #fff; font: 650 13px/1.3 system-ui, sans-serif; pointer-events: none;
 }
-.demo-canvas[data-drop="above"]::after { content: "Drop to move it to the Strip above"; top: 6px; }
-.demo-canvas[data-drop="below"]::after { content: "Drop to move it to the Strip below"; bottom: 6px; }
+.demo-canvas[data-drop="above"]::after { content: attr(data-drop-label); top: 6px; }
+.demo-canvas[data-drop="below"]::after { content: attr(data-drop-label); bottom: 6px; }
 .demo .demo-canvas > .win > .tb:active { cursor: grabbing; }
 .demo .demo-canvas > .win > .tb:focus-visible { outline-offset: -3px; }
 .demo.limelight .demo-canvas > .win { filter: none; }
@@ -580,14 +640,42 @@ h1 { margin: 0; font-weight: 900; font-stretch: 125%; font-size: min(clamp(56px,
 .demo .win > .tb {
   display: grid; align-items: center;
   height: 32px;
-  padding-inline: 63px 10px;
+  padding-inline: 72px 10px;
   font-size: 13px;
   border-bottom: 0;
 }
+/* Traffic lights are real buttons here: red closes, yellow minimizes to the Minimap, green fills the Strip's width.
+   Unfocused windows show them grey until the pointer is over the group, as in macOS. */
+/* Without JavaScript the drawn lights stay; the buttons replace them once they exist. */
 .demo .win > .tb::before { width: 10px; height: 10px; left: 12px; box-shadow: 15px 0 0 #febc2e, 30px 0 0 #28c840; }
-.demo .rail:has([aria-current]) .win:not([aria-current]) > .tb::before {
-  background: #8b919b; box-shadow: 15px 0 0 #8b919b, 30px 0 0 #8b919b;
+.demo .rail:has([aria-current]) .win:not([aria-current]) > .tb::before { background: #8b919b; box-shadow: 15px 0 0 #8b919b, 30px 0 0 #8b919b; }
+.demo .win:has(> .traffic) > .tb::before { display: none; }
+/* The lights take every press over anything else in their window: resize edges, letters and the board's pick target.
+   Each window is its own layer, so they still sit below the Minimap and the floating window. */
+.demo .rail > .win { isolation: isolate; }
+.traffic { position: absolute; z-index: 5; top: 0; left: 12px; height: 32px; display: flex; align-items: center; gap: 8px; }
+.demo.infinite .traffic { pointer-events: none; }
+.traffic button {
+  display: grid; place-items: center; width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%;
+  color: transparent; font: 600 9px/1 system-ui, sans-serif; cursor: pointer;
 }
+.traffic button[aria-disabled="true"] { cursor: default; }
+.tl-close { background: #ff5f57; }
+.tl-minimize { background: #febc2e; }
+.tl-full { background: #28c840; }
+.tl-close::before { content: "×"; }
+.tl-minimize::before { content: "−"; }
+.tl-full::before { content: "+"; }
+.traffic:hover button, .traffic button:focus-visible { color: rgba(0,0,0,.6); }
+/* Only the key window's lights are coloured: the focused tile, or the floating window while its title bar has focus. */
+.demo .rail .win:not([aria-current]) .traffic:not(:hover) button,
+.demo .demo-canvas > .win:not(:focus-within) .traffic:not(:hover) button,
+.demo:has(.demo-canvas > .win:focus-within) .rail .win .traffic:not(:hover) button { background: #8b919b; }
+.demo .traffic button[aria-disabled="true"] { background: #c4c7cd; }
+.traffic button[aria-disabled="true"]::before { content: none; }
+/* A tap on an unfocused tile's grey light focuses the window first; 12 px lights are too easy to hit by mistake.
+   The floating window does the same in page.js, since iOS moves focus before a tap ends. */
+@media (pointer: coarse) { .demo .rail .win:not([aria-current]) .traffic { pointer-events: none; } }
 .demo-toolbar {
   display: flex; align-items: center; gap: 8px; min-height: 34px;
   padding: 4px 12px; border-bottom: 1px solid var(--win-line);
@@ -846,6 +934,7 @@ footer .brand img { width: 24px; height: 24px; }
   .decide { padding: 18px; }
   .hero h1 { font-size: min(16vw, 72px); }
   .demo-monitor { width: calc(100% - 20px); }
+  .demo:not(.expanded) .demo-expand { display: none; }
   .demo-minimap { position: relative; bottom: auto; width: auto; margin: 6px; }
   .demo.has-map .demo-tour { bottom: 14px; }
   .map-row { padding-block: 2px; }
@@ -856,13 +945,15 @@ footer .brand img { width: 24px; height: 24px; }
   .demo-view span { min-height: 44px; }
   .demo-menu { padding: 0 8px; }
   .map-tool { width: 44px; height: 44px; margin-block: -10px; }
-  .map-float { height: 30px; padding: 0 2px; }
-  .map-float-label { display: none; }
-  .map-float-chip { width: 44px; height: 44px; margin-block: -8px; }
+  .map-float, .map-min { height: 30px; padding: 0 2px; }
+  .map-float-label, .map-min-label { display: none; }
+  .map-float-chip, .map-min-chip { width: 44px; height: 44px; margin-block: -8px; }
+  .map-tools { flex-wrap: wrap; justify-content: flex-end; }
+  .traffic { height: 28px; }
   .map-track { height: 18px; }
   .map-track::before { top: 7.5px; }
   .map-track i { top: 6px; }
-  .demo-status-menu > summary, .demo-menu-panel button { min-height: 44px; }
+  .demo-status-menu > summary, .demo-menu-panel button, .demo-context [role="menuitem"] { min-height: 44px; }
   .demo-status-menu > summary { min-width: 44px; }
   .demo-menu-panel { top: 44px; }
   .demo .guide .photo { height: 50px; margin-top: 8px; }
