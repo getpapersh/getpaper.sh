@@ -59,7 +59,7 @@
     <div class="demo-monitor wrap">
       <div class="demo-screen">
         <div class="demo-menu">
-          <b data-demo-app aria-hidden="true">Browser</b>
+          <b data-demo-app aria-hidden="true">Mail</b>
           <span class="demo-menus" aria-hidden="true">File &nbsp; Edit &nbsp; View &nbsp; Window &nbsp; Help</span>
           <details class="demo-status-menu" hidden>
             <summary aria-label="PaperMac menu, Desktop 1" data-tip="Open the PaperMac menu with the layout settings and commands.">
@@ -90,64 +90,73 @@
             </span>
           </div>
           <div class="rail" data-strip tabindex="0" role="group" aria-label="Strip 1">
-            <div class="win ph" data-app="Browser">
-              <b class="tb">Trail Guide</b>
-              <div class="demo-toolbar browser-toolbar" aria-hidden="true">
-                <span class="browser-arrows">‹ &nbsp; ›</span>
-                <span class="browser-address">Trail Guide / North Ridge</span>
-              </div>
-              <div class="window-body guide">
-                <h3>Morning at the ridge</h3>
-                <p>Follow the old fire road to the overlook, then loop back along the creek.</p>
-                <div class="photo" aria-hidden="true"></div>
-                <dl><div><dt>Distance</dt><dd>6.4 km</dd></div><div><dt>Elevation gain</dt><dd>310 m</dd></div></dl>
-              </div>
-            </div>
-            <div class="win dc" data-app="Notes">
-              <b class="tb">Field Notes</b>
-              <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
-              <div class="notes-layout">
-                <div class="notes-list" aria-hidden="true"><b>Weekend route</b><span>Packing list</span><span>Trail sketch</span></div>
+            <div class="win mail" data-app="Mail">
+              <b class="tb">Inbox</b>
+              <div class="demo-toolbar" aria-hidden="true">Mail <span>/</span> Inbox</div>
+              <div class="mail-layout">
+                <div class="mail-list" aria-hidden="true">
+                  <b>Priya Shah<small>Launch review moved to Thursday</small></b>
+                  <span>Alex Kim<small>Re: Minimap search</small></span>
+                  <span>Design team<small>Updated app icons</small></span>
+                  <span>Sam Rivera<small>Q3 roadmap draft</small></span>
+                </div>
                 <div class="window-body">
-                  <h3>Weekend route</h3>
-                  <p>Meet at the trailhead at 8:30. Take the fire road up and the creek path back.</p>
-                  <h4>Bring along</h4>
-                  <ul><li>Printed route map</li><li>Water and lunch</li><li>Notebook and pencil</li></ul>
+                  <h3>Launch review moved to Thursday</h3>
+                  <p class="mail-from">Priya Shah · 9:12 AM</p>
+                  <p>Hi all, the launch review is now Thursday at 10:30. Bring the open questions from Monday’s sync, and Alex will demo Minimap search.</p>
                 </div>
               </div>
             </div>
+            <div class="win code" data-app="Code">
+              <b class="tb">minimap.ts</b>
+              <div class="demo-toolbar" aria-hidden="true">paper-app <span>/</span> src <span>/</span> minimap.ts</div>
+              <pre class="window-body"><code><i>1</i><span class="k">export function</span> <span class="f">visibleRange</span>(strip, view) {
+<i>2</i>  <span class="k">const</span> start = view.x - strip.origin;
+<i>3</i>  <span class="k">const</span> end = start + view.width;
+<i>4</i>  <span class="k">return</span> strip.windows.<span class="f">filter</span>(win =&gt;
+<i>5</i>    win.right &gt; start &amp;&amp; win.left &lt; end);
+<i>6</i>}
+<i>7</i>
+<i>8</i><span class="c">// Matches titles and app names, best first.</span>
+<i>9</i><span class="k">export function</span> <span class="f">search</span>(windows, query) {</code></pre>
+            </div>
             <div class="win te" data-app="Terminal">
               <b class="tb">Terminal</b>
-              <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
-              <pre class="window-body"><code><span>~/north-ridge %</span> ls
-field-notes.txt  trail-guide.html
+              <div class="demo-toolbar" aria-hidden="true">paper-app <span>—</span> zsh</div>
+              <pre class="window-body"><code><span>~/paper-app %</span> bun test
+ ✓ minimap › visible range     4 ms
+ ✓ minimap › search by title   2 ms
+ ✓ strip › scroll to window    6 ms
 
-<span>~/north-ridge %</span> cat field-notes.txt
-08:30   Meet at the trailhead
-10:00   Stop at the overlook
-12:15   Return via Creek Path
+ 48 pass  0 fail
 
-<span>~/north-ridge %</span></code></pre>
+<span>~/paper-app %</span></code></pre>
             </div>
           </div>
           <div class="rail" data-strip role="group" aria-label="Strip 2" hidden>
-            <div class="win dc" data-app="Notes">
-              <b class="tb">Packing List</b>
-              <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
-              <div class="window-body">
-                <h3>Packing list</h3>
-                <ul><li>Map and compass</li><li>Rain shell</li><li>Water and snacks</li></ul>
+            <div class="win ph" data-app="Browser">
+              <b class="tb">Pull Request #214</b>
+              <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+                <span class="browser-arrows">‹ &nbsp; ›</span>
+                <span class="browser-address">Code Review / paper-app / 214</span>
+              </div>
+              <div class="window-body guide">
+                <h3>Add search to the Minimap</h3>
+                <p>Alex wants to merge 4 commits into main.</p>
+                <dl><div><dt>Checks</dt><dd>All passing</dd></div><div><dt>Reviews</dt><dd>2 approvals</dd></div><div><dt>Changes</dt><dd>+182 −41</dd></div></dl>
               </div>
             </div>
-            <div class="win te" data-app="Terminal">
-              <b class="tb">Trail Log</b>
-              <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
-              <pre class="window-body"><code><span>~/north-ridge %</span> cat trail.log
-North Ridge loop
-6.4 km · 310 m ascent
-Weather: clear
-
-<span>~/north-ridge %</span></code></pre>
+            <div class="win chat" data-app="Chat">
+              <b class="tb">#launch</b>
+              <div class="demo-toolbar" aria-hidden="true">Chat <span>/</span> #launch</div>
+              <div class="msg-layout">
+                <div class="msg-list" aria-hidden="true"><b># launch</b><span># design</span><span># general</span></div>
+                <div class="chat-feed">
+                  <p><b>Priya</b>Release notes are ready for review.</p>
+                  <p><b>Alex</b>Search PR is green. Merging after the sync?</p>
+                  <p><b>Sam</b>Yes, ship it. I’ll update the roadmap.</p>
+                </div>
+              </div>
             </div>
           </div>
           <span class="demo-tour" aria-hidden="true" hidden></span>

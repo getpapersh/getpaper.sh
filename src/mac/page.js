@@ -1074,7 +1074,7 @@
       search.setAttribute("aria-activedescendant", card.id);
     };
     // Ranked like the app: every word must match the title or the app; a prefix beats a word start, which beats
-    // initials ("tl" for Trail Log), which beat letters in order. Ties keep Strip order.
+    // initials ("pr" for Pull Request), which beat letters in order. Ties keep Strip order.
     const tier = (word, text) => text.startsWith(word) ? 0 : text.split(/\s+/).some(part => part.startsWith(word)) ? 1
       : text.split(/\s+/).map(part => part[0]).join("").includes(word) ? 1.5 : fuzzy(word, text.replace(/\s+/g, "")) ? 2 : Infinity;
     const rank = (words, win) => words.reduce((sum, word) =>
@@ -1941,7 +1941,7 @@
     tip.setAttribute("role", "tooltip");
     tip.innerHTML = '<span></span><kbd aria-hidden="true"></kbd><div class="tip-extra"></div>';
     fig.append(tip);
-    let tipFor = null, tipNext = null, tipTimer, tipHide, lastPointer = "mouse";
+    let tipFor = null, tipNext = null, tipTimer, tipHide, tipAt = null, lastPointer = "mouse";
     const tipTarget = element => $("input", element) ?? element;
     const helpFor = element => {
       const found = element?.closest?.("[data-tip-for], [data-setting], [data-tip], .rail > .win > .tb, .rail > .win");
@@ -1979,16 +1979,20 @@
       $("span", tip).textContent = text;
       $("kbd", tip).textContent = keys;
       $(".tip-extra", tip).replaceChildren(...(preview ? previewOf(preview) : desktop ? desktopOf() : []));
+      // Measured at the origin: a fixed element near the right edge would wrap narrower.
+      Object.assign(tip.style, { left: "0px", top: "0px" });
       tip.hidden = false;
       tipTarget(element).setAttribute("aria-describedby", tip.id);
       const anchor = (element.matches(".rail > .win") ? grip(element) : element).getBoundingClientRect(), box = tip.getBoundingClientRect();
+      tipAt = { x: anchor.left, y: anchor.top };
       // Help for things on the simulated screen stays on the screen rather than over the enclosure.
       const screen = element.closest(".demo-screen")?.getBoundingClientRect();
       const below = anchor.top - 8 - box.height < Math.max(0, screen?.top ?? 0);
       const inside = screen && screen.width > box.width + 16;
       const low = Math.max(8, inside ? screen.left + 8 : 8), high = Math.min(innerWidth, inside ? screen.right : innerWidth) - box.width - 8;
       const left = Math.min(Math.max(low, anchor.left + (anchor.width - box.width) / 2), high);
-      tip.style.translate = `${Math.round(left)}px ${Math.round(below ? anchor.bottom + 8 : anchor.top - 8 - box.height)}px`;
+      // Placed with left and top: the entrance animation moves translate a few pixels, so the tooltip must not ride on it.
+      Object.assign(tip.style, { left: `${Math.round(left)}px`, top: `${Math.round(below ? anchor.bottom + 8 : anchor.top - 8 - box.height)}px` });
       if (brief) tipHide = setTimeout(hideTip, 2400);
     };
     fig.addEventListener("pointerdown", event => {
@@ -2039,8 +2043,12 @@
       else if (!event.detail) requestAnimationFrame(() => { if (element.contains(document.activeElement)) showTip(element); });
     });
     document.addEventListener("keydown", event => { if (event.key === "Escape") hideTip(); });
+    // A scroll hides the tooltip only once its control has moved; a scroll event that leaves it in place (focus
+    // revealing a control that was already in view) keeps it.
     addEventListener("scroll", event => {
-      if (event.target === document || event.target.contains?.(tipFor) || event.target.contains?.(tipNext)) hideTip();
+      if (!(event.target === document || event.target.contains?.(tipFor) || event.target.contains?.(tipNext))) return;
+      const anchor = tipFor && (tipFor.matches(".rail > .win") ? grip(tipFor) : tipFor).getBoundingClientRect();
+      if (!anchor || !tipAt || Math.abs(anchor.left - tipAt.x) > 1 || Math.abs(anchor.top - tipAt.y) > 1) hideTip();
     }, { capture: true, passive: true });
     addEventListener("resize", hideTip);
 
