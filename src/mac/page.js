@@ -87,9 +87,10 @@
   function StripDemo(fig) {
     const strips = $$("[data-strip]", fig);
     const windows = $$(".win", fig), initialWindowCount = windows.length, stripLimit = 4;
-    // New windows rotate through every example page in a shuffled round, never the same app twice in a row; the
-    // next round starts once all are used, and a page already open gets a number.
-    let round = [], lastApp = "";
+    // New windows rotate through the Desktop's own example pages (work pages on Work, personal ones on Personal, a
+    // general set elsewhere) in a shuffled round, never the same app twice in a row; the next round starts once all
+    // are used, and a page already open gets a number. Each set keeps its own place in its round.
+    const rounds = new Map();
     const shuffle = list => {
       for (let i = list.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -97,19 +98,21 @@
       }
       return list;
     };
-    const nextPage = () => {
+    const nextPage = (set = desktops[desk]?.pages ?? "demo-new-window") => {
+      if (!rounds.has(set)) rounds.set(set, { round: [], lastApp: "" });
+      const state = rounds.get(set), { round } = state;
       if (!round.length) {
         // Each app's pages in a random order, dealt one app at a time in a random app order, so neighbours never
-        // share an app (every app has the same number of pages).
-        const byApp = Map.groupBy(shuffle([...$("#demo-new-window", fig).content.children]), page => page.dataset.app);
+        // share an app (every app in a set has the same number of pages).
+        const byApp = Map.groupBy(shuffle([...$(`#${set}`, fig).content.children]), page => page.dataset.app);
         while ([...byApp.values()].some(pages => pages.length)) {
           const apps = shuffle([...byApp.keys()].filter(app => byApp.get(app).length));
-          if (apps.length > 1 && apps[0] === (round.at(-1)?.dataset.app ?? lastApp)) apps.push(apps.shift());
+          if (apps.length > 1 && apps[0] === (round.at(-1)?.dataset.app ?? state.lastApp)) apps.push(apps.shift());
           for (const app of apps) round.push(byApp.get(app).pop());
         }
       }
       const page = round.shift();
-      lastApp = page.dataset.app;
+      state.lastApp = page.dataset.app;
       return page;
     };
     const canvas = $(".demo-canvas", fig), status = $("[role=status]", fig);
@@ -2407,16 +2410,16 @@
     fig.dataset.mapMode = settings.map;
     const nameOf = i => desktops[i].name || `Desktop ${i + 1}`;
     const walls = ["work", "personal", "dusk", "forest", "violet"];
-    const makeDesktop = (name, wall, pages) => {
+    const makeDesktop = (name, wall, start, pages = "demo-new-window") => {
       const rail = newRail(), mapRow = newMapRow();
       rail.hidden = true;
-      for (const page of pages) {
+      for (const page of start) {
         const win = page.cloneNode(true);
         win.style.setProperty("--window-width", width(win));
         rail.append(win);
         bindPicker(win);
       }
-      return { name, wall, strips: [rail], mapRows: [mapRow], selections: [rail.firstElementChild], row: 0, minimized: [], windows: [...rail.children], floating: null };
+      return { name, wall, pages, strips: [rail], mapRows: [mapRow], selections: [rail.firstElementChild], row: 0, minimized: [], windows: [...rail.children], floating: null };
     };
     // The Desktop on screen keeps its state in the shared arrays; a switch stores it and swaps the next one in.
     const switchDesktop = index => {
@@ -2460,7 +2463,7 @@
     };
     // A new Desktop gets the next wallpaper and one window to start, so there is something to tile.
     const addDesktop = () => {
-      desktops.push(makeDesktop("", walls[desktops.length % walls.length], [nextPage()]));
+      desktops.push(makeDesktop("", walls[desktops.length % walls.length], [nextPage("demo-new-window")]));
       buildPills();
       switchDesktop(desktops.length - 1);
       announce(`Desktop ${desktops.length} added, with one window. Double-click its pill to name it.`);
@@ -2549,8 +2552,8 @@
       if (focused >= 0) [addPill, ...desktopPills][Math.min(focused, desktopPills.length)].focus({ preventScroll: true });
     };
     showStrip(0);
-    desktops.push({ name: "Work", wall: "work", strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [], windows: [...windows], floating: null });
-    desktops.push(makeDesktop("Personal", "personal", [...$("#demo-personal-windows", fig).content.children]));
+    desktops.push({ name: "Work", wall: "work", pages: "demo-work-pages", strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [], windows: [...windows], floating: null });
+    desktops.push(makeDesktop("Personal", "personal", [...$("#demo-personal-windows", fig).content.children], "demo-personal-pages"));
     screenEl.dataset.wall = "work";
     buildPills();
     pauseButton.hidden = reduced();

@@ -355,6 +355,170 @@ km,m
             </div>
           </div>
         </template>
+        <template id="demo-work-pages">
+          <div class="win mail" data-app="Mail" data-new>
+            <b class="tb">Roadmap Draft</b>
+            <div class="demo-toolbar" aria-hidden="true">Mail <span>/</span> Inbox</div>
+            <div class="mail-layout">
+              <div class="mail-list" aria-hidden="true"><b>Sam Rivera<small>Q3 roadmap draft</small></b><span>Priya Shah<small>Launch review moved to Thursday</small></span><span>Alex Kim<small>Re: Minimap search</small></span></div>
+              <div class="window-body"><h3>Q3 roadmap draft</h3><p class="mail-from">Sam Rivera · Yesterday</p><p>Here’s the first pass at Q3. Desktops and Minimap search are in; let’s talk about the iPad story on Friday.</p></div>
+            </div>
+          </div>
+          <div class="win mail" data-app="Mail" data-new>
+            <b class="tb">Design Review</b>
+            <div class="demo-toolbar" aria-hidden="true">Mail <span>/</span> Inbox</div>
+            <div class="mail-layout">
+              <div class="mail-list" aria-hidden="true"><b>Design team<small>Updated app icons</small></b><span>Sam Rivera<small>Q3 roadmap draft</small></span><span>Priya Shah<small>Launch review moved to Thursday</small></span></div>
+              <div class="window-body"><h3>Updated app icons</h3><p class="mail-from">Design team · 11:40 AM</p><p>New icons are in the shared folder. The Minimap colours now match each app, so tiles read at a glance.</p></div>
+            </div>
+          </div>
+          <div class="win code" data-app="Code" data-new>
+            <b class="tb">strip.ts</b>
+            <div class="demo-toolbar" aria-hidden="true">paper-app <span>/</span> src <span>/</span> strip.ts</div>
+            <pre class="window-body"><code><i>1</i><span class="k">export function</span> <span class="f">scrollTo</span>(strip, win) {
+<i>2</i>  <span class="k">const</span> center = win.left + win.width / 2;
+<i>3</i>  strip.<span class="f">scroll</span>(center - strip.width / 2);
+<i>4</i>}
+<i>5</i>
+<i>6</i><span class="c">// Every window keeps its own width.</span>
+<i>7</i><span class="k">export function</span> <span class="f">resize</span>(win, width) {
+<i>8</i>  win.width = <span class="f">clamp</span>(width, 240, screen.width);
+<i>9</i>}</code></pre>
+          </div>
+          <div class="win code" data-app="Code" data-new>
+            <b class="tb">search.test.ts</b>
+            <div class="demo-toolbar" aria-hidden="true">paper-app <span>/</span> test <span>/</span> search.test.ts</div>
+            <pre class="window-body"><code><i>1</i><span class="k">import</span> { search } <span class="k">from</span> <span class="s">"../src/minimap"</span>;
+<i>2</i>
+<i>3</i><span class="f">test</span>(<span class="s">"initials match"</span>, () =&gt; {
+<i>4</i>  <span class="k">const</span> hits = <span class="f">search</span>(windows, <span class="s">"pr"</span>);
+<i>5</i>  <span class="f">expect</span>(hits[0].title).<span class="f">toBe</span>(<span class="s">"Pull Request #214"</span>);
+<i>6</i>});</code></pre>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Release Notes</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Docs / Release notes / 2.4</span>
+            </div>
+            <div class="window-body guide">
+              <h3>PaperMac 2.4</h3>
+              <p>Desktops you can name, a faster Minimap, and search that finds windows by their initials.</p>
+              <dl><div><dt>Released</dt><dd>Tuesday</dd></div><div><dt>Size</dt><dd>14 MB</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Weekly Metrics</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Analytics / This week</span>
+            </div>
+            <div class="window-body guide">
+              <h3>This week</h3>
+              <p>Daily active users are up after the Minimap release.</p>
+              <dl><div><dt>Active</dt><dd>12,480</dd></div><div><dt>Trials</dt><dd>+18%</dd></div><div><dt>Churn</dt><dd>1.9%</dd></div></dl>
+            </div>
+          </div>
+          <div class="win chat" data-app="Chat" data-new>
+            <b class="tb">#design</b>
+            <div class="demo-toolbar" aria-hidden="true">Chat <span>/</span> #design</div>
+            <div class="msg-layout">
+              <div class="msg-list" aria-hidden="true"><span># launch</span><b># design</b><span># general</span></div>
+              <div class="chat-feed"><p><b>Mia</b>Uploaded the new Minimap colours.</p><p><b>Alex</b>Love the Chat pink. Ship it.</p><p><b>Mia</b>Icons go out with 2.4.</p></div>
+            </div>
+          </div>
+          <div class="win chat" data-app="Chat" data-new>
+            <b class="tb">Priya</b>
+            <div class="demo-toolbar" aria-hidden="true">Chat <span>/</span> Priya</div>
+            <div class="msg-layout">
+              <div class="msg-list" aria-hidden="true"><b>Priya</b><span>Alex</span><span>Sam</span></div>
+              <div class="chat-feed"><p><b>Priya</b>Can you take the demo on Thursday?</p><p><b>You</b>Sure. I’ll show Desktops and search.</p><p><b>Priya</b>Perfect, thank you!</p></div>
+            </div>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Git Log</b>
+            <div class="demo-toolbar" aria-hidden="true">paper-app <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/paper-app %</span> git log --oneline -4
+a41c9e2 Add search to the Minimap
+7d02b1f Name Desktops
+3c9e5aa Measure Minimap tiles
+9f10d47 Faster window snapping
+
+<span>~/paper-app %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Server Logs</b>
+            <div class="demo-toolbar" aria-hidden="true">paper-app <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/paper-app %</span> tail -f server.log
+09:41  GET /api/strips   200  12 ms
+09:41  GET /api/search   200   8 ms
+09:42  POST /api/layout  201  21 ms
+
+<span>~/paper-app %</span></code></pre>
+          </div>
+        </template>
+        <template id="demo-personal-pages">
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Banana Bread</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Home Kitchen / Banana bread</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Brown butter banana bread</h3>
+              <p>Three ripe bananas, brown butter and a crackly sugar top.</p>
+              <dl><div><dt>Prep</dt><dd>15 min</dd></div><div><dt>Bake</dt><dd>55 min</dd></div><div><dt>Makes</dt><dd>1 loaf</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Flights to Lisbon</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Travel / Lisbon</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Lisbon, May 14–21</h3>
+              <p>Two nonstop options leave Friday morning.</p>
+              <dl><div><dt>From</dt><dd>$612</dd></div><div><dt>Time</dt><dd>9 h 40 m</dd></div><div><dt>Bags</dt><dd>1 included</dd></div></dl>
+            </div>
+          </div>
+          <div class="win msg" data-app="Messages" data-new>
+            <b class="tb">Mom</b>
+            <div class="demo-toolbar" aria-hidden="true">Messages <span>/</span> Mom</div>
+            <div class="msg-layout">
+              <div class="msg-list" aria-hidden="true"><b>Mom<small>Call me Sunday?</small></b><span>Sam<small>Deal. 7:00?</small></span><span>Book Club<small>Chapter 7 by Thursday</small></span></div>
+              <div class="msg-chat"><p class="in">Did you get the photos from the coast?</p><p class="out">Yes! The sunset one is my favourite.</p><p class="in">Call me Sunday?</p></div>
+            </div>
+          </div>
+          <div class="win msg" data-app="Messages" data-new>
+            <b class="tb">Book Club</b>
+            <div class="demo-toolbar" aria-hidden="true">Messages <span>/</span> Book Club</div>
+            <div class="msg-layout">
+              <div class="msg-list" aria-hidden="true"><b>Book Club<small>Chapter 7 by Thursday</small></b><span>Mom<small>Call me Sunday?</small></span><span>Sam<small>Deal. 7:00?</small></span></div>
+              <div class="msg-chat"><p class="in">Chapter 7 by Thursday, everyone.</p><p class="out">I’m bringing snacks.</p><p class="in">Then I’m definitely coming.</p></div>
+            </div>
+          </div>
+          <div class="win pho" data-app="Photos" data-new>
+            <b class="tb">Lisbon Trip</b>
+            <div class="demo-toolbar" aria-hidden="true">Photos <span>/</span> Albums</div>
+            <div class="window-body"><h3>Lisbon trip</h3><p>36 photos · May</p><div class="photo-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          </div>
+          <div class="win pho" data-app="Photos" data-new>
+            <b class="tb">Garden</b>
+            <div class="demo-toolbar" aria-hidden="true">Photos <span>/</span> Albums</div>
+            <div class="window-body"><h3>Garden</h3><p>12 photos · June</p><div class="photo-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Groceries</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Lists</div>
+            <div class="window-body"><h3>Groceries</h3><ul><li>Bananas</li><li>Butter</li><li>Lemons</li><li>Thyme</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Gift Ideas</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Lists</div>
+            <div class="window-body"><h3>Gift ideas</h3><ul><li>Mom: a new plant</li><li>Sam: a cookbook</li><li>Book Club: bookmarks</li></ul></div>
+          </div>
+        </template>
         <div class="demo-minimap" role="group" aria-label="Minimap" hidden>
           <div class="map-heading">
             <span class="map-desktops" role="group" aria-label="Desktops"><b class="map-desktop" aria-current="true"><b>1</b><sup></sup></b></span>
