@@ -74,7 +74,7 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 ## Evidence on Hand
 
 - A PaperMac app icon exists (`papermac/Resources/AppIcon.png`).
-- The Mac page includes three recordings of the real app with synthetic document windows: focus scrolling, Overview and the Minimap, and three uneven Strips with a three-window Stack. Testimonials, user counts, benchmarks and press remain unavailable. Illustrative diagrams stay distinct from recordings.
+- The Mac page shows the real app in its hero promo and in the demo's Real footage view (focus scrolling with synthetic document windows); the feature tiles are animated drawings. The Overview and three-Strip recordings stay in `media/papermac/` but are no longer on the page. Testimonials, user counts and press remain unavailable; the one performance figure is a single two-display measurement, stated as such. Illustrative diagrams stay distinct from recordings.
 
 ## Product Principles
 

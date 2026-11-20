@@ -99,7 +99,7 @@ assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in prod
 assert 'up to 5 Macs at once' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
 videos = [attributes for tag, attributes in Page(product).tags if tag == 'video']
-assert len(videos) == 3
+assert len(videos) == 2
 assert videos[0]['class'] == 'hero-promo'
 assert videos[0]['poster'] == '../media/papermac/promo.jpg'
 assert videos[0]['preload'] == 'none'
@@ -109,7 +109,7 @@ for video in videos:
     assert 'autoplay' not in video
 sources = [attributes['src'] for tag, attributes in Page(product).tags if tag == 'source']
 assert sources[0] == '../media/papermac/promo.mp4'
-assert set(sources[1:]) == {'../media/papermac/' + name + '.mp4' for name in ['strip', 'pro-layout']}
+assert set(sources[1:]) == {'../media/papermac/strip.mp4'}
 assert '{{' not in product
 config = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read_text().splitlines()
 config = dict(line.split('=', 1) for line in config if line.strip() and not line.startswith('#'))
@@ -141,7 +141,7 @@ if sales_off:
     assert '<p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>' in product
 else:
     assert '<p class="sales-closed"' not in product
-    assert 'QR code for the PaperMac Pro 27 checkout' in offers['pro-27']
+    assert re.search(r'<div class="ribbon-foot">.*?QR code for the PaperMac Pro 27 checkout', product, re.S)
 # The owner wants Homebrew reachable at the top, before the demo.
 assert product.index('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac') < product.index('data-strip-demo')
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'

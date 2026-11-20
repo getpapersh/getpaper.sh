@@ -617,7 +617,7 @@ a41c9e2 Add search to the Minimap
     <p class="lead">PaperMac runs on top of your native Spaces instead of replacing them, so Mission Control, gestures and full-screen apps keep working, and System Integrity Protection stays on.</p>
     <ul class="engine">
       <li><strong>Real macOS Spaces.</strong><p>Every Desktop is a real Space with its own Strip. Some Mac tilers swap Spaces for their own workspaces or need System Integrity Protection turned off; PaperMac does neither.</p></li>
-      <li><strong>Windows stay live.</strong><p>Windows past the screen edge are never minimized, and on macOS 27 WindowServer doesn’t draw them while they’re out of view. On one two-display Mac we measured, WindowServer’s idle CPU fell from 23–39% to about 9% with PaperMac running.</p></li>
+      <li><strong>Light on your Mac.</strong><p>Windows past the screen edge stay live and are never minimized, and on macOS 27 they aren’t redrawn while they’re out of view. On a two-display test Mac, the macOS window system used about two thirds less CPU at idle with PaperMac running.</p></li>
       <li><strong>Instant Desktops.</strong><p>Switching Desktops skips the slide animation, and a window moves to another Desktop or display in one step.</p></li>
     </ul>
     <div class="grid">
@@ -656,14 +656,20 @@ a41c9e2 Add search to the Minimap
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
           <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
-          <div class="also-free"><b>Also in Free</b><ul><li>Rules for your apps</li><li>Gestures</li><li>Your own shortcuts</li><li>A config file and a CLI</li><li>Crash recovery</li></ul></div>
+          <div class="also-free"><b>Also in Free</b><ul>
+            <li><strong>App rules</strong> Open an app floating, at a set width, or leave it alone.</li>
+            <li><strong>Shortcuts your way</strong> Remap every command. Ghost Keys shows the command as you hold the keys.</li>
+            <li><strong>Scroll gesture</strong> Hold a modifier and scroll to glide along the Strip.</li>
+            <li><strong>Config file</strong> One plain file for every setting, ready for your dotfiles.</li>
+            <li><strong>The papermac CLI</strong> Run any command and read live window state from scripts and status bars.</li>
+          </ul></div>
         </div>
       </div>
       <div class="col pro" id="pro">
         <div class="col-head"><h3>PaperMac Pro</h3><b><small>from</small> <span data-regular>$39</span><span data-launch>$19.50</span></b></div>
         <p class="col-intro">Everything in Free, plus:</p>
         <div class="pics">
-          <figure class="pic recording"><video controls muted loop playsinline preload="none" width="1920" height="1200" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-poster="../media/papermac/pro-layout.jpg" aria-label="Three lanes of different heights and a stack of three synthetic document windows"><source src="../media/papermac/pro-layout.mp4" type="video/mp4">Your browser cannot play this recording.</video><figcaption><b>3 or more lanes</b> per Desktop. Real app; synthetic documents.</figcaption></figure>
+          <figure class="pic" data-pic="lanes3"><div class="mini" aria-hidden="true"></div><figcaption><b>3 or more lanes</b> per Desktop</figcaption></figure>
           <figure class="pic" data-pic="uneven"><div class="mini" aria-hidden="true"></div><figcaption>Lanes of different heights</figcaption></figure>
           <figure class="pic" data-pic="limelight"><div class="mini" aria-hidden="true"></div><figcaption>Limelight dims everything but the focused window</figcaption></figure>
           <figure class="pic" data-pic="previews"><div class="mini" aria-hidden="true"></div><figcaption>Window previews on hover</figcaption></figure>
@@ -693,12 +699,6 @@ a41c9e2 Add search to the Minimap
 <button class="btn pro" type="button" disabled aria-describedby="buy-closed">Buy Pro 27</button>
 <!-- /sales:off -->
         <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
-<!-- sales:url -->
-        <div class="phone">
-          {{CHECKOUT_QR}}
-          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
-        </div>
-<!-- /sales:url -->
       </div>
       <div class="offer" id="lifetime">
         <h4>PaperMac Lifetime</h4>
@@ -719,6 +719,12 @@ a41c9e2 Add search to the Minimap
         <p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>
 <!-- /sales:off -->
         <p class="bill">Tax added at checkout where applicable. Sold by Dodo Payments.</p>
+<!-- sales:url -->
+        <div class="phone">
+          {{CHECKOUT_QR}}
+          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
+        </div>
+<!-- /sales:url -->
       </div>
     </div>
   </section>

@@ -927,10 +927,11 @@ footer .brand img { width: 28px; height: 28px; }
 html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
-.also-free { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 18px; border-top: 1.5px solid var(--line); }
-.also-free b { margin-right: 6px; font-weight: 850; }
-.also-free ul { display: contents; }
-.also-free li { list-style: none; padding: 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); font-size: 14px; font-weight: 700; }
+.also-free { grid-column: 1 / -1; padding-top: 20px; border-top: 1.5px solid var(--line); }
+.also-free > b { font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; }
+.also-free ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; margin: 14px 0 0; padding: 0; list-style: none; }
+.also-free li { color: var(--ink-2); font-size: 15px; font-weight: 600; line-height: 1.45; }
+.also-free li strong { display: block; color: var(--ink); font-weight: 800; }
 .compare .pic figcaption { font-size: 15.5px; font-weight: 700; }
 .compare .pic figcaption b { font-weight: 900; }
 .compare .txt { align-self: center; margin: 0; font-weight: 700; font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
@@ -968,14 +969,16 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 
 /* The Pro ribbon: an editorial band under the matrix, ruled like the columns above it. Pro 27 is the recommended
    offer, so only it gets the filled button. */
-.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(7, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
+.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(6, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
 .ribbon > * { padding: clamp(24px, 2.6vw, 36px); }
-.ribbon-foot { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; border-top: 1.5px solid var(--line); }
-.ribbon-foot > * { margin: 0; }
+/* The purchase lines sit centred; the phone checkout sits at the right of the same row. */
+.ribbon-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; row-gap: 8px; column-gap: 24px; text-align: center; border-top: 1.5px solid var(--line); }
+.ribbon-foot > * { grid-column: 2; margin: 0; }
+.ribbon-foot > .phone { grid-column: 3; grid-row: 1 / span 3; justify-self: end; text-align: left; }
 .ribbon-foot > p:first-child { font-weight: 850; font-stretch: 112%; font-size: clamp(19px, 1.6vw, 22px); letter-spacing: -.01em; color: var(--ink); }
-.ribbon-foot .sales-closed { justify-self: start; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.ribbon-foot .sales-closed { justify-self: center; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .ribbon-foot .bill { font-size: 15px; font-weight: 650; color: var(--ink-2); }
-.offer { display: grid; grid-row: 1 / span 7; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
+.offer { display: grid; grid-row: 1 / span 6; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
 #free-offer { border-left: 0; }
 .offer h4 { margin: 0; font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
 .offer .launch-note { margin: 0; color: var(--pro-text); font-size: 14px; font-weight: 750; }
@@ -990,7 +993,6 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .offer > .scope { grid-row: 4; margin-top: 10px; }
 .offer > .btn { grid-row: 5; align-self: end; }
 .offer > .buy-notice { grid-row: 6; margin-top: 10px; }
-.offer > .phone { grid-row: 7; margin-top: 18px; }
 .btn.pro.alt { background: transparent; color: var(--pro-text); box-shadow: inset 0 0 0 1.5px currentColor; }
 .btn.pro.alt:hover { background: color-mix(in srgb, var(--pro) 12%, transparent); }
 /* Disabled Buy buttons stay visible but must not read as clickable: a muted outline with no fill. */
@@ -1061,6 +1063,7 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
   .native .grid { grid-template-columns: minmax(0, 1fr); }
   .engine { grid-template-columns: minmax(0, 1fr); }
   .optional dl { grid-template-columns: minmax(0, 1fr); }
+  .also-free ul { grid-template-columns: minmax(0, 1fr); }
   .native-side, .native .welcome { grid-column: 1 / -1; }
   .faq { grid-template-columns: minmax(0, 1fr); }
 }
