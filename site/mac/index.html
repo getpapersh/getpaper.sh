@@ -267,6 +267,11 @@ html.demo-expanded { overflow: hidden; }
   background: linear-gradient(var(--alu-hi), var(--alu-lo));
   box-shadow: inset 0 0 0 1px var(--alu-edge), 0 12px 16px -10px rgba(12,24,39,.5);
 }
+/* Each Desktop has its own wallpaper, so a switch is plain at a glance. */
+.demo-screen[data-wall="personal"] { background: linear-gradient(150deg, #c98a6b, #7a4a6e 55%, #2f2a4f); }
+.demo-screen[data-wall="dusk"] { background: linear-gradient(150deg, #5b9a96, #1f4f5c 55%, #2b3346); }
+.demo-screen[data-wall="forest"] { background: linear-gradient(150deg, #7f9a62, #2f5a46 55%, #22332f); }
+.demo-screen[data-wall="violet"] { background: linear-gradient(150deg, #8f80d6, #4b3d8f 55%, #2a2350); }
 .demo-screen {
   --menu-h: 36px;
   position: relative;
@@ -349,7 +354,7 @@ html.demo-expanded { overflow: hidden; }
 /* The demo keeps its layout under the recording, so the screen opening never changes size. */
 .demo:has(#demo-view-footage:checked) :is(.demo-menu, .demo-canvas, .demo-minimap) { visibility: hidden; }
 .demo:has(#demo-view-footage:checked) [data-command=pause] { display: none; }
-.footage-caption, .demo:has(#demo-view-footage:checked) #strip-caption { display: none; }
+.footage-caption, .phone-only, .demo:has(#demo-view-footage:checked) #strip-caption { display: none; }
 .demo:has(#demo-view-footage:checked) .footage-caption { display: block; }
 .demo-tip {
   position: fixed; z-index: 80; left: 0; top: 0; max-width: min(320px, calc(100vw - 16px));
@@ -393,12 +398,28 @@ html.demo-expanded { overflow: hidden; }
 @media (any-pointer: coarse) { .demo-minimap { touch-action: pan-y; } }
 .demo-minimap.dragging { cursor: grabbing; }
 .map-tile { position: relative; }
-.map-heading { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 24px; }
+/* Pills at their natural width, tools at the end; the app name centres in the room left and gives way first. */
+.map-heading { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.map-heading [data-map-app], .map-heading .jump-cue { flex: 1 1 0; min-width: 0; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .map-heading [data-map-app] { color: rgba(255,255,255,.78); }
-.map-desktop { justify-self: start; padding: 0 7px; border-radius: 9px; background: #0b68d6; line-height: 18px; }
-.map-desktop sup { margin-left: 1px; font-size: 9px; }
+/* Desktop pills: number, window count and name; the one on screen in the accent, as in the app. The row scrolls
+   rather than reach the centred app name. */
+.map-desktops { flex: 0 1 auto; display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.map-desktops::-webkit-scrollbar { display: none; }
+.map-desktop, .map-desktop-add, .map-desktop-input { flex: none; height: 20px; border: 0; border-radius: 10px; font: 700 12px/20px system-ui, sans-serif; }
+.map-desktop { display: inline-flex; align-items: center; gap: 1px; padding: 0 8px; background: rgba(255,255,255,.13); color: rgba(255,255,255,.86); cursor: pointer; }
+.map-desktop[aria-current="true"] { background: #0b68d6; color: #fff; }
+.map-desktop:hover:not([aria-current="true"]) { background: rgba(255,255,255,.22); }
+.map-desktop sup { align-self: flex-start; margin-top: -1px; font-size: 9px; line-height: 14px; }
+.map-desktop-name { max-width: 11ch; margin-left: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.map-desktop-name:empty { display: none; }
+.map-desktop-add { display: grid; place-items: center; width: 20px; padding: 0; background: rgba(255,255,255,.13); color: #fff; cursor: pointer; }
+.map-desktop-add:hover { background: rgba(255,255,255,.24); }
+.map-desktop-add svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.map-desktop-input { width: 13ch; padding: 0 8px; background: rgba(0,0,0,.4); box-shadow: inset 0 0 0 1.5px #0b68d6; color: #fff; font-weight: 600; outline: none; }
+.map-desktop-input::placeholder { color: rgba(255,255,255,.55); }
+@media (pointer: coarse) { .map-desktop, .map-desktop-add, .map-desktop-input { height: 32px; line-height: 32px; } .map-desktop-add { width: 32px; } }
 .map-tools { justify-self: end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
-.map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) { grid-template-columns: auto minmax(0, 1fr) auto; }
 .map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) [data-map-app] { visibility: hidden; }
 .map-tool {
   display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
@@ -414,10 +435,12 @@ html.demo-expanded { overflow: hidden; }
 .map-tool[aria-pressed="true"] .pin-slash { display: none; }
 .demo-minimap.collapsed .map-tool[data-map-tool="collapse"] svg { rotate: 180deg; }
 .demo:not(.jumping, .map-held) .demo-minimap.collapsed :is(.map-row, .map-track) { display: none; }
-/* Tiles share one scale across both Strips, so a longer Strip draws a longer row. */
+/* Tiles share one scale across every Strip, so a longer Strip draws a longer row. The rows span all the screen can
+   travel, with the room before the first window held by a spacer (its negative margin cancels the gap). */
 .map-row { position: relative; display: flex; gap: 4px; min-width: 0; }
+.map-row::before { content: ""; flex: 0 0 calc(var(--map-lead, 0) / var(--map-span, 2) * 100%); margin-inline-end: -4px; }
 .map-tile {
-  flex: 0 1 calc(var(--map-weight) / var(--map-total, 2) * 100%); min-width: 0; height: 40px; padding-inline: 8px;
+  flex: 0 1 calc(var(--map-weight) / var(--map-span, var(--map-total, 2)) * 100%); min-width: 0; height: 40px; padding-inline: 8px;
   display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; column-gap: 7px;
   overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; background: rgba(255,255,255,.1); color: inherit;
   text-align: start; white-space: nowrap; cursor: pointer; font: inherit; line-height: 1.2;
@@ -446,11 +469,6 @@ html.demo-expanded { overflow: hidden; }
 .map-min-chip[data-app="Terminal"]::before { background: #263745; outline: 1px solid #a5b6c7; }
 .map-min-chip .jump-badge { position: absolute; right: -7px; bottom: -7px; padding: 0 3px; font-size: 10px; }
 .map-min-chip.carried { z-index: 4; pointer-events: none; box-shadow: 0 8px 18px rgba(0,0,0,.45); }
-/* Strip 3 and later are Pro, as on the Free and Pro list. */
-.map-row[data-pro]::after {
-  content: "Pro"; position: absolute; z-index: 2; top: -5px; left: -3px; padding: 0 4px; border-radius: 4px;
-  background: var(--pro); color: var(--pro-ink); font: 800 9px/14px system-ui, sans-serif; pointer-events: none;
-}
 /* Dropping below the last row starts a new Strip; the target sits over the scrollbar so the panel never jumps. */
 .demo-minimap.new-strip::after {
   content: attr(data-new-strip); position: absolute; inset: auto 8px 4px; height: 24px; display: grid; place-items: center;
@@ -762,6 +780,11 @@ html.demo-expanded { overflow: hidden; }
 .demo .btn kbd { font: 650 12px/1.25 system-ui, sans-serif; color: inherit; }
 .demo .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .demo .btn[aria-disabled="true"] { color: var(--ink-2); cursor: default; box-shadow: inset 0 0 0 1.5px var(--line); }
+/* Add Window is the demo's one solid action, in the page's highlight; while it cannot act (Infinite Canvas) it looks quiet. */
+.demo .btn.act { background: var(--done-bg); color: var(--done-ink); box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--done-bg) 85%, black); }
+.demo .btn.act:hover { background: color-mix(in srgb, var(--done-bg) 88%, var(--ink)); }
+.demo .btn.act[aria-disabled="true"] { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--line); }
+.demo .btn.act svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .demo .btn[data-tour-active] { outline: 2px solid var(--hi); outline-offset: -2px; }
 @media (pointer: coarse) { .demo .btn kbd, .demo .key-in-label { display: none; } }
 .tip-extra:empty { display: none; }
@@ -949,55 +972,6 @@ footer .brand img { width: 24px; height: 24px; }
   .decide { padding: 18px; }
   .hero h1 { font-size: min(16vw, 72px); }
   .demo-monitor { width: calc(100% - 20px); }
-  .demo:not(.expanded) .demo-expand { display: none; }
-  .demo-minimap { position: relative; bottom: auto; width: auto; margin: 6px; }
-  .demo.has-map .demo-tour { bottom: 14px; }
-  .map-row { padding-block: 2px; }
-  .map-view { inset-block: 1px; }
-  .map-tile { height: 44px; min-width: 24px; padding-inline: 6px; }
-  .demo.scroller .rail { --standard-width: clamp(205px, 77cqw, 500px); }
-  .demo-screen { --menu-h: 44px; }
-  .demo-view span { min-height: 44px; }
-  .demo-menu { padding: 0 8px; }
-  .map-tool { width: 44px; height: 44px; margin-block: -10px; }
-  .map-float, .map-min { height: 30px; padding: 0 2px; }
-  .map-float-label, .map-min-label { display: none; }
-  .map-float-chip, .map-min-chip { width: 44px; height: 44px; margin-block: -8px; }
-  .map-tools { flex-wrap: wrap; justify-content: flex-end; }
-  .traffic { height: 28px; }
-  .map-track { height: 18px; }
-  .map-track::before { top: 7.5px; }
-  .map-track i { top: 6px; }
-  .demo-status-menu > summary, .demo-menu-panel button, .demo-context [role="menuitem"] { min-height: 44px; }
-  .demo-status-menu > summary { min-width: 44px; }
-  .demo-menu-panel { top: 44px; }
-  .demo .guide .photo { height: 50px; margin-top: 8px; }
-  .demo .guide dl { margin-top: 8px; }
-  .demo .window-body h3 { font-size: 20px; }
-  .demo .win > .tb { height: 28px; }
-  .demo-toolbar { min-height: 28px; }
-  .demo .window-body { padding: 10px; font-size: 13px; line-height: 1.4; }
-  .demo-controls > [role="group"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .demo-layout .demo-switches { grid-template-columns: 1fr; }
-  .demo .demo-options button { min-height: 44px; }
-  .demo[data-map-mode="peek"] .demo-minimap { position: absolute; inset-inline: 6px; bottom: 6px; margin: 0; }
-  .demo[data-map-mode="peek"]:not(.jumping, .map-held) :is(.map-row:not([data-active]), .map-track) { display: none; }
-  .demo .win > .jump-badge { top: 2px; font-size: 14px; }
-  .demo[data-map-mode="peek"].has-map .demo-tour { bottom: 108px; }
-  .demo-system, .demo-board-title > span:first-of-type { display: none; }
-  .demo-board-title:not([hidden]) { justify-content: space-between; }
-  .board-zoom button, .board-float { min-width: 44px; height: 44px; }
-  .board-float span { display: none; }
-  .demo:not([data-map-mode="peek"]) .demo-minimap { translate: none; cursor: auto; }
-  .switcher-modes button { min-height: 44px; padding-inline: 10px; }
-  .switcher-search { height: 50px; }
-  .switcher-label { flex-basis: 44px; }
-  .switcher-card { min-width: 40px; height: 48px; padding: 0 6px; }
-  .switcher-card::before { display: none; }
-  .switcher-card { grid-template-columns: minmax(0, 1fr); }
-  .demo-menus, .notes-list { display: none; }
-  .notes-layout { display: block; }
-  .demo .guide dl { gap: 12px; }
   .demo figcaption { padding-block: 0 4px; }
   [data-sales="off"] .top { position: relative; }
   [data-sales="off"] .top nav a[href="#install"]:not(.btn) {
@@ -1008,6 +982,16 @@ footer .brand img { width: 24px; height: 24px; }
     right: 0;
     min-height: 30px;
   }
+}
+/* Phones get the real recording alone: the interactive demo needs a keyboard, a pointer and room, so it starts at
+   tablet width. The screen takes the recording's 16:10 shape, and the recording plays only when asked. */
+@media (max-width: 700px), (pointer: coarse) and (max-height: 520px) {
+  .demo .demo-view, .demo .demo-menu, .demo .demo-minimap, .demo .demo-controls, .demo .demo-caption .btn:not(.ink),
+  .demo #strip-caption { display: none; }
+  .demo .demo-canvas { height: 62.5cqw; visibility: hidden; }
+  .demo .demo-footage { visibility: visible; }
+  .demo .footage-caption { display: block; }
+  .demo .phone-only { display: inline; }
 }
 
 video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; background: var(--ink, #14151a); }
@@ -1091,7 +1075,7 @@ a[href^="mailto:"]:focus-visible {
           <span class="demo-menus" aria-hidden="true">File &nbsp; Edit &nbsp; View &nbsp; Window &nbsp; Help</span>
           <details class="demo-status-menu" hidden>
             <summary aria-label="PaperMac menu, Desktop 1" data-tip="Open the PaperMac menu with the layout settings and commands.">
-              <b class="demo-pm" aria-hidden="true">P<small>m</small></b><span class="demo-desktop-number" aria-hidden="true">1<sup data-desktop-count></sup></span>
+              <b class="demo-pm" aria-hidden="true">P<small>m</small></b><span class="demo-desktop-number" aria-hidden="true"><span data-desktop-number>1</span><sup data-desktop-count></sup></span>
             </summary>
             <div class="demo-menu-panel" aria-label="PaperMac commands">
               <div class="demo-menu-header"><span aria-hidden="true">Pm</span><div><b>PaperMac</b><small>Arranging windows</small></div></div>
@@ -1109,7 +1093,7 @@ a[href^="mailto:"]:focus-visible {
         </div>
         <div class="demo-canvas" id="demo-canvas" role="group" aria-label="PaperMac desktop preview">
           <div class="demo-board-title" hidden>
-            <b>Infinite Canvas</b><span>Desktop 1 · drag to pan · type a letter to jump</span>
+            <b>Infinite Canvas</b><span><span data-desktop-name>Desktop 1</span> · drag to pan · type a letter to jump</span>
             <button type="button" class="board-float" data-tip="Jump to the floating window; it sits above the Strips." hidden><kbd class="jump-badge" aria-hidden="true"></kbd><span></span></button>
             <span class="board-zoom" role="group" aria-label="Zoom">
               <button type="button" data-board="out" aria-label="Zoom out" data-tip="Zoom out to see more of the Desktop." data-tip-keys="−"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8"/></svg></button>
@@ -1192,15 +1176,140 @@ Weather: clear
           </div>
         </div>
         <template id="demo-new-window">
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Campsites</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Campsites / Creek Path</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Creek Path campsites</h3>
+              <p>Six sites along the water, first come, first served.</p>
+              <div class="photo" aria-hidden="true"></div>
+              <dl><div><dt>Sites</dt><dd>6</dd></div><div><dt>Open</dt><dd>May to October</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Weather</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Weather / North Ridge</span>
+            </div>
+            <div class="window-body guide">
+              <h3>North Ridge forecast</h3>
+              <p>Clear in the morning, with wind picking up after 2 PM.</p>
+              <dl><div><dt>High</dt><dd>18°</dd></div><div><dt>Wind</dt><dd>20 km/h</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Trail Map</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Maps / North Ridge loop</span>
+            </div>
+            <div class="window-body guide">
+              <h3>North Ridge loop</h3>
+              <p>Fire road up, creek path back, with one steep switchback.</p>
+              <div class="photo" aria-hidden="true"></div>
+              <dl><div><dt>Length</dt><dd>6.4 km</dd></div><div><dt>Time</dt><dd>3 hours</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Ranger Station</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Park / Ranger station</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Ranger station</h3>
+              <p>Open every day. Ask here about fire rules and water levels.</p>
+              <dl><div><dt>Hours</dt><dd>8 AM to 5 PM</dd></div><div><dt>Parking</dt><dd>Free</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Sunrise</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Almanac / This week</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Sunrise this week</h3>
+              <p>The earliest light is on Saturday, just after six.</p>
+              <dl><div><dt>Saturday</dt><dd>6:12</dd></div><div><dt>Sunday</dt><dd>6:13</dd></div></dl>
+            </div>
+          </div>
           <div class="win dc" data-app="Notes" data-new>
-            <b class="tb"></b>
+            <b class="tb">Trail Journal</b>
             <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> North Ridge</div>
             <div class="window-body"><h3>Trail journal</h3><p>Sketch the route home and mark the creek crossing.</p></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Gear List</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
+            <div class="window-body"><h3>Gear list</h3><ul><li>Headlamp</li><li>First aid kit</li><li>Spare socks</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Meal Plan</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
+            <div class="window-body"><h3>Meal plan</h3><ul><li>Oatmeal and coffee</li><li>Wraps for lunch</li><li>Chili at camp</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Bird Sightings</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Field log</div>
+            <div class="window-body"><h3>Bird sightings</h3><ul><li>Steller’s jay</li><li>Red-tailed hawk</li><li>Dipper at the creek</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Photo Ideas</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> North Ridge</div>
+            <div class="window-body"><h3>Photo ideas</h3><p>The overlook at golden hour, and reflections at the creek crossing.</p></div>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Photos</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> ls photos
+overlook.jpg  creek.jpg  summit.jpg
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Backup</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> rsync -a photos/ backup/
+sent 18.4 MB  received 64 bytes
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">GPS Track</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> wc -l track.gpx
+     842 track.gpx
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Elevation</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> cat elevation.csv
+km,m
+0,920
+3.2,1230
+6.4,920
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Disk</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> du -sh photos
+1.2G    photos
+
+<span>~/north-ridge %</span></code></pre>
           </div>
         </template>
         <div class="demo-minimap" role="group" aria-label="Minimap" hidden>
           <div class="map-heading">
-            <b class="map-desktop">1<sup data-map-count></sup></b>
+            <span class="map-desktops" role="group" aria-label="Desktops"><b class="map-desktop" aria-current="true"><b>1</b><sup></sup></b></span>
             <span data-map-app data-tip="Drag the Minimap by its background to move it."></span>
             <span class="map-tools">
               <span class="map-min" role="group" aria-label="Minimized windows" data-tip="Minimized windows wait here. Click one to restore it, or drag a tile here to minimize its window." hidden><span class="map-min-label" aria-hidden="true">Minimized</span></span>
@@ -1224,7 +1333,8 @@ Weather: clear
     <figcaption class="wrap">
       <div class="demo-caption">
         <span id="strip-caption">Scroll the Strip to explore the windows.</span>
-        <span class="footage-caption">Moving focus scrolls the Strip. Real app; synthetic documents.</span>
+        <span class="footage-caption">Moving focus scrolls the Strip. Real app; synthetic documents.<span class="phone-only"> Open this page on a larger screen to try it yourself.</span></span>
+        <button class="btn small act" data-command="newWindow" type="button" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Add Window</button>
         <button class="btn quiet small demo-expand" data-expand type="button" hidden data-tip="Show the demo as large as the browser window allows. Escape returns to the page."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5V3h3.5M9.5 3H13v3.5M13 9.5V13H9.5M6.5 13H3V9.5"/></svg><span class="expand-label">Expand</span><span class="exit-label">Exit expanded view</span></button>
         <button class="btn quiet small" data-command="pause" type="button" hidden>Pause tour</button>
         <a class="btn ink small" href="#install" data-tip="Jump to the ways to install PaperMac.">Install</a>
@@ -1245,7 +1355,6 @@ Weather: clear
         <div role="group" aria-label="Change window and canvas layout">
           <button class="btn quiet small" data-command="full" type="button" aria-pressed="false">Full Width</button>
           <button class="btn quiet small" data-command="resize" type="button">Next Width Preset</button>
-          <button class="btn quiet small" data-command="newWindow" type="button">New Window</button>
           <button class="btn quiet small" data-command="minimize" type="button">Minimize</button>
           <button class="btn quiet small" data-command="close" type="button">Close Window</button>
           <button class="btn quiet small" data-command="overview" type="button" data-key-in-label>Overview</button>
@@ -1454,6 +1563,8 @@ Weather: clear
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  // Phones show the recording alone (the same query as the CSS); the interactive demo starts at tablet width.
+  const phone = matchMedia("(max-width: 700px), (pointer: coarse) and (max-height: 520px)");
   const reduced = () => motion.matches;
   const live = $("#live");
   const say = (t) => { if (!live) return; live.textContent = ""; setTimeout(() => (live.textContent = t), 30); };
@@ -1535,8 +1646,32 @@ Weather: clear
 
   function StripDemo(fig) {
     const strips = $$("[data-strip]", fig);
-    const windows = $$(".win", fig), initialWindowCount = windows.length, windowLimit = 9, stripLimit = 4;
-    let noteCount = 0;
+    const windows = $$(".win", fig), initialWindowCount = windows.length, stripLimit = 4;
+    // New windows rotate through every example page in a shuffled round, never the same app twice in a row; the
+    // next round starts once all are used, and a page already open gets a number.
+    let round = [], lastApp = "";
+    const shuffle = list => {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    };
+    const nextPage = () => {
+      if (!round.length) {
+        // Each app's pages in a random order, dealt one app at a time in a random app order, so neighbours never
+        // share an app (every app has the same number of pages).
+        const byApp = Map.groupBy(shuffle([...$("#demo-new-window", fig).content.children]), page => page.dataset.app);
+        while ([...byApp.values()].some(pages => pages.length)) {
+          const apps = shuffle([...byApp.keys()].filter(app => byApp.get(app).length));
+          if (apps.length > 1 && apps[0] === (round.at(-1)?.dataset.app ?? lastApp)) apps.push(apps.shift());
+          for (const app of apps) round.push(byApp.get(app).pop());
+        }
+      }
+      const page = round.shift();
+      lastApp = page.dataset.app;
+      return page;
+    };
     const canvas = $(".demo-canvas", fig), status = $("[role=status]", fig);
     const tourCue = $(".demo-tour", fig), app = $("[data-demo-app]", fig);
     const minimap = $(".demo-minimap", fig), mapRows = $$(".map-row", minimap), mapTrack = $(".map-track", minimap);
@@ -1551,7 +1686,11 @@ Weather: clear
     // it onto a row restores it there, and dropping a tile on the zone minimizes that window.
     const minZone = $(".map-min", minimap), minChips = new Map(), minimized = [];
     const statusMenu = $(".demo-status-menu", fig), menuSummary = $("summary", statusMenu);
-    const desktopCount = $("[data-desktop-count]", statusMenu), mapCount = $("[data-map-count]", minimap);
+    const desktopCount = $("[data-desktop-count]", statusMenu);
+    // Desktops: each keeps its own Strips, Minimap rows, focus, minimized and floating windows and wallpaper; the
+    // screen shows one at a time. Their pills sit at the left of the Minimap header, as in the app.
+    const desktopsEl = $(".map-desktops", minimap), desktops = [];
+    let desk = 0, desktopPills = [];
     const footageVideo = $(".demo-footage video", fig), footageInput = $("#demo-view-footage", fig);
     const menuButtons = new Map();
     const mapTiles = new Map();
@@ -1615,22 +1754,26 @@ Weather: clear
       paintFloats();
       paintMinimized();
       if (board()) return;
-      const rail = track(), start = rail.firstElementChild.offsetLeft;
-      const end = rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth;
-      const span = end - start;
-      const left = Math.max(start, rail.scrollLeft);
-      const right = Math.min(end, rail.scrollLeft + rail.clientWidth);
-      const scale = mapScale();
-      // The outline and the scrollbar thumb mark the same viewport at the tiles' scale.
+      // A Strip a move just emptied has no tiles to measure; it is about to disappear.
+      const firstTile = $(".map-tile", mapRows[row]);
+      if (!firstTile || !track().children.length) return;
+      const rail = track(), start = rail.firstElementChild.offsetLeft, scale = mapScale();
+      // The outline and the scrollbar thumb mark the whole screen at the tiles' scale, empty room beside the
+      // windows included, as the app's do.
+      // Kept inside the row: the Minimap's fixed 4 px tile gaps can add a pixel or two at the far ends.
+      const rowWidth = mapRows[row].clientWidth;
+      const left = Math.max(0, firstTile.offsetLeft + scale * (rail.scrollLeft - start));
+      const width = Math.min(scale * rail.clientWidth, rowWidth - left);
       for (const [element, offset] of [[mapRows[row], 0], [minimap, mapRows[row].offsetLeft - mapTrack.offsetLeft]]) {
-        element.style.setProperty("--view-left", `${offset + scale * (left - start)}px`);
-        element.style.setProperty("--view-width", `${scale * (right - left)}px`);
+        element.style.setProperty("--view-left", `${offset + left}px`);
+        element.style.setProperty("--view-width", `${width}px`);
       }
     };
+    // Minimap px per Strip px, measured from the first tile, after the shared room before the windows.
     const mapScale = () => {
-      const rail = track(), lastTile = mapRows[row].lastElementChild;
+      const rail = track(), firstTile = $(".map-tile", mapRows[row]), lastTile = mapRows[row].lastElementChild;
       const start = rail.firstElementChild.offsetLeft;
-      return (lastTile.offsetLeft + lastTile.offsetWidth) / (rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth - start);
+      return (lastTile.offsetLeft + lastTile.offsetWidth - firstTile.offsetLeft) / (rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth - start);
     };
     const paintMap = () => {
       const had = minimap.contains(document.activeElement);
@@ -1691,8 +1834,19 @@ Weather: clear
         win.style.setProperty("--map-weight", weight);
         if (mapRow.children[i + 1] !== tile) mapRow.insertBefore(tile, mapRow.children[i + 1] ?? null);
       });
-      minimap.style.setProperty("--map-total", Math.max(...strips.map(rail =>
-        [...rail.children].reduce((sum, win) => sum + Number(win.style.getPropertyValue("--map-weight")), 0))));
+      const weights = rail => [...rail.children].map(win => Number(win.style.getPropertyValue("--map-weight")));
+      const sum = list => list.reduce((total, weight) => total + weight, 0);
+      minimap.style.setProperty("--map-total", Math.max(...strips.map(rail => sum(weights(rail)))));
+      // Like the app's, the Minimap depicts everything the screen can travel, the centering room before a Strip's
+      // first window and after its last included (in screen widths). Rows share the room before, so they stay aligned.
+      // Windows sit a gap apart (their side margins), which the span counts too. A Strip a move just emptied is
+      // skipped; it is about to disappear.
+      const filled = strips.filter(rail => rail.children.length), shown = track().firstElementChild;
+      const gap = shown && track().clientWidth ? 2 * parseFloat(getComputedStyle(shown).marginLeft) / track().clientWidth || 0 : 0;
+      const lead = Math.max(...filled.map(rail => (1 - weights(rail)[0]) / 2));
+      minimap.style.setProperty("--map-lead", lead);
+      minimap.style.setProperty("--map-span", Math.max(...filled.map(rail =>
+        lead + sum(weights(rail)) + gap * (rail.children.length - 1) + (1 - weights(rail).at(-1)) / 2)));
       paintJump();
     };
     // Why each command is unavailable right now; an empty reason means it is available.
@@ -1709,7 +1863,7 @@ Weather: clear
         moveLeft: zoomed || side(-1), moveRight: zoomed || side(1),
         moveAbove: zoomed || make(-1), moveBelow: zoomed || make(1),
         full: zoomed || (floating?.win === target && "Return the window to the Strip to fill its width."), resize: zoomed, jumpTo: board() && "Infinite Canvas already shows the letters.",
-        newWindow: zoomed || (windows.length >= windowLimit && `The demo holds up to ${windowLimit} windows.`),
+        newWindow: zoomed,
         // A floating window may always close or minimize; a tiled one only while another stays on the Strips.
         float: zoomed || (!floating && alone), minimize: zoomed || (floating?.win !== target && alone), close: zoomed || (floating?.win !== target && alone),
       };
@@ -1729,7 +1883,8 @@ Weather: clear
         button.setAttribute("aria-pressed", String(settings[setting] === value));
         button.disabled = setting === "map" && !mapOn;
       }
-      desktopCount.textContent = mapCount.textContent = windows.length - minimized.length;
+      desktopCount.textContent = windows.length - minimized.length;
+      paintDesktops();
       // The last tiled window's red and yellow lights are off, the way macOS greys a light that cannot act.
       const keep = tiledCount() < 2;
       for (const light of $$(".rail .tl-close, .rail .tl-minimize", fig)) {
@@ -1832,24 +1987,29 @@ Weather: clear
     // Strips come and go like the app's lanes: moving a window past the first or last Strip starts a new one, and
     // a Strip left empty disappears. A third Strip and more are Pro, as on the page's Free and Pro list.
     const tiledCount = () => strips.reduce((sum, rail) => sum + rail.children.length, 0);
-    // Three or more Strips are Pro: said whenever a move creates one, wherever it lands.
-    const proNote = () => strips.length > 2 ? ". Three or more Strips are Pro" : "";
     const watchScroll = strip => strip.addEventListener("scroll", () => {
       if (strip === track() && frame == null) frame = requestAnimationFrame(syncScroll);
     }, { passive: true });
     const labelStrips = () => strips.forEach((rail, i) => {
       rail.setAttribute("aria-label", `Strip ${i + 1}`);
       rail.style.setProperty("--row", i);
-      mapRows[i].setAttribute("aria-label", `Strip ${i + 1}${i >= 2 ? ", Pro" : ""}`);
-      mapRows[i].toggleAttribute("data-pro", i >= 2);
+      mapRows[i].setAttribute("aria-label", `Strip ${i + 1}`);
     });
-    const addStrip = at => {
+    const newRail = () => {
       const rail = Object.assign(document.createElement("div"), { className: "rail", hidden: !board() });
       rail.setAttribute("data-strip", "");
       rail.setAttribute("role", "group");
+      watchScroll(rail);
+      return rail;
+    };
+    const newMapRow = () => {
       const mapRow = Object.assign(document.createElement("div"), { className: "map-row" });
       mapRow.setAttribute("role", "group");
       mapRow.append(Object.assign(document.createElement("i"), { className: "map-view", ariaHidden: "true" }));
+      return mapRow;
+    };
+    const addStrip = at => {
+      const rail = newRail(), mapRow = newMapRow();
       if (at < strips.length) {
         strips[at].before(rail);
         mapRows[at].before(mapRow);
@@ -1861,7 +2021,6 @@ Weather: clear
       mapRows.splice(at, 0, mapRow);
       selections.splice(at, 0, null);
       if (at <= row) row++;
-      watchScroll(rail);
       labelStrips();
       return at;
     };
@@ -1895,7 +2054,7 @@ Weather: clear
       pruneStrips();
       const index = strips.indexOf(to);
       showStrip(index, win);
-      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${index + 1}${created ? proNote() : ""}`);
+      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${index + 1}`);
     };
     const setWidth = (win, message) => {
       win.style.setProperty("--window-width", width(win));
@@ -1949,8 +2108,9 @@ Weather: clear
     };
     const addWindow = () => {
       const positions = new Map(items().map(win => [win, win.offsetLeft]));
-      const win = $("#demo-new-window", fig).content.firstElementChild.cloneNode(true);
-      $(".tb", win).textContent = `New Note ${++noteCount}`;
+      const win = nextPage().cloneNode(true), bar = $(".tb", win), base = bar.textContent;
+      // A page that is already open gets a number, as a second window of the same document would.
+      for (let n = 2; windows.some(other => title(other) === bar.textContent); n++) bar.textContent = `${base} ${n}`;
       win.style.setProperty("--window-width", width(win));
       if (settings.place === "after") active().after(win);
       else track().append(win);
@@ -1966,7 +2126,7 @@ Weather: clear
         win.animate([{ opacity: .3, scale: ".93" }, { opacity: 1, scale: "1" }], timing);
       }
       focus(win, true);
-      announce(`${title(win)} opened. ${windows.length} of ${windowLimit} windows.`);
+      announce(`${title(win)} opened.`);
     };
     const grip = win => $(".tb", win);
     const floatFocused = () => Boolean(floating) && document.activeElement === grip(floating.win);
@@ -2001,14 +2161,18 @@ Weather: clear
       }
     };
     // Returns the floating window to a Strip: where it came from, or a slot chosen in the Minimap.
+    // Clears what floating gave a window, so it can tile again.
+    const ground = win => {
+      win.style.removeProperty("--float-x");
+      win.style.removeProperty("--float-y");
+      for (const attr of ["tabindex", "role", "aria-label", "data-tip"]) grip(win).removeAttribute(attr);
+    };
     const unfloat = (strip = floating.strip, next = floating.next, navigate = true) => {
       const { win } = floating;
       // Its Strip may have gone while it floated.
       if (!strips.includes(strip)) [strip, next] = [track(), null];
       floating = drag = null;
-      win.style.removeProperty("--float-x");
-      win.style.removeProperty("--float-y");
-      for (const attr of ["tabindex", "role", "aria-label", "data-tip"]) grip(win).removeAttribute(attr);
+      ground(win);
       strip.insertBefore(win, next?.parentElement === strip ? next : null);
       syncWidths(strip);
       if (navigate) showStrip(strips.indexOf(strip), win);
@@ -2187,7 +2351,7 @@ Weather: clear
         syncButtons();
         announce(`Window previews ${previews ? "on" : "off"}`);
       }, "Preview a window when you hover its Minimap tile."],
-      newWindow: ["Shift+KeyN", addWindow, "Open a note and make room on the Strip."],
+      newWindow: ["Shift+KeyN", addWindow, "Open another example window and make room on the Strip."],
       minimize: ["Shift+KeyM", win => minimizeWindow(win ?? focusedWindow()), "Minimize the focused window to the Minimap."],
       close: ["Shift+KeyW", win => closeWindow(win ?? focusedWindow()), "Close the focused window."],
       pause: ["Escape", () => { if (!board()) focus(nearest()); }, "Stop the tour and take control of the demo."],
@@ -2213,6 +2377,7 @@ Weather: clear
       const reason = blocked(arg)[id], enabled = !reason;
       if (manual && !enabled && !footage) announce(reason);
       if (manual && footage && (!enabled || id === "pause")) return;
+      if (manual && phone.matches) return;
       if (manual && footage) showView(false);
       if (manual) takeOver();
       if (jumping && id !== "jumpTo") setJumping(false);
@@ -2237,7 +2402,8 @@ Weather: clear
       if (footage) {
         statusMenu.open = false;
         hideTip();
-        if (!reduced()) footageVideo.play().catch(() => {});
+        // A phone visitor starts the recording with its controls; it never downloads unasked.
+        if (!reduced() && !phone.matches) footageVideo.play().catch(() => {});
       } else {
         footageVideo.pause();
         syncMap();
@@ -2284,6 +2450,8 @@ Weather: clear
         proxy.removeAttribute("data-command");
         proxy.removeAttribute("class");
         $("i", proxy)?.remove();
+        $("svg", proxy)?.remove();
+        proxy.hidden = false;
         proxy.addEventListener("click", () => {
           statusMenu.open = false;
           menuSummary.focus({ preventScroll: true });
@@ -2416,7 +2584,7 @@ Weather: clear
       selectedCard = null;
       results.replaceChildren();
       results.style.setProperty("--map-total", minimap.style.getPropertyValue("--map-total"));
-      const keys = jumpKeys(), groups = strips.map((rail, i) => [`Strip ${i + 1}${i >= 2 ? " · Pro" : ""}`, [...rail.children]]);
+      const keys = jumpKeys(), groups = strips.map((rail, i) => [`Strip ${i + 1}`, [...rail.children]]);
       if (floating) groups.push(["Floating", [floating.win]]);
       if (minimized.length) groups.push(["Minimized", minimized.map(entry => entry.win)]);
       for (const [label, wins] of groups) {
@@ -2730,7 +2898,7 @@ Weather: clear
       pruneStrips();
       const target = strips.indexOf(into);
       showStrip(target, win);
-      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${target + 1}, position ${[...into.children].indexOf(win) + 1}${created ? proNote() : ""}`);
+      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${target + 1}, position ${[...into.children].indexOf(win) + 1}`);
       return true;
     };
     const caret = Object.assign(document.createElement("i"), { className: "drop-caret", hidden: true });
@@ -2767,7 +2935,7 @@ Weather: clear
       carry.create = carry.to !== row && !strips[carry.to];
       const side = carry.to < row ? "above" : "below";
       canvas.dataset.drop = carry.to === row ? "" : side;
-      canvas.dataset.dropLabel = carry.create ? `Drop to start a new Strip ${side}${strips.length >= 2 ? " (Pro)" : ""}` : `Drop to move it to the Strip ${side}`;
+      canvas.dataset.dropLabel = carry.create ? `Drop to start a new Strip ${side}` : `Drop to move it to the Strip ${side}`;
       if (carry.to === row) {
         const others = items().filter(win => win !== carry.win), bar = rail.getBoundingClientRect();
         carry.index = slotFor(others, x);
@@ -2885,7 +3053,7 @@ Weather: clear
       if (!overRow && event.clientY > mapRows.at(-1).getBoundingClientRect().bottom && count <= stripLimit && tileDrag.source === "tile"
         && (!alone || tileDrag.win.parentElement !== strips.at(-1))) {
         [tileDrag.to, tileDrag.index] = [strips.length, 0];
-        minimap.dataset.newStrip = `New Strip ${count}${count > 2 ? " · Pro" : ""}`;
+        minimap.dataset.newStrip = `New Strip ${count}`;
         minimap.classList.add("new-strip");
         return;
       }
@@ -3076,6 +3244,24 @@ Weather: clear
     const windowOf = element => element === floatChip ? floating?.win
       : element.matches(".map-min-chip") ? [...minChips].find(([, chip]) => chip === element)?.[0]
       : element.matches(".switcher-card") ? cardWindows.get(element) : tileWindows.get(element);
+    function paintDesktops() {
+      desktopPills.forEach((pill, i) => {
+        const here = i === desk, d = desktops[i];
+        const count = here ? windows.length - minimized.length : d.windows.length - d.minimized.length;
+        pill.querySelector("b").textContent = i + 1;
+        pill.querySelector("sup").textContent = count;
+        pill.querySelector(".map-desktop-name").textContent = d.name;
+        if (here) pill.setAttribute("aria-current", "true");
+        else pill.removeAttribute("aria-current");
+        pill.setAttribute("aria-label", `${nameOf(i)}, Desktop ${i + 1}, ${count} window${count === 1 ? "" : "s"}`);
+        pill.dataset.tip = `${here ? `${nameOf(i)} is on the screen.` : `Switch to ${nameOf(i)}.`} Double-click to rename it, or right-click for more.`;
+      });
+      if (!desktops.length) return;
+      $("[data-desktop-number]", statusMenu).textContent = desk + 1;
+      menuSummary.setAttribute("aria-label", `PaperMac menu, ${nameOf(desk)}, Desktop ${desk + 1}`);
+      $(".switcher-desktop", fig).textContent = nameOf(desk);
+      $("[data-desktop-name]", fig).textContent = nameOf(desk);
+    }
     function closeContext(restore = contextMenu.contains(document.activeElement)) {
       if (contextMenu.hidden) return;
       contextMenu.hidden = true;
@@ -3113,10 +3299,12 @@ Weather: clear
       announce(`Quit ${app}; ${closing.length} window${closing.length === 1 ? "" : "s"} closed.`);
     };
     const openContext = (element, x, y) => {
+      if (element.matches(".map-desktop")) {
+        const i = Number(element.dataset.desktop);
+        return showMenu(element, x, y, desktopItems(i), `${nameOf(i)} desktop`);
+      }
       const win = windowOf(element);
       if (!win) return;
-      takeOver();
-      hideTip();
       const isFloat = floating?.win === win, entry = minimized.find(item => item.win === win), isMin = Boolean(entry);
       const lane = strips.indexOf(win.parentElement), app = win.dataset.app;
       const keep = "The demo keeps one window on its Strips.";
@@ -3125,13 +3313,18 @@ Weather: clear
       const items = [
         [isFloat || entry?.floated ? "Tile Window" : "Float Window", isMin ? "Restore it first." : lastTiled, () => isFloat ? unfloat() : floatWindow(win)],
         isMin ? ["Restore", "", () => restoreWindow(win)] : ["Minimize", lastTiled, () => minimizeWindow(win)],
-        ...lane < 0 || strips.length < 2 ? [] : ["-", `Strip ${lane + 1}${lane >= 2 ? " · Pro" : ""}`,
+        ...lane < 0 || strips.length < 2 ? [] : ["-", `Strip ${lane + 1}`,
           ["Move Strip Up", !lane && "It is already the first Strip.", () => moveStrip(lane, -1), false, `Move Strip ${lane + 1} up`],
           ["Move Strip Down", lane === strips.length - 1 && "It is already the last Strip.", () => moveStrip(lane, 1), false, `Move Strip ${lane + 1} down`]],
         "-",
         ["Close Window", lastTiled, () => closeWindow(win)],
         [`Quit ${app}${appCount > 1 ? ` (${appCount} windows)` : ""}`, strips.every(rail => [...rail.children].every(other => other.dataset.app === app)) && keep, () => quitApp(app), true],
       ];
+      showMenu(element, x, y, items, `${title(win)} window`);
+    };
+    const showMenu = (element, x, y, items, label) => {
+      takeOver();
+      hideTip();
       contextMenu.replaceChildren();
       contextActions.clear();
       for (const item of items) {
@@ -3153,7 +3346,7 @@ Weather: clear
         contextActions.set(button, action);
         contextMenu.append(button);
       }
-      contextMenu.setAttribute("aria-label", `${title(win)} window`);
+      contextMenu.setAttribute("aria-label", label);
       contextFor = element;
       minimap.classList.toggle("menu-open", minimap.contains(element));
       contextMenu.hidden = false;
@@ -3167,7 +3360,7 @@ Weather: clear
     fig.addEventListener("contextmenu", event => {
       // From the keyboard, the search field's menu is the selected card's; a right-click there keeps the browser's.
       const element = event.target === search ? !pointerMenu && selectedCard
-        : event.target.closest(".map-tile, .map-float-chip, .map-min-chip, .switcher-card");
+        : event.target.closest(".map-tile, .map-float-chip, .map-min-chip, .switcher-card, .map-desktop");
       pointerMenu = false;
       if (!element || element.getAttribute("aria-disabled") === "true" || footage || board()) return;
       event.preventDefault();
@@ -3178,7 +3371,7 @@ Weather: clear
     });
     fig.addEventListener("keydown", event => {
       if (event.key !== "ContextMenu" && !(event.key === "F10" && event.shiftKey)) return;
-      const element = event.target === search ? selectedCard : event.target.closest?.(".map-tile, .map-float-chip, .map-min-chip");
+      const element = event.target === search ? selectedCard : event.target.closest?.(".map-tile, .map-float-chip, .map-min-chip, .map-desktop");
       if (!element || element.getAttribute("aria-disabled") === "true" || footage || board()) return;
       event.preventDefault();
       event.stopPropagation();
@@ -3240,7 +3433,7 @@ Weather: clear
       if (!minimap.hidden && getComputedStyle(minimap).position === "absolute") moveMap(mapOffset.x, mapOffset.y);
     };
     minimap.addEventListener("pointerdown", event => {
-      if (event.button || mapDrag || event.target.closest("button, .map-track, .map-float") || getComputedStyle(minimap).position !== "absolute") return;
+      if (event.button || mapDrag || event.target.closest("button, input, .map-track, .map-float, .map-desktops") || getComputedStyle(minimap).position !== "absolute") return;
       mapDrag = { id: event.pointerId, x: event.clientX - mapOffset.x, y: event.clientY - mapOffset.y };
       takeOver();
       minimap.setPointerCapture(event.pointerId);
@@ -3423,7 +3616,7 @@ Weather: clear
       const rail = track(), scale = mapScale(), thumb = $("i", mapTrack).getBoundingClientRect();
       rail.style.scrollSnapType = "none";
       if (event.clientX < thumb.left || event.clientX > thumb.right) {
-        const x = event.clientX - mapRows[row].getBoundingClientRect().left;
+        const x = event.clientX - mapRows[row].getBoundingClientRect().left - $(".map-tile", mapRows[row]).offsetLeft;
         rail.scrollLeft = rail.firstElementChild.offsetLeft + x / scale - rail.clientWidth / 2;
       }
       scrub = { id: event.pointerId, x: event.clientX, left: rail.scrollLeft, scale, rail };
@@ -3666,6 +3859,7 @@ Weather: clear
       } else setExpanded(false);
     });
     expandButton.hidden = false;
+    buttons.get("newWindow").hidden = false;
     const nativeInput = () => { takeOver(); setJumping(false); target = null; syncButtons(); };
     // The float chip turns solid orange while the floating window has focus.
     fig.addEventListener("focusin", paintFloats);
@@ -3745,11 +3939,157 @@ Weather: clear
     canvas.tabIndex = 0;
     strips.forEach(syncWidths);
     fig.dataset.mapMode = settings.map;
+    const nameOf = i => desktops[i].name || `Desktop ${i + 1}`;
+    const walls = ["work", "personal", "dusk", "forest", "violet"];
+    const makeDesktop = (name, wall, pages) => {
+      const rail = newRail(), mapRow = newMapRow();
+      rail.hidden = true;
+      for (const page of pages) {
+        const win = page.cloneNode(true);
+        win.style.setProperty("--window-width", width(win));
+        rail.append(win);
+        bindPicker(win);
+      }
+      return { name, wall, strips: [rail], mapRows: [mapRow], selections: [rail.firstElementChild], row: 0, minimized: [], windows: [...rail.children], floating: null };
+    };
+    // The Desktop on screen keeps its state in the shared arrays; a switch stores it and swaps the next one in.
+    const switchDesktop = index => {
+      if (index === desk || !desktops[index]) return;
+      closeContext();
+      cancelDrags();
+      setJumping(false);
+      closeSwitcher();
+      if (board()) showBoard(null);
+      takeOver();
+      finishSlide?.();
+      target = null;
+      const had = holdsFocus(), from = desktops[desk], to = desktops[index];
+      if (floating) floating.win.remove();
+      Object.assign(from, { strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [...minimized], windows: [...windows], floating });
+      from.strips[0].before(...to.strips);
+      for (const rail of from.strips) rail.remove();
+      from.mapRows[0].before(...to.mapRows);
+      for (const mapRow of from.mapRows) mapRow.remove();
+      desk = index;
+      strips.splice(0, Infinity, ...to.strips);
+      mapRows.splice(0, Infinity, ...to.mapRows);
+      selections.splice(0, Infinity, ...to.selections);
+      minimized.splice(0, Infinity, ...to.minimized);
+      windows.splice(0, Infinity, ...to.windows);
+      row = to.row;
+      floating = to.floating;
+      if (floating) canvas.append(floating.win);
+      screenEl.dataset.wall = to.wall;
+      // On screen before measuring: a hidden Strip has no width.
+      strips.forEach((strip, i) => { strip.hidden = i !== row; });
+      strips.forEach(syncWidths);
+      labelStrips();
+      showStrip(row);
+      paintMinimized();
+      paintFloats();
+      paintJump();
+      syncButtons();
+      rescueFocus(had);
+      announce(`${nameOf(index)}, Desktop ${index + 1}.`);
+    };
+    // A new Desktop gets the next wallpaper and one window to start, so there is something to tile.
+    const addDesktop = () => {
+      desktops.push(makeDesktop("", walls[desktops.length % walls.length], [nextPage()]));
+      buildPills();
+      switchDesktop(desktops.length - 1);
+      announce(`Desktop ${desktops.length} added, with one window. Double-click its pill to name it.`);
+    };
+    // Its windows join the Desktop on screen, or its neighbour when it is the one on screen, as macOS moves them.
+    const removeDesktop = i => {
+      if (desktops.length < 2) return;
+      const name = nameOf(i);
+      if (i === desk) switchDesktop(i ? i - 1 : 1);
+      const moving = desktops[i].windows;
+      if (desktops[i].floating) ground(desktops[i].floating.win);
+      for (const win of moving) {
+        track().append(win);
+        windows.push(win);
+      }
+      desktops.splice(i, 1);
+      if (i < desk) desk--;
+      syncWidths(track());
+      buildPills();
+      paintJump();
+      syncButtons();
+      announce(`${name} removed. Its ${moving.length} window${moving.length === 1 ? "" : "s"} moved to ${nameOf(desk)}.`);
+    };
+    const renameDesktop = i => {
+      const pill = desktopPills[i];
+      if (!pill?.isConnected) return;
+      const input = Object.assign(document.createElement("input"), {
+        type: "text", className: "map-desktop-input", value: desktops[i].name, placeholder: `Desktop ${i + 1}`, maxLength: 24, spellcheck: false, autocomplete: "off",
+      });
+      input.setAttribute("aria-label", `Name for Desktop ${i + 1}`);
+      pill.replaceWith(input);
+      input.focus({ preventScroll: true });
+      input.select();
+      let done = false;
+      // Enter or leaving the field keeps the name, Escape keeps the old one; an empty name clears it.
+      const finish = keep => {
+        if (done) return;
+        done = true;
+        if (keep) desktops[i].name = input.value.trim();
+        input.replaceWith(pill);
+        paintDesktops();
+        pill.focus({ preventScroll: true });
+        if (keep) announce(`Desktop ${i + 1} is ${desktops[i].name ? `now ${desktops[i].name}` : "unnamed"}.`);
+      };
+      // The field owns its keys: demo shortcuts stay out of it.
+      input.addEventListener("keydown", event => {
+        event.stopPropagation();
+        if (event.key === "Enter" || event.key === "Escape") {
+          event.preventDefault();
+          finish(event.key === "Enter");
+        }
+      });
+      input.addEventListener("blur", () => finish(true));
+    };
+    const desktopItems = i => [
+      ...i === desk ? [] : [["Switch to Desktop", "", () => switchDesktop(i)]],
+      ["Rename…", "", () => renameDesktop(i)],
+      ...desktops[i].name ? [["Clear Custom Name", "", () => {
+        desktops[i].name = "";
+        paintDesktops();
+        announce(`Desktop ${i + 1} is unnamed.`);
+      }]] : [],
+      ...desktops.length > 1 ? ["-", ["Remove Desktop", "", () => removeDesktop(i), true, `Remove ${nameOf(i)}; its windows move to another Desktop`]] : [],
+    ];
+    const addPill = Object.assign(document.createElement("button"), { type: "button", className: "map-desktop-add" });
+    addPill.setAttribute("aria-label", "New Desktop");
+    addPill.dataset.tip = "Add a Desktop with its own wallpaper and a window to start.";
+    addPill.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
+    addPill.addEventListener("click", addDesktop);
+    const buildPills = () => {
+      const focused = [...desktopPills, addPill].indexOf(document.activeElement);
+      desktopPills = desktops.map((_, i) => {
+        const pill = Object.assign(document.createElement("button"), { type: "button", className: "map-desktop" });
+        pill.dataset.desktop = i;
+        pill.append(document.createElement("b"), document.createElement("sup"), Object.assign(document.createElement("span"), { className: "map-desktop-name" }));
+        pill.addEventListener("click", () => switchDesktop(i));
+        pill.addEventListener("dblclick", () => renameDesktop(i));
+        return pill;
+      });
+      desktopsEl.replaceChildren(...desktopPills, addPill);
+      paintDesktops();
+      if (focused >= 0) [...desktopPills, addPill][Math.min(focused, desktopPills.length)].focus({ preventScroll: true });
+    };
     showStrip(0);
+    desktops.push({ name: "Work", wall: "work", strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [], windows: [...windows], floating: null });
+    const examples = [...$("#demo-new-window", fig).content.children];
+    desktops.push(makeDesktop("Personal", "personal", ["Weather", "Meal Plan", "Photos"].map(name => examples.find(page => title(page) === name))));
+    screenEl.dataset.wall = "work";
+    buildPills();
     pauseButton.hidden = reduced();
     statusMenu.hidden = false;
     $(".demo-controls", fig).hidden = false;
-    applyView();
+    if (phone.matches) showView(true);
+    else applyView();
+    phone.addEventListener("change", () => showView(phone.matches));
     $("#strip-caption", fig).textContent = matchMedia("(pointer: coarse)").matches
       ? "Swipe the Strip or tap a control."
       : "Click a window or use the controls. Shortcuts work while focus is inside the demo.";

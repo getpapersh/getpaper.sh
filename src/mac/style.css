@@ -252,6 +252,11 @@ html.demo-expanded { overflow: hidden; }
   background: linear-gradient(var(--alu-hi), var(--alu-lo));
   box-shadow: inset 0 0 0 1px var(--alu-edge), 0 12px 16px -10px rgba(12,24,39,.5);
 }
+/* Each Desktop has its own wallpaper, so a switch is plain at a glance. */
+.demo-screen[data-wall="personal"] { background: linear-gradient(150deg, #c98a6b, #7a4a6e 55%, #2f2a4f); }
+.demo-screen[data-wall="dusk"] { background: linear-gradient(150deg, #5b9a96, #1f4f5c 55%, #2b3346); }
+.demo-screen[data-wall="forest"] { background: linear-gradient(150deg, #7f9a62, #2f5a46 55%, #22332f); }
+.demo-screen[data-wall="violet"] { background: linear-gradient(150deg, #8f80d6, #4b3d8f 55%, #2a2350); }
 .demo-screen {
   --menu-h: 36px;
   position: relative;
@@ -334,7 +339,7 @@ html.demo-expanded { overflow: hidden; }
 /* The demo keeps its layout under the recording, so the screen opening never changes size. */
 .demo:has(#demo-view-footage:checked) :is(.demo-menu, .demo-canvas, .demo-minimap) { visibility: hidden; }
 .demo:has(#demo-view-footage:checked) [data-command=pause] { display: none; }
-.footage-caption, .demo:has(#demo-view-footage:checked) #strip-caption { display: none; }
+.footage-caption, .phone-only, .demo:has(#demo-view-footage:checked) #strip-caption { display: none; }
 .demo:has(#demo-view-footage:checked) .footage-caption { display: block; }
 .demo-tip {
   position: fixed; z-index: 80; left: 0; top: 0; max-width: min(320px, calc(100vw - 16px));
@@ -378,12 +383,28 @@ html.demo-expanded { overflow: hidden; }
 @media (any-pointer: coarse) { .demo-minimap { touch-action: pan-y; } }
 .demo-minimap.dragging { cursor: grabbing; }
 .map-tile { position: relative; }
-.map-heading { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 24px; }
+/* Pills at their natural width, tools at the end; the app name centres in the room left and gives way first. */
+.map-heading { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.map-heading [data-map-app], .map-heading .jump-cue { flex: 1 1 0; min-width: 0; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .map-heading [data-map-app] { color: rgba(255,255,255,.78); }
-.map-desktop { justify-self: start; padding: 0 7px; border-radius: 9px; background: #0b68d6; line-height: 18px; }
-.map-desktop sup { margin-left: 1px; font-size: 9px; }
+/* Desktop pills: number, window count and name; the one on screen in the accent, as in the app. The row scrolls
+   rather than reach the centred app name. */
+.map-desktops { flex: 0 1 auto; display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.map-desktops::-webkit-scrollbar { display: none; }
+.map-desktop, .map-desktop-add, .map-desktop-input { flex: none; height: 20px; border: 0; border-radius: 10px; font: 700 12px/20px system-ui, sans-serif; }
+.map-desktop { display: inline-flex; align-items: center; gap: 1px; padding: 0 8px; background: rgba(255,255,255,.13); color: rgba(255,255,255,.86); cursor: pointer; }
+.map-desktop[aria-current="true"] { background: #0b68d6; color: #fff; }
+.map-desktop:hover:not([aria-current="true"]) { background: rgba(255,255,255,.22); }
+.map-desktop sup { align-self: flex-start; margin-top: -1px; font-size: 9px; line-height: 14px; }
+.map-desktop-name { max-width: 11ch; margin-left: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.map-desktop-name:empty { display: none; }
+.map-desktop-add { display: grid; place-items: center; width: 20px; padding: 0; background: rgba(255,255,255,.13); color: #fff; cursor: pointer; }
+.map-desktop-add:hover { background: rgba(255,255,255,.24); }
+.map-desktop-add svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.map-desktop-input { width: 13ch; padding: 0 8px; background: rgba(0,0,0,.4); box-shadow: inset 0 0 0 1.5px #0b68d6; color: #fff; font-weight: 600; outline: none; }
+.map-desktop-input::placeholder { color: rgba(255,255,255,.55); }
+@media (pointer: coarse) { .map-desktop, .map-desktop-add, .map-desktop-input { height: 32px; line-height: 32px; } .map-desktop-add { width: 32px; } }
 .map-tools { justify-self: end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
-.map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) { grid-template-columns: auto minmax(0, 1fr) auto; }
 .map-heading:has(.map-min:not([hidden]), .map-float:not([hidden])) [data-map-app] { visibility: hidden; }
 .map-tool {
   display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
@@ -399,10 +420,12 @@ html.demo-expanded { overflow: hidden; }
 .map-tool[aria-pressed="true"] .pin-slash { display: none; }
 .demo-minimap.collapsed .map-tool[data-map-tool="collapse"] svg { rotate: 180deg; }
 .demo:not(.jumping, .map-held) .demo-minimap.collapsed :is(.map-row, .map-track) { display: none; }
-/* Tiles share one scale across both Strips, so a longer Strip draws a longer row. */
+/* Tiles share one scale across every Strip, so a longer Strip draws a longer row. The rows span all the screen can
+   travel, with the room before the first window held by a spacer (its negative margin cancels the gap). */
 .map-row { position: relative; display: flex; gap: 4px; min-width: 0; }
+.map-row::before { content: ""; flex: 0 0 calc(var(--map-lead, 0) / var(--map-span, 2) * 100%); margin-inline-end: -4px; }
 .map-tile {
-  flex: 0 1 calc(var(--map-weight) / var(--map-total, 2) * 100%); min-width: 0; height: 40px; padding-inline: 8px;
+  flex: 0 1 calc(var(--map-weight) / var(--map-span, var(--map-total, 2)) * 100%); min-width: 0; height: 40px; padding-inline: 8px;
   display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; column-gap: 7px;
   overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; background: rgba(255,255,255,.1); color: inherit;
   text-align: start; white-space: nowrap; cursor: pointer; font: inherit; line-height: 1.2;
@@ -431,11 +454,6 @@ html.demo-expanded { overflow: hidden; }
 .map-min-chip[data-app="Terminal"]::before { background: #263745; outline: 1px solid #a5b6c7; }
 .map-min-chip .jump-badge { position: absolute; right: -7px; bottom: -7px; padding: 0 3px; font-size: 10px; }
 .map-min-chip.carried { z-index: 4; pointer-events: none; box-shadow: 0 8px 18px rgba(0,0,0,.45); }
-/* Strip 3 and later are Pro, as on the Free and Pro list. */
-.map-row[data-pro]::after {
-  content: "Pro"; position: absolute; z-index: 2; top: -5px; left: -3px; padding: 0 4px; border-radius: 4px;
-  background: var(--pro); color: var(--pro-ink); font: 800 9px/14px system-ui, sans-serif; pointer-events: none;
-}
 /* Dropping below the last row starts a new Strip; the target sits over the scrollbar so the panel never jumps. */
 .demo-minimap.new-strip::after {
   content: attr(data-new-strip); position: absolute; inset: auto 8px 4px; height: 24px; display: grid; place-items: center;
@@ -747,6 +765,11 @@ html.demo-expanded { overflow: hidden; }
 .demo .btn kbd { font: 650 12px/1.25 system-ui, sans-serif; color: inherit; }
 .demo .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .demo .btn[aria-disabled="true"] { color: var(--ink-2); cursor: default; box-shadow: inset 0 0 0 1.5px var(--line); }
+/* Add Window is the demo's one solid action, in the page's highlight; while it cannot act (Infinite Canvas) it looks quiet. */
+.demo .btn.act { background: var(--done-bg); color: var(--done-ink); box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--done-bg) 85%, black); }
+.demo .btn.act:hover { background: color-mix(in srgb, var(--done-bg) 88%, var(--ink)); }
+.demo .btn.act[aria-disabled="true"] { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--line); }
+.demo .btn.act svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .demo .btn[data-tour-active] { outline: 2px solid var(--hi); outline-offset: -2px; }
 @media (pointer: coarse) { .demo .btn kbd, .demo .key-in-label { display: none; } }
 .tip-extra:empty { display: none; }
@@ -934,55 +957,6 @@ footer .brand img { width: 24px; height: 24px; }
   .decide { padding: 18px; }
   .hero h1 { font-size: min(16vw, 72px); }
   .demo-monitor { width: calc(100% - 20px); }
-  .demo:not(.expanded) .demo-expand { display: none; }
-  .demo-minimap { position: relative; bottom: auto; width: auto; margin: 6px; }
-  .demo.has-map .demo-tour { bottom: 14px; }
-  .map-row { padding-block: 2px; }
-  .map-view { inset-block: 1px; }
-  .map-tile { height: 44px; min-width: 24px; padding-inline: 6px; }
-  .demo.scroller .rail { --standard-width: clamp(205px, 77cqw, 500px); }
-  .demo-screen { --menu-h: 44px; }
-  .demo-view span { min-height: 44px; }
-  .demo-menu { padding: 0 8px; }
-  .map-tool { width: 44px; height: 44px; margin-block: -10px; }
-  .map-float, .map-min { height: 30px; padding: 0 2px; }
-  .map-float-label, .map-min-label { display: none; }
-  .map-float-chip, .map-min-chip { width: 44px; height: 44px; margin-block: -8px; }
-  .map-tools { flex-wrap: wrap; justify-content: flex-end; }
-  .traffic { height: 28px; }
-  .map-track { height: 18px; }
-  .map-track::before { top: 7.5px; }
-  .map-track i { top: 6px; }
-  .demo-status-menu > summary, .demo-menu-panel button, .demo-context [role="menuitem"] { min-height: 44px; }
-  .demo-status-menu > summary { min-width: 44px; }
-  .demo-menu-panel { top: 44px; }
-  .demo .guide .photo { height: 50px; margin-top: 8px; }
-  .demo .guide dl { margin-top: 8px; }
-  .demo .window-body h3 { font-size: 20px; }
-  .demo .win > .tb { height: 28px; }
-  .demo-toolbar { min-height: 28px; }
-  .demo .window-body { padding: 10px; font-size: 13px; line-height: 1.4; }
-  .demo-controls > [role="group"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .demo-layout .demo-switches { grid-template-columns: 1fr; }
-  .demo .demo-options button { min-height: 44px; }
-  .demo[data-map-mode="peek"] .demo-minimap { position: absolute; inset-inline: 6px; bottom: 6px; margin: 0; }
-  .demo[data-map-mode="peek"]:not(.jumping, .map-held) :is(.map-row:not([data-active]), .map-track) { display: none; }
-  .demo .win > .jump-badge { top: 2px; font-size: 14px; }
-  .demo[data-map-mode="peek"].has-map .demo-tour { bottom: 108px; }
-  .demo-system, .demo-board-title > span:first-of-type { display: none; }
-  .demo-board-title:not([hidden]) { justify-content: space-between; }
-  .board-zoom button, .board-float { min-width: 44px; height: 44px; }
-  .board-float span { display: none; }
-  .demo:not([data-map-mode="peek"]) .demo-minimap { translate: none; cursor: auto; }
-  .switcher-modes button { min-height: 44px; padding-inline: 10px; }
-  .switcher-search { height: 50px; }
-  .switcher-label { flex-basis: 44px; }
-  .switcher-card { min-width: 40px; height: 48px; padding: 0 6px; }
-  .switcher-card::before { display: none; }
-  .switcher-card { grid-template-columns: minmax(0, 1fr); }
-  .demo-menus, .notes-list { display: none; }
-  .notes-layout { display: block; }
-  .demo .guide dl { gap: 12px; }
   .demo figcaption { padding-block: 0 4px; }
   [data-sales="off"] .top { position: relative; }
   [data-sales="off"] .top nav a[href="#install"]:not(.btn) {
@@ -993,6 +967,16 @@ footer .brand img { width: 24px; height: 24px; }
     right: 0;
     min-height: 30px;
   }
+}
+/* Phones get the real recording alone: the interactive demo needs a keyboard, a pointer and room, so it starts at
+   tablet width. The screen takes the recording's 16:10 shape, and the recording plays only when asked. */
+@media (max-width: 700px), (pointer: coarse) and (max-height: 520px) {
+  .demo .demo-view, .demo .demo-menu, .demo .demo-minimap, .demo .demo-controls, .demo .demo-caption .btn:not(.ink),
+  .demo #strip-caption { display: none; }
+  .demo .demo-canvas { height: 62.5cqw; visibility: hidden; }
+  .demo .demo-footage { visibility: visible; }
+  .demo .footage-caption { display: block; }
+  .demo .phone-only { display: inline; }
 }
 
 video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; background: var(--ink, #14151a); }

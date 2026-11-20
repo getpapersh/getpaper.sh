@@ -63,7 +63,7 @@
           <span class="demo-menus" aria-hidden="true">File &nbsp; Edit &nbsp; View &nbsp; Window &nbsp; Help</span>
           <details class="demo-status-menu" hidden>
             <summary aria-label="PaperMac menu, Desktop 1" data-tip="Open the PaperMac menu with the layout settings and commands.">
-              <b class="demo-pm" aria-hidden="true">P<small>m</small></b><span class="demo-desktop-number" aria-hidden="true">1<sup data-desktop-count></sup></span>
+              <b class="demo-pm" aria-hidden="true">P<small>m</small></b><span class="demo-desktop-number" aria-hidden="true"><span data-desktop-number>1</span><sup data-desktop-count></sup></span>
             </summary>
             <div class="demo-menu-panel" aria-label="PaperMac commands">
               <div class="demo-menu-header"><span aria-hidden="true">Pm</span><div><b>PaperMac</b><small>Arranging windows</small></div></div>
@@ -81,7 +81,7 @@
         </div>
         <div class="demo-canvas" id="demo-canvas" role="group" aria-label="PaperMac desktop preview">
           <div class="demo-board-title" hidden>
-            <b>Infinite Canvas</b><span>Desktop 1 · drag to pan · type a letter to jump</span>
+            <b>Infinite Canvas</b><span><span data-desktop-name>Desktop 1</span> · drag to pan · type a letter to jump</span>
             <button type="button" class="board-float" data-tip="Jump to the floating window; it sits above the Strips." hidden><kbd class="jump-badge" aria-hidden="true"></kbd><span></span></button>
             <span class="board-zoom" role="group" aria-label="Zoom">
               <button type="button" data-board="out" aria-label="Zoom out" data-tip="Zoom out to see more of the Desktop." data-tip-keys="−"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8"/></svg></button>
@@ -164,15 +164,140 @@ Weather: clear
           </div>
         </div>
         <template id="demo-new-window">
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Campsites</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Campsites / Creek Path</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Creek Path campsites</h3>
+              <p>Six sites along the water, first come, first served.</p>
+              <div class="photo" aria-hidden="true"></div>
+              <dl><div><dt>Sites</dt><dd>6</dd></div><div><dt>Open</dt><dd>May to October</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Weather</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Weather / North Ridge</span>
+            </div>
+            <div class="window-body guide">
+              <h3>North Ridge forecast</h3>
+              <p>Clear in the morning, with wind picking up after 2 PM.</p>
+              <dl><div><dt>High</dt><dd>18°</dd></div><div><dt>Wind</dt><dd>20 km/h</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Trail Map</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Maps / North Ridge loop</span>
+            </div>
+            <div class="window-body guide">
+              <h3>North Ridge loop</h3>
+              <p>Fire road up, creek path back, with one steep switchback.</p>
+              <div class="photo" aria-hidden="true"></div>
+              <dl><div><dt>Length</dt><dd>6.4 km</dd></div><div><dt>Time</dt><dd>3 hours</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Ranger Station</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Park / Ranger station</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Ranger station</h3>
+              <p>Open every day. Ask here about fire rules and water levels.</p>
+              <dl><div><dt>Hours</dt><dd>8 AM to 5 PM</dd></div><div><dt>Parking</dt><dd>Free</dd></div></dl>
+            </div>
+          </div>
+          <div class="win ph" data-app="Browser" data-new>
+            <b class="tb">Sunrise</b>
+            <div class="demo-toolbar browser-toolbar" aria-hidden="true">
+              <span class="browser-arrows">‹ &nbsp; ›</span>
+              <span class="browser-address">Almanac / This week</span>
+            </div>
+            <div class="window-body guide">
+              <h3>Sunrise this week</h3>
+              <p>The earliest light is on Saturday, just after six.</p>
+              <dl><div><dt>Saturday</dt><dd>6:12</dd></div><div><dt>Sunday</dt><dd>6:13</dd></div></dl>
+            </div>
+          </div>
           <div class="win dc" data-app="Notes" data-new>
-            <b class="tb"></b>
+            <b class="tb">Trail Journal</b>
             <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> North Ridge</div>
             <div class="window-body"><h3>Trail journal</h3><p>Sketch the route home and mark the creek crossing.</p></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Gear List</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
+            <div class="window-body"><h3>Gear list</h3><ul><li>Headlamp</li><li>First aid kit</li><li>Spare socks</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Meal Plan</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Weekend route</div>
+            <div class="window-body"><h3>Meal plan</h3><ul><li>Oatmeal and coffee</li><li>Wraps for lunch</li><li>Chili at camp</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Bird Sightings</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> Field log</div>
+            <div class="window-body"><h3>Bird sightings</h3><ul><li>Steller’s jay</li><li>Red-tailed hawk</li><li>Dipper at the creek</li></ul></div>
+          </div>
+          <div class="win dc" data-app="Notes" data-new>
+            <b class="tb">Photo Ideas</b>
+            <div class="demo-toolbar" aria-hidden="true">Notes <span>/</span> North Ridge</div>
+            <div class="window-body"><h3>Photo ideas</h3><p>The overlook at golden hour, and reflections at the creek crossing.</p></div>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Photos</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> ls photos
+overlook.jpg  creek.jpg  summit.jpg
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Backup</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> rsync -a photos/ backup/
+sent 18.4 MB  received 64 bytes
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">GPS Track</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> wc -l track.gpx
+     842 track.gpx
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Elevation</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> cat elevation.csv
+km,m
+0,920
+3.2,1230
+6.4,920
+
+<span>~/north-ridge %</span></code></pre>
+          </div>
+          <div class="win te" data-app="Terminal" data-new>
+            <b class="tb">Disk</b>
+            <div class="demo-toolbar" aria-hidden="true">north-ridge <span>—</span> zsh</div>
+            <pre class="window-body"><code><span>~/north-ridge %</span> du -sh photos
+1.2G    photos
+
+<span>~/north-ridge %</span></code></pre>
           </div>
         </template>
         <div class="demo-minimap" role="group" aria-label="Minimap" hidden>
           <div class="map-heading">
-            <b class="map-desktop">1<sup data-map-count></sup></b>
+            <span class="map-desktops" role="group" aria-label="Desktops"><b class="map-desktop" aria-current="true"><b>1</b><sup></sup></b></span>
             <span data-map-app data-tip="Drag the Minimap by its background to move it."></span>
             <span class="map-tools">
               <span class="map-min" role="group" aria-label="Minimized windows" data-tip="Minimized windows wait here. Click one to restore it, or drag a tile here to minimize its window." hidden><span class="map-min-label" aria-hidden="true">Minimized</span></span>
@@ -196,7 +321,8 @@ Weather: clear
     <figcaption class="wrap">
       <div class="demo-caption">
         <span id="strip-caption">Scroll the Strip to explore the windows.</span>
-        <span class="footage-caption">Moving focus scrolls the Strip. Real app; synthetic documents.</span>
+        <span class="footage-caption">Moving focus scrolls the Strip. Real app; synthetic documents.<span class="phone-only"> Open this page on a larger screen to try it yourself.</span></span>
+        <button class="btn small act" data-command="newWindow" type="button" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Add Window</button>
         <button class="btn quiet small demo-expand" data-expand type="button" hidden data-tip="Show the demo as large as the browser window allows. Escape returns to the page."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5V3h3.5M9.5 3H13v3.5M13 9.5V13H9.5M6.5 13H3V9.5"/></svg><span class="expand-label">Expand</span><span class="exit-label">Exit expanded view</span></button>
         <button class="btn quiet small" data-command="pause" type="button" hidden>Pause tour</button>
         <a class="btn ink small" href="#install" data-tip="Jump to the ways to install PaperMac.">Install</a>
@@ -217,7 +343,6 @@ Weather: clear
         <div role="group" aria-label="Change window and canvas layout">
           <button class="btn quiet small" data-command="full" type="button" aria-pressed="false">Full Width</button>
           <button class="btn quiet small" data-command="resize" type="button">Next Width Preset</button>
-          <button class="btn quiet small" data-command="newWindow" type="button">New Window</button>
           <button class="btn quiet small" data-command="minimize" type="button">Minimize</button>
           <button class="btn quiet small" data-command="close" type="button">Close Window</button>
           <button class="btn quiet small" data-command="overview" type="button" data-key-in-label>Overview</button>

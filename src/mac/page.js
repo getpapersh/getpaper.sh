@@ -3,6 +3,8 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  // Phones show the recording alone (the same query as the CSS); the interactive demo starts at tablet width.
+  const phone = matchMedia("(max-width: 700px), (pointer: coarse) and (max-height: 520px)");
   const reduced = () => motion.matches;
   const live = $("#live");
   const say = (t) => { if (!live) return; live.textContent = ""; setTimeout(() => (live.textContent = t), 30); };
@@ -84,8 +86,32 @@
 
   function StripDemo(fig) {
     const strips = $$("[data-strip]", fig);
-    const windows = $$(".win", fig), initialWindowCount = windows.length, windowLimit = 9, stripLimit = 4;
-    let noteCount = 0;
+    const windows = $$(".win", fig), initialWindowCount = windows.length, stripLimit = 4;
+    // New windows rotate through every example page in a shuffled round, never the same app twice in a row; the
+    // next round starts once all are used, and a page already open gets a number.
+    let round = [], lastApp = "";
+    const shuffle = list => {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    };
+    const nextPage = () => {
+      if (!round.length) {
+        // Each app's pages in a random order, dealt one app at a time in a random app order, so neighbours never
+        // share an app (every app has the same number of pages).
+        const byApp = Map.groupBy(shuffle([...$("#demo-new-window", fig).content.children]), page => page.dataset.app);
+        while ([...byApp.values()].some(pages => pages.length)) {
+          const apps = shuffle([...byApp.keys()].filter(app => byApp.get(app).length));
+          if (apps.length > 1 && apps[0] === (round.at(-1)?.dataset.app ?? lastApp)) apps.push(apps.shift());
+          for (const app of apps) round.push(byApp.get(app).pop());
+        }
+      }
+      const page = round.shift();
+      lastApp = page.dataset.app;
+      return page;
+    };
     const canvas = $(".demo-canvas", fig), status = $("[role=status]", fig);
     const tourCue = $(".demo-tour", fig), app = $("[data-demo-app]", fig);
     const minimap = $(".demo-minimap", fig), mapRows = $$(".map-row", minimap), mapTrack = $(".map-track", minimap);
@@ -100,7 +126,11 @@
     // it onto a row restores it there, and dropping a tile on the zone minimizes that window.
     const minZone = $(".map-min", minimap), minChips = new Map(), minimized = [];
     const statusMenu = $(".demo-status-menu", fig), menuSummary = $("summary", statusMenu);
-    const desktopCount = $("[data-desktop-count]", statusMenu), mapCount = $("[data-map-count]", minimap);
+    const desktopCount = $("[data-desktop-count]", statusMenu);
+    // Desktops: each keeps its own Strips, Minimap rows, focus, minimized and floating windows and wallpaper; the
+    // screen shows one at a time. Their pills sit at the left of the Minimap header, as in the app.
+    const desktopsEl = $(".map-desktops", minimap), desktops = [];
+    let desk = 0, desktopPills = [];
     const footageVideo = $(".demo-footage video", fig), footageInput = $("#demo-view-footage", fig);
     const menuButtons = new Map();
     const mapTiles = new Map();
@@ -164,22 +194,26 @@
       paintFloats();
       paintMinimized();
       if (board()) return;
-      const rail = track(), start = rail.firstElementChild.offsetLeft;
-      const end = rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth;
-      const span = end - start;
-      const left = Math.max(start, rail.scrollLeft);
-      const right = Math.min(end, rail.scrollLeft + rail.clientWidth);
-      const scale = mapScale();
-      // The outline and the scrollbar thumb mark the same viewport at the tiles' scale.
+      // A Strip a move just emptied has no tiles to measure; it is about to disappear.
+      const firstTile = $(".map-tile", mapRows[row]);
+      if (!firstTile || !track().children.length) return;
+      const rail = track(), start = rail.firstElementChild.offsetLeft, scale = mapScale();
+      // The outline and the scrollbar thumb mark the whole screen at the tiles' scale, empty room beside the
+      // windows included, as the app's do.
+      // Kept inside the row: the Minimap's fixed 4 px tile gaps can add a pixel or two at the far ends.
+      const rowWidth = mapRows[row].clientWidth;
+      const left = Math.max(0, firstTile.offsetLeft + scale * (rail.scrollLeft - start));
+      const width = Math.min(scale * rail.clientWidth, rowWidth - left);
       for (const [element, offset] of [[mapRows[row], 0], [minimap, mapRows[row].offsetLeft - mapTrack.offsetLeft]]) {
-        element.style.setProperty("--view-left", `${offset + scale * (left - start)}px`);
-        element.style.setProperty("--view-width", `${scale * (right - left)}px`);
+        element.style.setProperty("--view-left", `${offset + left}px`);
+        element.style.setProperty("--view-width", `${width}px`);
       }
     };
+    // Minimap px per Strip px, measured from the first tile, after the shared room before the windows.
     const mapScale = () => {
-      const rail = track(), lastTile = mapRows[row].lastElementChild;
+      const rail = track(), firstTile = $(".map-tile", mapRows[row]), lastTile = mapRows[row].lastElementChild;
       const start = rail.firstElementChild.offsetLeft;
-      return (lastTile.offsetLeft + lastTile.offsetWidth) / (rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth - start);
+      return (lastTile.offsetLeft + lastTile.offsetWidth - firstTile.offsetLeft) / (rail.lastElementChild.offsetLeft + rail.lastElementChild.offsetWidth - start);
     };
     const paintMap = () => {
       const had = minimap.contains(document.activeElement);
@@ -240,8 +274,19 @@
         win.style.setProperty("--map-weight", weight);
         if (mapRow.children[i + 1] !== tile) mapRow.insertBefore(tile, mapRow.children[i + 1] ?? null);
       });
-      minimap.style.setProperty("--map-total", Math.max(...strips.map(rail =>
-        [...rail.children].reduce((sum, win) => sum + Number(win.style.getPropertyValue("--map-weight")), 0))));
+      const weights = rail => [...rail.children].map(win => Number(win.style.getPropertyValue("--map-weight")));
+      const sum = list => list.reduce((total, weight) => total + weight, 0);
+      minimap.style.setProperty("--map-total", Math.max(...strips.map(rail => sum(weights(rail)))));
+      // Like the app's, the Minimap depicts everything the screen can travel, the centering room before a Strip's
+      // first window and after its last included (in screen widths). Rows share the room before, so they stay aligned.
+      // Windows sit a gap apart (their side margins), which the span counts too. A Strip a move just emptied is
+      // skipped; it is about to disappear.
+      const filled = strips.filter(rail => rail.children.length), shown = track().firstElementChild;
+      const gap = shown && track().clientWidth ? 2 * parseFloat(getComputedStyle(shown).marginLeft) / track().clientWidth || 0 : 0;
+      const lead = Math.max(...filled.map(rail => (1 - weights(rail)[0]) / 2));
+      minimap.style.setProperty("--map-lead", lead);
+      minimap.style.setProperty("--map-span", Math.max(...filled.map(rail =>
+        lead + sum(weights(rail)) + gap * (rail.children.length - 1) + (1 - weights(rail).at(-1)) / 2)));
       paintJump();
     };
     // Why each command is unavailable right now; an empty reason means it is available.
@@ -258,7 +303,7 @@
         moveLeft: zoomed || side(-1), moveRight: zoomed || side(1),
         moveAbove: zoomed || make(-1), moveBelow: zoomed || make(1),
         full: zoomed || (floating?.win === target && "Return the window to the Strip to fill its width."), resize: zoomed, jumpTo: board() && "Infinite Canvas already shows the letters.",
-        newWindow: zoomed || (windows.length >= windowLimit && `The demo holds up to ${windowLimit} windows.`),
+        newWindow: zoomed,
         // A floating window may always close or minimize; a tiled one only while another stays on the Strips.
         float: zoomed || (!floating && alone), minimize: zoomed || (floating?.win !== target && alone), close: zoomed || (floating?.win !== target && alone),
       };
@@ -278,7 +323,8 @@
         button.setAttribute("aria-pressed", String(settings[setting] === value));
         button.disabled = setting === "map" && !mapOn;
       }
-      desktopCount.textContent = mapCount.textContent = windows.length - minimized.length;
+      desktopCount.textContent = windows.length - minimized.length;
+      paintDesktops();
       // The last tiled window's red and yellow lights are off, the way macOS greys a light that cannot act.
       const keep = tiledCount() < 2;
       for (const light of $$(".rail .tl-close, .rail .tl-minimize", fig)) {
@@ -381,24 +427,29 @@
     // Strips come and go like the app's lanes: moving a window past the first or last Strip starts a new one, and
     // a Strip left empty disappears. A third Strip and more are Pro, as on the page's Free and Pro list.
     const tiledCount = () => strips.reduce((sum, rail) => sum + rail.children.length, 0);
-    // Three or more Strips are Pro: said whenever a move creates one, wherever it lands.
-    const proNote = () => strips.length > 2 ? ". Three or more Strips are Pro" : "";
     const watchScroll = strip => strip.addEventListener("scroll", () => {
       if (strip === track() && frame == null) frame = requestAnimationFrame(syncScroll);
     }, { passive: true });
     const labelStrips = () => strips.forEach((rail, i) => {
       rail.setAttribute("aria-label", `Strip ${i + 1}`);
       rail.style.setProperty("--row", i);
-      mapRows[i].setAttribute("aria-label", `Strip ${i + 1}${i >= 2 ? ", Pro" : ""}`);
-      mapRows[i].toggleAttribute("data-pro", i >= 2);
+      mapRows[i].setAttribute("aria-label", `Strip ${i + 1}`);
     });
-    const addStrip = at => {
+    const newRail = () => {
       const rail = Object.assign(document.createElement("div"), { className: "rail", hidden: !board() });
       rail.setAttribute("data-strip", "");
       rail.setAttribute("role", "group");
+      watchScroll(rail);
+      return rail;
+    };
+    const newMapRow = () => {
       const mapRow = Object.assign(document.createElement("div"), { className: "map-row" });
       mapRow.setAttribute("role", "group");
       mapRow.append(Object.assign(document.createElement("i"), { className: "map-view", ariaHidden: "true" }));
+      return mapRow;
+    };
+    const addStrip = at => {
+      const rail = newRail(), mapRow = newMapRow();
       if (at < strips.length) {
         strips[at].before(rail);
         mapRows[at].before(mapRow);
@@ -410,7 +461,6 @@
       mapRows.splice(at, 0, mapRow);
       selections.splice(at, 0, null);
       if (at <= row) row++;
-      watchScroll(rail);
       labelStrips();
       return at;
     };
@@ -444,7 +494,7 @@
       pruneStrips();
       const index = strips.indexOf(to);
       showStrip(index, win);
-      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${index + 1}${created ? proNote() : ""}`);
+      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${index + 1}`);
     };
     const setWidth = (win, message) => {
       win.style.setProperty("--window-width", width(win));
@@ -498,8 +548,9 @@
     };
     const addWindow = () => {
       const positions = new Map(items().map(win => [win, win.offsetLeft]));
-      const win = $("#demo-new-window", fig).content.firstElementChild.cloneNode(true);
-      $(".tb", win).textContent = `New Note ${++noteCount}`;
+      const win = nextPage().cloneNode(true), bar = $(".tb", win), base = bar.textContent;
+      // A page that is already open gets a number, as a second window of the same document would.
+      for (let n = 2; windows.some(other => title(other) === bar.textContent); n++) bar.textContent = `${base} ${n}`;
       win.style.setProperty("--window-width", width(win));
       if (settings.place === "after") active().after(win);
       else track().append(win);
@@ -515,7 +566,7 @@
         win.animate([{ opacity: .3, scale: ".93" }, { opacity: 1, scale: "1" }], timing);
       }
       focus(win, true);
-      announce(`${title(win)} opened. ${windows.length} of ${windowLimit} windows.`);
+      announce(`${title(win)} opened.`);
     };
     const grip = win => $(".tb", win);
     const floatFocused = () => Boolean(floating) && document.activeElement === grip(floating.win);
@@ -550,14 +601,18 @@
       }
     };
     // Returns the floating window to a Strip: where it came from, or a slot chosen in the Minimap.
+    // Clears what floating gave a window, so it can tile again.
+    const ground = win => {
+      win.style.removeProperty("--float-x");
+      win.style.removeProperty("--float-y");
+      for (const attr of ["tabindex", "role", "aria-label", "data-tip"]) grip(win).removeAttribute(attr);
+    };
     const unfloat = (strip = floating.strip, next = floating.next, navigate = true) => {
       const { win } = floating;
       // Its Strip may have gone while it floated.
       if (!strips.includes(strip)) [strip, next] = [track(), null];
       floating = drag = null;
-      win.style.removeProperty("--float-x");
-      win.style.removeProperty("--float-y");
-      for (const attr of ["tabindex", "role", "aria-label", "data-tip"]) grip(win).removeAttribute(attr);
+      ground(win);
       strip.insertBefore(win, next?.parentElement === strip ? next : null);
       syncWidths(strip);
       if (navigate) showStrip(strips.indexOf(strip), win);
@@ -736,7 +791,7 @@
         syncButtons();
         announce(`Window previews ${previews ? "on" : "off"}`);
       }, "Preview a window when you hover its Minimap tile."],
-      newWindow: ["Shift+KeyN", addWindow, "Open a note and make room on the Strip."],
+      newWindow: ["Shift+KeyN", addWindow, "Open another example window and make room on the Strip."],
       minimize: ["Shift+KeyM", win => minimizeWindow(win ?? focusedWindow()), "Minimize the focused window to the Minimap."],
       close: ["Shift+KeyW", win => closeWindow(win ?? focusedWindow()), "Close the focused window."],
       pause: ["Escape", () => { if (!board()) focus(nearest()); }, "Stop the tour and take control of the demo."],
@@ -762,6 +817,7 @@
       const reason = blocked(arg)[id], enabled = !reason;
       if (manual && !enabled && !footage) announce(reason);
       if (manual && footage && (!enabled || id === "pause")) return;
+      if (manual && phone.matches) return;
       if (manual && footage) showView(false);
       if (manual) takeOver();
       if (jumping && id !== "jumpTo") setJumping(false);
@@ -786,7 +842,8 @@
       if (footage) {
         statusMenu.open = false;
         hideTip();
-        if (!reduced()) footageVideo.play().catch(() => {});
+        // A phone visitor starts the recording with its controls; it never downloads unasked.
+        if (!reduced() && !phone.matches) footageVideo.play().catch(() => {});
       } else {
         footageVideo.pause();
         syncMap();
@@ -833,6 +890,8 @@
         proxy.removeAttribute("data-command");
         proxy.removeAttribute("class");
         $("i", proxy)?.remove();
+        $("svg", proxy)?.remove();
+        proxy.hidden = false;
         proxy.addEventListener("click", () => {
           statusMenu.open = false;
           menuSummary.focus({ preventScroll: true });
@@ -965,7 +1024,7 @@
       selectedCard = null;
       results.replaceChildren();
       results.style.setProperty("--map-total", minimap.style.getPropertyValue("--map-total"));
-      const keys = jumpKeys(), groups = strips.map((rail, i) => [`Strip ${i + 1}${i >= 2 ? " · Pro" : ""}`, [...rail.children]]);
+      const keys = jumpKeys(), groups = strips.map((rail, i) => [`Strip ${i + 1}`, [...rail.children]]);
       if (floating) groups.push(["Floating", [floating.win]]);
       if (minimized.length) groups.push(["Minimized", minimized.map(entry => entry.win)]);
       for (const [label, wins] of groups) {
@@ -1279,7 +1338,7 @@
       pruneStrips();
       const target = strips.indexOf(into);
       showStrip(target, win);
-      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${target + 1}, position ${[...into.children].indexOf(win) + 1}${created ? proNote() : ""}`);
+      announce(`${title(win)} moved to ${created ? "new " : ""}Strip ${target + 1}, position ${[...into.children].indexOf(win) + 1}`);
       return true;
     };
     const caret = Object.assign(document.createElement("i"), { className: "drop-caret", hidden: true });
@@ -1316,7 +1375,7 @@
       carry.create = carry.to !== row && !strips[carry.to];
       const side = carry.to < row ? "above" : "below";
       canvas.dataset.drop = carry.to === row ? "" : side;
-      canvas.dataset.dropLabel = carry.create ? `Drop to start a new Strip ${side}${strips.length >= 2 ? " (Pro)" : ""}` : `Drop to move it to the Strip ${side}`;
+      canvas.dataset.dropLabel = carry.create ? `Drop to start a new Strip ${side}` : `Drop to move it to the Strip ${side}`;
       if (carry.to === row) {
         const others = items().filter(win => win !== carry.win), bar = rail.getBoundingClientRect();
         carry.index = slotFor(others, x);
@@ -1434,7 +1493,7 @@
       if (!overRow && event.clientY > mapRows.at(-1).getBoundingClientRect().bottom && count <= stripLimit && tileDrag.source === "tile"
         && (!alone || tileDrag.win.parentElement !== strips.at(-1))) {
         [tileDrag.to, tileDrag.index] = [strips.length, 0];
-        minimap.dataset.newStrip = `New Strip ${count}${count > 2 ? " · Pro" : ""}`;
+        minimap.dataset.newStrip = `New Strip ${count}`;
         minimap.classList.add("new-strip");
         return;
       }
@@ -1625,6 +1684,24 @@
     const windowOf = element => element === floatChip ? floating?.win
       : element.matches(".map-min-chip") ? [...minChips].find(([, chip]) => chip === element)?.[0]
       : element.matches(".switcher-card") ? cardWindows.get(element) : tileWindows.get(element);
+    function paintDesktops() {
+      desktopPills.forEach((pill, i) => {
+        const here = i === desk, d = desktops[i];
+        const count = here ? windows.length - minimized.length : d.windows.length - d.minimized.length;
+        pill.querySelector("b").textContent = i + 1;
+        pill.querySelector("sup").textContent = count;
+        pill.querySelector(".map-desktop-name").textContent = d.name;
+        if (here) pill.setAttribute("aria-current", "true");
+        else pill.removeAttribute("aria-current");
+        pill.setAttribute("aria-label", `${nameOf(i)}, Desktop ${i + 1}, ${count} window${count === 1 ? "" : "s"}`);
+        pill.dataset.tip = `${here ? `${nameOf(i)} is on the screen.` : `Switch to ${nameOf(i)}.`} Double-click to rename it, or right-click for more.`;
+      });
+      if (!desktops.length) return;
+      $("[data-desktop-number]", statusMenu).textContent = desk + 1;
+      menuSummary.setAttribute("aria-label", `PaperMac menu, ${nameOf(desk)}, Desktop ${desk + 1}`);
+      $(".switcher-desktop", fig).textContent = nameOf(desk);
+      $("[data-desktop-name]", fig).textContent = nameOf(desk);
+    }
     function closeContext(restore = contextMenu.contains(document.activeElement)) {
       if (contextMenu.hidden) return;
       contextMenu.hidden = true;
@@ -1662,10 +1739,12 @@
       announce(`Quit ${app}; ${closing.length} window${closing.length === 1 ? "" : "s"} closed.`);
     };
     const openContext = (element, x, y) => {
+      if (element.matches(".map-desktop")) {
+        const i = Number(element.dataset.desktop);
+        return showMenu(element, x, y, desktopItems(i), `${nameOf(i)} desktop`);
+      }
       const win = windowOf(element);
       if (!win) return;
-      takeOver();
-      hideTip();
       const isFloat = floating?.win === win, entry = minimized.find(item => item.win === win), isMin = Boolean(entry);
       const lane = strips.indexOf(win.parentElement), app = win.dataset.app;
       const keep = "The demo keeps one window on its Strips.";
@@ -1674,13 +1753,18 @@
       const items = [
         [isFloat || entry?.floated ? "Tile Window" : "Float Window", isMin ? "Restore it first." : lastTiled, () => isFloat ? unfloat() : floatWindow(win)],
         isMin ? ["Restore", "", () => restoreWindow(win)] : ["Minimize", lastTiled, () => minimizeWindow(win)],
-        ...lane < 0 || strips.length < 2 ? [] : ["-", `Strip ${lane + 1}${lane >= 2 ? " · Pro" : ""}`,
+        ...lane < 0 || strips.length < 2 ? [] : ["-", `Strip ${lane + 1}`,
           ["Move Strip Up", !lane && "It is already the first Strip.", () => moveStrip(lane, -1), false, `Move Strip ${lane + 1} up`],
           ["Move Strip Down", lane === strips.length - 1 && "It is already the last Strip.", () => moveStrip(lane, 1), false, `Move Strip ${lane + 1} down`]],
         "-",
         ["Close Window", lastTiled, () => closeWindow(win)],
         [`Quit ${app}${appCount > 1 ? ` (${appCount} windows)` : ""}`, strips.every(rail => [...rail.children].every(other => other.dataset.app === app)) && keep, () => quitApp(app), true],
       ];
+      showMenu(element, x, y, items, `${title(win)} window`);
+    };
+    const showMenu = (element, x, y, items, label) => {
+      takeOver();
+      hideTip();
       contextMenu.replaceChildren();
       contextActions.clear();
       for (const item of items) {
@@ -1702,7 +1786,7 @@
         contextActions.set(button, action);
         contextMenu.append(button);
       }
-      contextMenu.setAttribute("aria-label", `${title(win)} window`);
+      contextMenu.setAttribute("aria-label", label);
       contextFor = element;
       minimap.classList.toggle("menu-open", minimap.contains(element));
       contextMenu.hidden = false;
@@ -1716,7 +1800,7 @@
     fig.addEventListener("contextmenu", event => {
       // From the keyboard, the search field's menu is the selected card's; a right-click there keeps the browser's.
       const element = event.target === search ? !pointerMenu && selectedCard
-        : event.target.closest(".map-tile, .map-float-chip, .map-min-chip, .switcher-card");
+        : event.target.closest(".map-tile, .map-float-chip, .map-min-chip, .switcher-card, .map-desktop");
       pointerMenu = false;
       if (!element || element.getAttribute("aria-disabled") === "true" || footage || board()) return;
       event.preventDefault();
@@ -1727,7 +1811,7 @@
     });
     fig.addEventListener("keydown", event => {
       if (event.key !== "ContextMenu" && !(event.key === "F10" && event.shiftKey)) return;
-      const element = event.target === search ? selectedCard : event.target.closest?.(".map-tile, .map-float-chip, .map-min-chip");
+      const element = event.target === search ? selectedCard : event.target.closest?.(".map-tile, .map-float-chip, .map-min-chip, .map-desktop");
       if (!element || element.getAttribute("aria-disabled") === "true" || footage || board()) return;
       event.preventDefault();
       event.stopPropagation();
@@ -1789,7 +1873,7 @@
       if (!minimap.hidden && getComputedStyle(minimap).position === "absolute") moveMap(mapOffset.x, mapOffset.y);
     };
     minimap.addEventListener("pointerdown", event => {
-      if (event.button || mapDrag || event.target.closest("button, .map-track, .map-float") || getComputedStyle(minimap).position !== "absolute") return;
+      if (event.button || mapDrag || event.target.closest("button, input, .map-track, .map-float, .map-desktops") || getComputedStyle(minimap).position !== "absolute") return;
       mapDrag = { id: event.pointerId, x: event.clientX - mapOffset.x, y: event.clientY - mapOffset.y };
       takeOver();
       minimap.setPointerCapture(event.pointerId);
@@ -1972,7 +2056,7 @@
       const rail = track(), scale = mapScale(), thumb = $("i", mapTrack).getBoundingClientRect();
       rail.style.scrollSnapType = "none";
       if (event.clientX < thumb.left || event.clientX > thumb.right) {
-        const x = event.clientX - mapRows[row].getBoundingClientRect().left;
+        const x = event.clientX - mapRows[row].getBoundingClientRect().left - $(".map-tile", mapRows[row]).offsetLeft;
         rail.scrollLeft = rail.firstElementChild.offsetLeft + x / scale - rail.clientWidth / 2;
       }
       scrub = { id: event.pointerId, x: event.clientX, left: rail.scrollLeft, scale, rail };
@@ -2215,6 +2299,7 @@
       } else setExpanded(false);
     });
     expandButton.hidden = false;
+    buttons.get("newWindow").hidden = false;
     const nativeInput = () => { takeOver(); setJumping(false); target = null; syncButtons(); };
     // The float chip turns solid orange while the floating window has focus.
     fig.addEventListener("focusin", paintFloats);
@@ -2294,11 +2379,157 @@
     canvas.tabIndex = 0;
     strips.forEach(syncWidths);
     fig.dataset.mapMode = settings.map;
+    const nameOf = i => desktops[i].name || `Desktop ${i + 1}`;
+    const walls = ["work", "personal", "dusk", "forest", "violet"];
+    const makeDesktop = (name, wall, pages) => {
+      const rail = newRail(), mapRow = newMapRow();
+      rail.hidden = true;
+      for (const page of pages) {
+        const win = page.cloneNode(true);
+        win.style.setProperty("--window-width", width(win));
+        rail.append(win);
+        bindPicker(win);
+      }
+      return { name, wall, strips: [rail], mapRows: [mapRow], selections: [rail.firstElementChild], row: 0, minimized: [], windows: [...rail.children], floating: null };
+    };
+    // The Desktop on screen keeps its state in the shared arrays; a switch stores it and swaps the next one in.
+    const switchDesktop = index => {
+      if (index === desk || !desktops[index]) return;
+      closeContext();
+      cancelDrags();
+      setJumping(false);
+      closeSwitcher();
+      if (board()) showBoard(null);
+      takeOver();
+      finishSlide?.();
+      target = null;
+      const had = holdsFocus(), from = desktops[desk], to = desktops[index];
+      if (floating) floating.win.remove();
+      Object.assign(from, { strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [...minimized], windows: [...windows], floating });
+      from.strips[0].before(...to.strips);
+      for (const rail of from.strips) rail.remove();
+      from.mapRows[0].before(...to.mapRows);
+      for (const mapRow of from.mapRows) mapRow.remove();
+      desk = index;
+      strips.splice(0, Infinity, ...to.strips);
+      mapRows.splice(0, Infinity, ...to.mapRows);
+      selections.splice(0, Infinity, ...to.selections);
+      minimized.splice(0, Infinity, ...to.minimized);
+      windows.splice(0, Infinity, ...to.windows);
+      row = to.row;
+      floating = to.floating;
+      if (floating) canvas.append(floating.win);
+      screenEl.dataset.wall = to.wall;
+      // On screen before measuring: a hidden Strip has no width.
+      strips.forEach((strip, i) => { strip.hidden = i !== row; });
+      strips.forEach(syncWidths);
+      labelStrips();
+      showStrip(row);
+      paintMinimized();
+      paintFloats();
+      paintJump();
+      syncButtons();
+      rescueFocus(had);
+      announce(`${nameOf(index)}, Desktop ${index + 1}.`);
+    };
+    // A new Desktop gets the next wallpaper and one window to start, so there is something to tile.
+    const addDesktop = () => {
+      desktops.push(makeDesktop("", walls[desktops.length % walls.length], [nextPage()]));
+      buildPills();
+      switchDesktop(desktops.length - 1);
+      announce(`Desktop ${desktops.length} added, with one window. Double-click its pill to name it.`);
+    };
+    // Its windows join the Desktop on screen, or its neighbour when it is the one on screen, as macOS moves them.
+    const removeDesktop = i => {
+      if (desktops.length < 2) return;
+      const name = nameOf(i);
+      if (i === desk) switchDesktop(i ? i - 1 : 1);
+      const moving = desktops[i].windows;
+      if (desktops[i].floating) ground(desktops[i].floating.win);
+      for (const win of moving) {
+        track().append(win);
+        windows.push(win);
+      }
+      desktops.splice(i, 1);
+      if (i < desk) desk--;
+      syncWidths(track());
+      buildPills();
+      paintJump();
+      syncButtons();
+      announce(`${name} removed. Its ${moving.length} window${moving.length === 1 ? "" : "s"} moved to ${nameOf(desk)}.`);
+    };
+    const renameDesktop = i => {
+      const pill = desktopPills[i];
+      if (!pill?.isConnected) return;
+      const input = Object.assign(document.createElement("input"), {
+        type: "text", className: "map-desktop-input", value: desktops[i].name, placeholder: `Desktop ${i + 1}`, maxLength: 24, spellcheck: false, autocomplete: "off",
+      });
+      input.setAttribute("aria-label", `Name for Desktop ${i + 1}`);
+      pill.replaceWith(input);
+      input.focus({ preventScroll: true });
+      input.select();
+      let done = false;
+      // Enter or leaving the field keeps the name, Escape keeps the old one; an empty name clears it.
+      const finish = keep => {
+        if (done) return;
+        done = true;
+        if (keep) desktops[i].name = input.value.trim();
+        input.replaceWith(pill);
+        paintDesktops();
+        pill.focus({ preventScroll: true });
+        if (keep) announce(`Desktop ${i + 1} is ${desktops[i].name ? `now ${desktops[i].name}` : "unnamed"}.`);
+      };
+      // The field owns its keys: demo shortcuts stay out of it.
+      input.addEventListener("keydown", event => {
+        event.stopPropagation();
+        if (event.key === "Enter" || event.key === "Escape") {
+          event.preventDefault();
+          finish(event.key === "Enter");
+        }
+      });
+      input.addEventListener("blur", () => finish(true));
+    };
+    const desktopItems = i => [
+      ...i === desk ? [] : [["Switch to Desktop", "", () => switchDesktop(i)]],
+      ["Rename…", "", () => renameDesktop(i)],
+      ...desktops[i].name ? [["Clear Custom Name", "", () => {
+        desktops[i].name = "";
+        paintDesktops();
+        announce(`Desktop ${i + 1} is unnamed.`);
+      }]] : [],
+      ...desktops.length > 1 ? ["-", ["Remove Desktop", "", () => removeDesktop(i), true, `Remove ${nameOf(i)}; its windows move to another Desktop`]] : [],
+    ];
+    const addPill = Object.assign(document.createElement("button"), { type: "button", className: "map-desktop-add" });
+    addPill.setAttribute("aria-label", "New Desktop");
+    addPill.dataset.tip = "Add a Desktop with its own wallpaper and a window to start.";
+    addPill.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
+    addPill.addEventListener("click", addDesktop);
+    const buildPills = () => {
+      const focused = [...desktopPills, addPill].indexOf(document.activeElement);
+      desktopPills = desktops.map((_, i) => {
+        const pill = Object.assign(document.createElement("button"), { type: "button", className: "map-desktop" });
+        pill.dataset.desktop = i;
+        pill.append(document.createElement("b"), document.createElement("sup"), Object.assign(document.createElement("span"), { className: "map-desktop-name" }));
+        pill.addEventListener("click", () => switchDesktop(i));
+        pill.addEventListener("dblclick", () => renameDesktop(i));
+        return pill;
+      });
+      desktopsEl.replaceChildren(...desktopPills, addPill);
+      paintDesktops();
+      if (focused >= 0) [...desktopPills, addPill][Math.min(focused, desktopPills.length)].focus({ preventScroll: true });
+    };
     showStrip(0);
+    desktops.push({ name: "Work", wall: "work", strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [], windows: [...windows], floating: null });
+    const examples = [...$("#demo-new-window", fig).content.children];
+    desktops.push(makeDesktop("Personal", "personal", ["Weather", "Meal Plan", "Photos"].map(name => examples.find(page => title(page) === name))));
+    screenEl.dataset.wall = "work";
+    buildPills();
     pauseButton.hidden = reduced();
     statusMenu.hidden = false;
     $(".demo-controls", fig).hidden = false;
-    applyView();
+    if (phone.matches) showView(true);
+    else applyView();
+    phone.addEventListener("change", () => showView(phone.matches));
     $("#strip-caption", fig).textContent = matchMedia("(pointer: coarse)").matches
       ? "Swipe the Strip or tap a control."
       : "Click a window or use the controls. Shortcuts work while focus is inside the demo.";
