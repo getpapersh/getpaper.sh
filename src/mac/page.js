@@ -43,23 +43,24 @@
   }
   for (const b of $$("[data-copy]")) wireCopy(b, () => b.dataset.copy || $("#" + b.dataset.copyFrom).textContent.trim());
 
-  for (const list of $$("[role=tablist][data-ways]")) {
-    const tabs = $$("[role=tab]", list);
-    const pick = (t, focus) => {
-      for (const x of tabs) {
-        const on = x === t;
-        x.setAttribute("aria-selected", String(on)); x.tabIndex = on ? 0 : -1;
-        $("#" + x.getAttribute("aria-controls")).hidden = !on;
-      }
-      if (focus) t.focus();
-    };
-    tabs.forEach((t, i) => {
-      t.addEventListener("click", () => pick(t));
-      t.addEventListener("keydown", (e) => {
-        const n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
-        if (n === undefined) return;
-        e.preventDefault(); pick(tabs[(n + tabs.length) % tabs.length], true);
-      });
+  // A [data-flash] link highlights its target once the scroll lands there. scrollend never fires when nothing
+  // scrolls, so a timer backs it up; the class comes off after the 2.8 s highlight so a later click restarts it.
+  for (const link of $$("a[data-flash]")) {
+    const target = $(link.getAttribute("href"));
+    let timer;
+    link.addEventListener("click", () => {
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        target.classList.remove("flash");
+        void target.offsetWidth;
+        target.classList.add("flash");
+        clearTimeout(timer);
+        timer = setTimeout(() => target.classList.remove("flash"), 2900);
+      };
+      addEventListener("scrollend", start, { once: true });
+      setTimeout(start, 900);
     });
   }
 

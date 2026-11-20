@@ -1,5 +1,6 @@
 """Check the deployed Mac pages and the resources their HTML can request."""
 from html.parser import HTMLParser
+import html
 from pathlib import Path
 import re
 import sys
@@ -115,28 +116,35 @@ config = (Path(__file__).resolve().parents[1] / 'src/mac/checkout-url.txt').read
 config = dict(line.split('=', 1) for line in config if line.strip() and not line.startswith('#'))
 pro_checkout, lifetime_checkout = config['DODO_CHECKOUT_PRO_27'].strip(), config['DODO_CHECKOUT_LIFETIME'].strip()
 buy_notice = '<p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>'
-assert product.count(buy_notice) == 4
-if pro_checkout == lifetime_checkout == 'off':
+# Each paid offer in the Pro ribbon carries its own refund and Terms notice right after its Buy control.
+assert product.count(buy_notice) == 2
+offers = re.findall(r'<div class="offer" id="(pro-27|lifetime)">(.*?)\n      </div>\n', product, re.S)
+assert [name for name, body in offers] == ['pro-27', 'lifetime']
+offers = dict(offers)
+# Each offer shows its own prices, its own Buy control and, right after it, the refund and Terms notice.
+editions = {'pro-27': ('$39', '$19.50', 'Buy Pro 27', pro_checkout), 'lifetime': ('$99', '$49.50', 'Buy Lifetime', lifetime_checkout)}
+sales_off = pro_checkout == lifetime_checkout == 'off'
+for name, (regular, launch, label, checkout) in editions.items():
+    body = offers[name]
+    assert f'<b data-regular>{regular}</b><b data-launch>{launch}</b>' in body, name
+    assert f'<p class="launch-note" data-launch>Launch price until Dec 1, then {regular}</p>' in body, name
+    if sales_off:
+        control = r'<button class="btn pro[^"]*" type="button" disabled aria-describedby="buy-closed">' + re.escape(label) + '</button>'
+    else:
+        control = r'<a class="btn pro[^"]*" href="' + re.escape(html.escape(checkout, quote=True)) + '">' + re.escape(label) + '</a>'
+    assert re.search(control + r'\s*' + re.escape(buy_notice), body), name
+assert '<b><small>from</small> <span data-regular>$39</span><span data-launch>$19.50</span></b>' in product
+assert not any(text in product for text in ['Try Pro free', 'trial-cta', 'qr-placeholder', 'sales-unavailable'])
+assert len([attrs for tag, attrs in Page(product).tags if tag in ('a', 'button') and 'pro' in attrs.get('class', '').split()]) == 2
+if sales_off:
     assert 'QR code for the PaperMac Pro 27 checkout' not in product
     assert '<svg class="segno"' not in product
-    assert 'class="qr-placeholder"' in product
-    assert 'class="phone sales-unavailable"' in product
-    trial_links = [attrs for tag, attrs in Page(product).tags if tag == 'a' and 'trial-cta' in attrs.get('class', '').split()]
-    assert len(trial_links) == 3 and all(attrs.get('href') == '#install' for attrs in trial_links)
-    assert product.count('href="#install">Download</a>') == 3 and 'Try Pro free' not in product
-    buys = [attrs for tag, attrs in Page(product).tags if tag == 'button' and 'pro' in attrs.get('class', '').split()]
-    assert len(buys) == 4
-    for attrs in buys:
-        assert 'disabled' in attrs and 'href' not in attrs
-        description = attrs['aria-describedby']
-        assert re.search(f'<p class="sales-closed" id="{description}">Buying (Pro|Lifetime) opens during the beta</p>', product)
+    assert '<p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>' in product
 else:
-    assert 'QR code for the PaperMac Pro 27 checkout' in product
-    assert 'trial-cta"' not in product
-    assert 'class="qr-placeholder"' not in product
-    buy_links = [attrs['href'] for tag, attrs in Page(product).tags if tag == 'a' and 'btn pro' in attrs.get('class', '')]
-    assert buy_links == ['#buy', pro_checkout, pro_checkout, lifetime_checkout]
-    assert len(re.findall(r'<a\b[^>]*class="btn pro[^\"]*"[^>]*>.*?</a>(?:\s*</nav>)?\s*' + re.escape(buy_notice), product, re.S)) == 4
+    assert '<p class="sales-closed"' not in product
+    assert re.search(r'<div class="ribbon".*?QR code for the PaperMac Pro 27 checkout.*?<div class="offer" id="pro-27">', product, re.S)
+# The owner wants Homebrew reachable at the top, before the demo.
+assert product.index('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac') < product.index('data-strip-demo')
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'Not included in Free or Pro.' in product
