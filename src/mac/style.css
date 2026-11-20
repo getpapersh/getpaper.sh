@@ -1061,13 +1061,13 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .optional dt { font-weight: 850; font-size: 17px; }
 .optional dd { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; font-weight: 600; line-height: 1.5; }
 
-/* "Free" in the hero lands on the Free column and briefly rings everything Free includes while Pro steps back. */
-@keyframes free-ring { 0%, 70% { outline-color: var(--pro); } 100% { outline-color: transparent; } }
-@keyframes free-text { 0%, 70% { color: var(--pro-text); } }
-@keyframes pro-dim { 0%, 70% { opacity: .3; } }
-#free.flash .pic > .mini, #free.flash .pic > video { outline: 3px solid transparent; outline-offset: 3px; animation: free-ring 2.8s ease-out; }
-#free.flash .col-head, #free.flash .col-intro, #free.flash .txt { animation: free-text 2.8s ease-out; }
-.cols:has(#free.flash) > .col.pro { animation: pro-dim 2.8s ease-out; }
+/* "Free" and "Pro" links land on their column and briefly ring everything in it while the other column steps back. */
+@keyframes col-ring { 0%, 70% { outline-color: var(--pro); } 100% { outline-color: transparent; } }
+@keyframes col-text { 0%, 70% { color: var(--pro-text); } }
+@keyframes col-dim { 0%, 70% { opacity: .3; } }
+.col.flash .pic > .mini, .col.flash .pic > video { outline: 3px solid transparent; outline-offset: 3px; animation: col-ring 2.8s ease-out; }
+.col.flash .col-head, .col.flash .col-intro { animation: col-text 2.8s ease-out; }
+.cols:has(.col.flash) > .col:not(.flash) { animation: col-dim 2.8s ease-out; }
 
 @media (max-width: 1100px) {
   .ribbon .phone { display: none; }

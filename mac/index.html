@@ -1078,13 +1078,13 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .optional dt { font-weight: 850; font-size: 17px; }
 .optional dd { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; font-weight: 600; line-height: 1.5; }
 
-/* "Free" in the hero lands on the Free column and briefly rings everything Free includes while Pro steps back. */
-@keyframes free-ring { 0%, 70% { outline-color: var(--pro); } 100% { outline-color: transparent; } }
-@keyframes free-text { 0%, 70% { color: var(--pro-text); } }
-@keyframes pro-dim { 0%, 70% { opacity: .3; } }
-#free.flash .pic > .mini, #free.flash .pic > video { outline: 3px solid transparent; outline-offset: 3px; animation: free-ring 2.8s ease-out; }
-#free.flash .col-head, #free.flash .col-intro, #free.flash .txt { animation: free-text 2.8s ease-out; }
-.cols:has(#free.flash) > .col.pro { animation: pro-dim 2.8s ease-out; }
+/* "Free" and "Pro" links land on their column and briefly ring everything in it while the other column steps back. */
+@keyframes col-ring { 0%, 70% { outline-color: var(--pro); } 100% { outline-color: transparent; } }
+@keyframes col-text { 0%, 70% { color: var(--pro-text); } }
+@keyframes col-dim { 0%, 70% { opacity: .3; } }
+.col.flash .pic > .mini, .col.flash .pic > video { outline: 3px solid transparent; outline-offset: 3px; animation: col-ring 2.8s ease-out; }
+.col.flash .col-head, .col.flash .col-intro { animation: col-text 2.8s ease-out; }
+.cols:has(.col.flash) > .col:not(.flash) { animation: col-dim 2.8s ease-out; }
 
 @media (max-width: 1100px) {
   .ribbon .phone { display: none; }
@@ -1193,7 +1193,7 @@ a[href^="mailto:"]:focus-visible {
   <a class="brand" href="#top" aria-label="PaperMac, top of page"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0idGlsZSIgeDE9IjAiIHgyPSIwIiB5MT0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1OTBmNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzAzNTJjNSIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnRjFGM0Y3IiB4MT0iMCIgeDI9IjEiIHkxPSIwIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjFmM2Y3Ii8+PHN0b3Agb2Zmc2V0PSIuODUiIHN0b3AtY29sb3I9IiNmZmYiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZ0RDRTFFQSIgeDE9IjAiIHgyPSIxIiB5MT0iMCIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2RjZTFlYSIvPjxzdG9wIG9mZnNldD0iLjg1IiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImdDM0NDREIiIHgxPSIwIiB4Mj0iMSIgeTE9IjAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNjM2NjZGIiLz48c3RvcCBvZmZzZXQ9Ii44NSIgc3RvcC1jb2xvcj0iI2ZmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnQzlEMURFIiB4MT0iMCIgeDI9IjEiIHkxPSIwIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYzlkMWRlIi8+PHN0b3Agb2Zmc2V0PSIuODUiIHN0b3AtY29sb3I9IiNmZmYiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZ0Q1REJFNSIgeDE9IjAiIHgyPSIxIiB5MT0iMCIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2Q1ZGJlNSIvPjxzdG9wIG9mZnNldD0iLjg1IiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjgyNCIgaGVpZ2h0PSI4MjQiIHg9IjEwMCIgeT0iMTAwIiBmaWxsPSJ1cmwoI3RpbGUpIiByeD0iMTg1Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDQuNjkgNDQuNjkpc2NhbGUoLjkxMjcxKSI+PGcgZmlsbD0iIzAxMmE2YiIgb3BhY2l0eT0iLjMiPjxwYXRoIGQ9Im0zNDcgNzA0IDE4My0xMTB2MTE1TDM0NyA4Mjl6Ii8+PHBhdGggZD0ibTUzMCA1OTQgMTEwIDcwdjEwNWwtMTEwLTYweiIvPjxwYXRoIGQ9Im02NDAgNjY0IDExNS03MHYxMTVsLTExNSA2MHoiLz48cGF0aCBkPSJtNzU1IDU5NCAxMDAgNjB2MTc1SDc1NXoiLz48cGF0aCBkPSJNMjQ1IDI0OWgxMDJ2NTgwaC03bC05NS00MHoiLz48cGF0aCBkPSJNMzQ3IDI0OWgxNzB2MTA4SDM0N3oiLz48cGF0aCBkPSJtNTE3IDI0OSA5MCA4NXYxNTBsLTkwLTQweiIvPjxwYXRoIGQ9Ik0zNDcgNDQ0aDE3MGw5MCA0MC03NyA2NUgzNDd6Ii8+PC9nPjxwYXRoIGlkPSJtMSIgZmlsbD0idXJsKCNnQzlEMURFKSIgZD0ibTMzNyA2OTAgMTgzLTExMHYxMTVMMzM3IDgxNXoiLz48cGF0aCBpZD0ibTIiIGZpbGw9IiNmZmYiIGQ9Im01MjAgNTgwIDExMCA3MHYxMDVsLTExMC02MHoiLz48cGF0aCBpZD0ibTMiIGZpbGw9InVybCgjZ0Q1REJFNSkiIGQ9Im02MzAgNjUwIDExNS03MHYxMTVsLTExNSA2MHoiLz48cGF0aCBpZD0ibTQiIGZpbGw9IiNmZmYiIGQ9Im03NDUgNTgwIDEwMCA2MHYxNzVINzQ1eiIvPjxwYXRoIGlkPSJzdGVtIiBmaWxsPSIjZmZmIiBkPSJNMjM1IDIzNWgxMDJ2NTgwaC03bC05NS00MHoiLz48cGF0aCBpZD0idG9wIiBmaWxsPSJ1cmwoI2dGMUYzRjcpIiBkPSJNMzM3IDIzNWgxNzB2MTA4SDMzN3oiLz48cGF0aCBpZD0iZmxhcCIgZmlsbD0idXJsKCNnRENFMUVBKSIgZD0ibTUwNyAyMzUgOTAgODV2MTUwbC05MC00MHoiLz48cGF0aCBpZD0idW5kZXIiIGZpbGw9InVybCgjZ0MzQ0NEQikiIGQ9Ik0zMzcgNDMwaDE3MGw5MCA0MC03NyA2NUgzMzd6Ii8+PC9nPjwvc3ZnPg==" alt="" width="36" height="36">PaperMac</a>
   <nav aria-label="Page" data-page>
     <a href="#free" data-flash>Free</a>
-    <a href="#pricing">Pricing</a>
+    <a href="#pro" data-flash>Pro</a>
     <a href="#faq">FAQ</a>
     <a class="btn ink small" href="#install">Install</a>
   </nav>
