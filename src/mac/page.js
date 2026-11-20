@@ -405,6 +405,8 @@
       const delta = index - row, previous = track();
       row = index;
       strips.forEach((strip, i) => { strip.hidden = !board() && i !== row; });
+      // Measured now the Strip is on screen: a hidden one has no width, so its window gaps would read as zero.
+      syncSpan();
       focus(win);
       rescueFocus(had);
       // When the Strip on screen was just removed, the old one cannot slide out.
@@ -551,6 +553,8 @@
       }
       fig.classList.toggle("infinite", mode === "infinite");
       $(".demo-board-title", fig).hidden = !mode;
+      // A resize while the board was open skipped the tiles' measurements; take them again on the way out.
+      if (!mode) strips.forEach(syncWidths);
       for (const button of $$(".rail .overview-pick", fig)) button.hidden = !mode;
       hideTip();
       showStrip(row, active());
@@ -1130,7 +1134,8 @@
       switcherOpen = true;
       buildSwitcher();
       delete switcher.dataset.mode;
-      search.value = manual ? "" : "notes";
+      // The tour searches for the focused window's app, so its search always shows a match on any Desktop.
+      search.value = manual ? "" : active().dataset.app.toLowerCase();
       setSwitcherMode("search");
       switcher.hidden = false;
       hideTip();
