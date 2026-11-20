@@ -1,4 +1,4 @@
 # Dodo checkout links for the /mac Buy buttons. With both set to off, every Buy button stays disabled.
 # To open sales, set both to the live https checkout links from the Dodo dashboard (never test-mode links).
-DODO_CHECKOUT_PRO_27=off
-DODO_CHECKOUT_LIFETIME=off
+DODO_CHECKOUT_PRO_27=https://checkout.dodopayments.com/buy/pdt_0NsJXyoDXSvbMTClgWLF9?quantity=1
+DODO_CHECKOUT_LIFETIME=https://checkout.dodopayments.com/buy/pdt_0NsJYAFEuCrx9em14riE8?quantity=1

@@ -28,7 +28,7 @@ on macOS, Paperland on Linux). `--help` lists the options; `--edit-dotfiles` is 
 | `scripts/bundle-page.py` | Builds `index.html` from the page source (above). Needs only fontTools, run through `uvx`. |
 | `mac/index.html`, `mac/activate/index.html` | Self-contained Mac product and receipt activation pages, built from `src/mac/` and `src/mac-activate/`. The activation page immediately removes `?key=` from the address, renders the key as text in memory and offers Copy key and key-free `papermac://license`; it has no outbound website links. |
 | `terms/index.html`, `privacy/index.html` | Terms and privacy policy, built from `src/terms/` and `src/privacy/`. |
-| `media/papermac/` | Three real-app recordings with synthetic documents, plus JPEG posters. Delivery clips are 1920×1200, 8–12 seconds, H264 without audio. Native-resolution masters stay outside the repository. |
+| `media/papermac/` | The hero promo loop and three real-app recordings with synthetic documents, plus JPEG posters. The clips use H.264 without audio. Native-resolution masters stay outside the repository. |
 | `licenses/` | Licences for the fonts and logos the page embeds (SIL OFL, CC0), and `FONTS.txt` on the subsets; served at `/licenses/`. |
 | `_headers` | Response headers for Cloudflare Workers static assets (source). |
 | `wrangler.jsonc` | The Cloudflare Worker `getpaper-sh`: serves `site/`, no Worker script. |
@@ -175,15 +175,15 @@ uvx --from fonttools python scripts/bundle-page.py src/privacy/index.html > priv
 sh scripts/build-site.sh /tmp/getpaper-site-preview
 ```
 
-The preview output has 25 entries including directories. To test an uncommitted
+The preview output has 27 entries including directories. To test an uncommitted
 change, copy that explicit preview output into this worktree's `site/` before
 running the suites below; the default build's committed-source guard stays intact.
 `src/mac/checkout-url.txt` is the single sales-mode input: `DODO_CHECKOUT_PRO_27` and
 `DODO_CHECKOUT_LIFETIME`, the Dodo Payments checkout links for the two products. The committed
-default is `off` for both: Download actions link to the install section, Buy buttons and their Terms
-notices remain visible but muted, and the phone checkout frame has no QR code.
-Disabled Buy buttons explain that buying opens during the beta. Setting both to https
-links restores the Buy links and the inline Segno QR (for Pro 27); the bundler refuses a config
+default is `off` for both: the Pro ribbon's two Buy buttons stay visible but disabled,
+each followed by its refund and Terms notice, and share a note that buying opens during the
+beta; no QR code shows. Setting both to https links turns them into checkout links and adds
+the inline Segno QR for Pro 27 on wide screens; the bundler refuses a config
 with only one set. Use the live checkout links, never test-mode ones, before taking payments.
 PaperMac Pro 27 is $39 and covers PaperMac 27 on macOS 27 Golden Gate; PaperMac Lifetime is
 $99 and covers every future version. Both allow up to five active Macs per person. Dodo

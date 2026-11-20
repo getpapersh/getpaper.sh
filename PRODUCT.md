@@ -67,14 +67,14 @@ Page constraints: self-hosted fonts and images only; no third-party requests (no
 ## Brand Commitments
 
 - Names: Paper (family), PaperMac (macOS), Paperland (Hyprland). Domain getpaper.sh.
-- Voice: calm, technical, honest. PaperMac is in public beta (27.0.0-beta.7). The Mac page labels it "Beta software" and says: "PaperMac is built on private macOS APIs that Apple keeps changing, so some features have platform limits and an update can break things."
+- Voice: calm, technical, honest. PaperMac is in public beta (27.0.0-beta.7). The Mac page labels it "Beta software" and says: "PaperMac runs on native macOS Spaces and is built on private macOS APIs, using every tool macOS offers under the hood, so a macOS update can break a feature. We keep finding workarounds and improving PaperMac as macOS changes, and buying Pro supports that work."
 - Soft launch: no announcement copy, no analytics.
 - The earlier papermac-www site work (its layout, palette and headline) is explicitly not a reference for getpaper.sh.
 
 ## Evidence on Hand
 
 - A PaperMac app icon exists (`papermac/Resources/AppIcon.png`).
-- The Mac page includes three recordings of the real app with synthetic document windows: focus scrolling, Overview and the Minimap, and three uneven Strips with a three-window Stack. Testimonials, user counts, benchmarks and press remain unavailable. Illustrative diagrams stay distinct from recordings.
+- The Mac page shows the real app in its hero promo and in the demo's Real footage view (focus scrolling with synthetic document windows); the feature tiles are animated drawings. The Overview and three-Strip recordings stay in `media/papermac/` but are no longer on the page. Testimonials, user counts and press remain unavailable; the one performance figure is a single two-display measurement, stated as such. Illustrative diagrams stay distinct from recordings.
 
 ## Product Principles
 
