@@ -200,10 +200,9 @@
       const rail = track(), start = rail.firstElementChild.offsetLeft, scale = mapScale();
       // The outline and the scrollbar thumb mark the whole screen at the tiles' scale, empty room beside the
       // windows included, as the app's do.
-      // Kept inside the row: the Minimap's fixed 4 px tile gaps can add a pixel or two at the far ends.
-      const rowWidth = mapRows[row].clientWidth;
-      const left = Math.max(0, firstTile.offsetLeft + scale * (rail.scrollLeft - start));
-      const width = Math.min(scale * rail.clientWidth, rowWidth - left);
+      // Kept inside the row at its own width: the tiles' gaps can add a pixel or two at the far ends.
+      const rowWidth = mapRows[row].clientWidth, width = Math.min(scale * rail.clientWidth, rowWidth);
+      const left = Math.min(Math.max(0, firstTile.offsetLeft + scale * (rail.scrollLeft - start)), rowWidth - width);
       for (const [element, offset] of [[mapRows[row], 0], [minimap, mapRows[row].offsetLeft - mapTrack.offsetLeft]]) {
         element.style.setProperty("--view-left", `${offset + left}px`);
         element.style.setProperty("--view-width", `${width}px`);
@@ -248,6 +247,18 @@
       strip.style.setProperty("--first-width", width(strip.firstElementChild));
       strip.style.setProperty("--last-width", width(strip.lastElementChild));
       const mapRow = mapRows[strips.indexOf(strip)];
+      // Each tile's share of the screen comes from its window's rendered width, measured by probes in the Strip on
+      // screen (a capped standard width and a container-sized one compare truly), in one layout pass.
+      const screen = track().clientWidth;
+      const probes = [...strip.children].map(win => {
+        const probe = document.createElement("i");
+        probe.style.cssText = `position:absolute;visibility:hidden;width:${width(win)}`;
+        return probe;
+      });
+      if (screen) track().append(...probes);
+      const measured = probes.map(probe => probe.offsetWidth / screen);
+      for (const probe of probes) probe.remove();
+      mapRow.style.setProperty("--tiles", strip.children.length);
       [...strip.children].forEach((win, i) => {
         let tile = mapTiles.get(win);
         if (!tile) {
@@ -269,11 +280,14 @@
           mapTiles.set(win, tile);
         }
         const defaultWeight = win.hasAttribute("data-new") ? .5 : .53;
-        const weight = full(win) ? 1 : win.dataset.cqw ? win.dataset.cqw / 100 : [defaultWeight, .72, .89, .36][Number(win.dataset.preset ?? 0)];
+        const weight = screen ? measured[i] : full(win) ? 1 : win.dataset.cqw ? win.dataset.cqw / 100 : [defaultWeight, .72, .89, .36][Number(win.dataset.preset ?? 0)];
         tile.style.setProperty("--map-weight", weight);
         win.style.setProperty("--map-weight", weight);
         if (mapRow.children[i + 1] !== tile) mapRow.insertBefore(tile, mapRow.children[i + 1] ?? null);
       });
+      syncSpan();
+    };
+    const syncSpan = () => {
       const weights = rail => [...rail.children].map(win => Number(win.style.getPropertyValue("--map-weight")));
       const sum = list => list.reduce((total, weight) => total + weight, 0);
       minimap.style.setProperty("--map-total", Math.max(...strips.map(rail => sum(weights(rail)))));
@@ -480,6 +494,8 @@
       const index = strips.indexOf(shown);
       row = index >= 0 ? index : Math.min(row, strips.length - 1);
       noSlide = index < 0;
+      // After the row is settled: the span measures the Strip on screen.
+      syncSpan();
       return index < 0;
     };
     const send = delta => {
@@ -2362,6 +2378,8 @@
       schedule();
     });
     new ResizeObserver(() => {
+      // Container-sized and capped widths change in different proportions, so the tiles are measured again.
+      if (!board()) strips.forEach(syncWidths);
       syncMap();
       if (floating?.win.getClientRects().length) moveFloat(floating.x, floating.y);
       if (board()) fitBoard();
@@ -2444,12 +2462,15 @@
       if (desktops.length < 2) return;
       const name = nameOf(i);
       if (i === desk) switchDesktop(i ? i - 1 : 1);
-      const moving = desktops[i].windows;
-      if (desktops[i].floating) ground(desktops[i].floating.win);
+      const gone = desktops[i], moving = gone.windows, waiting = new Set(gone.minimized.map(entry => entry.win));
+      if (gone.floating) ground(gone.floating.win);
       for (const win of moving) {
-        track().append(win);
+        if (!waiting.has(win)) track().append(win);
         windows.push(win);
       }
+      // Minimized windows stay minimized here; their Strip is gone, so a restore lands on the Strip on screen.
+      minimized.push(...gone.minimized);
+      paintMinimized();
       desktops.splice(i, 1);
       if (i < desk) desk--;
       syncWidths(track());
@@ -2505,7 +2526,8 @@
     addPill.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
     addPill.addEventListener("click", addDesktop);
     const buildPills = () => {
-      const focused = [...desktopPills, addPill].indexOf(document.activeElement);
+      // The + pill leads the row, before the Desktops.
+      const focused = [addPill, ...desktopPills].indexOf(document.activeElement);
       desktopPills = desktops.map((_, i) => {
         const pill = Object.assign(document.createElement("button"), { type: "button", className: "map-desktop" });
         pill.dataset.desktop = i;
@@ -2514,14 +2536,13 @@
         pill.addEventListener("dblclick", () => renameDesktop(i));
         return pill;
       });
-      desktopsEl.replaceChildren(...desktopPills, addPill);
+      desktopsEl.replaceChildren(addPill, ...desktopPills);
       paintDesktops();
-      if (focused >= 0) [...desktopPills, addPill][Math.min(focused, desktopPills.length)].focus({ preventScroll: true });
+      if (focused >= 0) [addPill, ...desktopPills][Math.min(focused, desktopPills.length)].focus({ preventScroll: true });
     };
     showStrip(0);
     desktops.push({ name: "Work", wall: "work", strips: [...strips], mapRows: [...mapRows], selections: [...selections], row, minimized: [], windows: [...windows], floating: null });
-    const examples = [...$("#demo-new-window", fig).content.children];
-    desktops.push(makeDesktop("Personal", "personal", ["Weather", "Meal Plan", "Photos"].map(name => examples.find(page => title(page) === name))));
+    desktops.push(makeDesktop("Personal", "personal", [...$("#demo-personal-windows", fig).content.children]));
     screenEl.dataset.wall = "work";
     buildPills();
     pauseButton.hidden = reduced();
@@ -2529,7 +2550,14 @@
     $(".demo-controls", fig).hidden = false;
     if (phone.matches) showView(true);
     else applyView();
-    phone.addEventListener("change", () => showView(phone.matches));
+    phone.addEventListener("change", () => {
+      if (phone.matches) {
+        setExpanded(false);
+        closeContext();
+        footageVideo.pause();
+      }
+      showView(phone.matches);
+    });
     $("#strip-caption", fig).textContent = matchMedia("(pointer: coarse)").matches
       ? "Swipe the Strip or tap a control."
       : "Click a window or use the controls. Shortcuts work while focus is inside the demo.";
