@@ -656,9 +656,8 @@ a41c9e2 Add search to the Minimap
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
           <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
-          <p class="txt">Also free: rules for your apps, gestures, your own shortcuts, a config file and a CLI, and crash recovery.</p>
+          <div class="also-free"><b>Also in Free</b><ul><li>Rules for your apps</li><li>Gestures</li><li>Your own shortcuts</li><li>A config file and a CLI</li><li>Crash recovery</li></ul></div>
         </div>
-        <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
       </div>
       <div class="col pro" id="pro">
         <div class="col-head"><h3>PaperMac Pro</h3><b><small>from</small> <span data-regular>$39</span><span data-launch>$19.50</span></b></div>
@@ -694,12 +693,18 @@ a41c9e2 Add search to the Minimap
 <button class="btn pro" type="button" disabled aria-describedby="buy-closed">Buy Pro 27</button>
 <!-- /sales:off -->
         <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
+<!-- sales:url -->
+        <div class="phone">
+          {{CHECKOUT_QR}}
+          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
+        </div>
+<!-- /sales:url -->
       </div>
       <div class="offer" id="lifetime">
         <h4>PaperMac Lifetime</h4>
         <p class="launch-note" data-launch>Launch price until Dec 1, then $99</p>
         <p class="price"><b data-regular>$99</b><b data-launch>$49.50</b></p>
-        <p class="scope">PaperMac 27 and every future version. Lifetime costs about 2½ times today's Pro 27 price.</p>
+        <p class="scope">PaperMac 27 and every future version.</p>
 <!-- sales:url -->
 <a class="btn pro alt" href="{{DODO_CHECKOUT_LIFETIME}}">Buy Lifetime</a>
 <!-- /sales:url -->
@@ -713,25 +718,32 @@ a41c9e2 Add search to the Minimap
 <!-- sales:off -->
         <p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>
 <!-- /sales:off -->
-<!-- sales:url -->
-        <div class="phone">
-          {{CHECKOUT_QR}}
-          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
-        </div>
-<!-- /sales:url -->
-        <p class="bill">Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.</p>
+        <p class="bill">Tax added at checkout where applicable. Sold by Dodo Payments.</p>
       </div>
     </div>
   </section>
 
-  <section class="roadmap wrap" id="roadmap" aria-labelledby="roadmap-h" data-page>
-    <h2 id="roadmap-h">Coming soon</h2>
-    <p class="lead">Planned for upcoming betas. Not included in Free or Pro.</p>
-    <ul class="engine">
-      <li><strong>Window tabs.</strong><p>Keep several windows in one column as tabs.</p></li>
-      <li><strong>Stack scrolling.</strong><p>Scroll through a stack of windows inside its column.</p></li>
-      <li><strong>Stack height controls.</strong><p>Choose how tall each window in a stack is.</p></li>
-    </ul>
+  <section class="roadmap" id="roadmap" aria-labelledby="roadmap-h" data-page>
+    <div class="wrap">
+      <h2 id="roadmap-h">Coming soon</h2>
+      <p class="lead">What we’re building next, on a Strip of its own.</p>
+    </div>
+    <div class="scroller" data-strip-scroller>
+      <div class="rail" tabindex="0" role="region" aria-label="Upcoming features">
+        <figure class="pic road" data-pic="smart"><div class="mini" aria-hidden="true"></div><figcaption><b>Smart Strips</b> <span class="when">Next beta</span><span>New windows that match go straight to a named Strip on their Desktop.</span></figcaption></figure>
+        <figure class="pic road" data-pic="quickjump"><div class="mini" aria-hidden="true"></div><figcaption><b>Quick Jump</b> <span class="when">Next beta</span><span>Hold ⌘⌥⇧ to show Jump labels on the Minimap, then type one to go there.</span></figcaption></figure>
+        <figure class="pic road" data-pic="tabs"><div class="mini" aria-hidden="true"></div><figcaption><b>Window tabs</b> <span class="when">Planned</span><span>Keep several windows in one column as tabs.</span></figcaption></figure>
+        <figure class="pic road" data-pic="stackscroll"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack scrolling</b> <span class="when">Planned</span><span>Scroll through a tall stack of windows inside its column.</span></figcaption></figure>
+        <figure class="pic road" data-pic="stackheights"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack height controls</b> <span class="when">Planned</span><span>Choose how tall each window in a stack is.</span></figcaption></figure>
+      </div>
+      <div class="ctl">
+        <div class="railmap"></div>
+        <div class="nav">
+          <button class="btn quiet small prev" type="button" aria-label="Previous feature"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
+          <button class="btn quiet small next" type="button" aria-label="Next feature"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="faq wrap" id="faq" aria-labelledby="faq-h" data-page>

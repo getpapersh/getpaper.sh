@@ -925,7 +925,7 @@ footer .brand img { width: 28px; height: 28px; }
   .pics .pic, .pics .pic.big { grid-column: span 1; }
   .pics .pic.big:first-child, .pics .slot-pro { grid-column: 1 / -1; }
   .pic figcaption, .pics .pic.big figcaption { font-size: 15px; }
-  .free .scroller { --rail-pad: 16px; }
+  .free .scroller, .roadmap .scroller { --rail-pad: 16px; }
   .theme { margin-left: 0; }
 }
 @media (max-width: 480px) {
@@ -944,7 +944,10 @@ footer .brand img { width: 28px; height: 28px; }
 html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
-.compare .pics .txt { grid-column: 1 / -1; }
+.also-free { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 18px; border-top: 1.5px solid var(--line); }
+.also-free b { margin-right: 6px; font-weight: 850; }
+.also-free ul { display: contents; }
+.also-free li { list-style: none; padding: 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); font-size: 14px; font-weight: 700; }
 .compare .pic figcaption { font-size: 15.5px; font-weight: 700; }
 .compare .pic figcaption b { font-weight: 900; }
 .compare .txt { align-self: center; margin: 0; font-weight: 700; font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
@@ -982,14 +985,14 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 
 /* The Pro ribbon: an editorial band under the matrix, ruled like the columns above it. Pro 27 is the recommended
    offer, so only it gets the filled button. */
-.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(6, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
+.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(7, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
 .ribbon > * { padding: clamp(24px, 2.6vw, 36px); }
-.ribbon-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 28px; border-top: 1.5px solid var(--line); }
-.ribbon-foot > * { grid-column: 1; margin: 0; }
-.ribbon-foot > p:first-child { font-weight: 750; color: var(--ink); }
+.ribbon-foot { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; border-top: 1.5px solid var(--line); }
+.ribbon-foot > * { margin: 0; }
+.ribbon-foot > p:first-child { font-weight: 850; font-stretch: 112%; font-size: clamp(19px, 1.6vw, 22px); letter-spacing: -.01em; color: var(--ink); }
 .ribbon-foot .sales-closed { justify-self: start; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
-.ribbon-foot .bill { font-size: 13px; line-height: 1.45; color: var(--ink-2); font-weight: 600; }
-.offer { display: grid; grid-row: 1 / span 6; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
+.ribbon-foot .bill { font-size: 15px; font-weight: 650; color: var(--ink-2); }
+.offer { display: grid; grid-row: 1 / span 7; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
 #free-offer { border-left: 0; }
 .offer h4 { margin: 0; font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
 .offer .launch-note { margin: 0; color: var(--pro-text); font-size: 14px; font-weight: 750; }
@@ -1004,14 +1007,23 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .offer > .scope { grid-row: 4; margin-top: 10px; }
 .offer > .btn { grid-row: 5; align-self: end; }
 .offer > .buy-notice { grid-row: 6; margin-top: 10px; }
+.offer > .phone { grid-row: 7; margin-top: 18px; }
 .btn.pro.alt { background: transparent; color: var(--pro-text); box-shadow: inset 0 0 0 1.5px currentColor; }
 .btn.pro.alt:hover { background: color-mix(in srgb, var(--pro) 12%, transparent); }
 /* Disabled Buy buttons stay visible but must not read as clickable: a muted outline with no fill. */
 .btn.pro:disabled, .btn.pro.alt:disabled { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink-2) 55%, transparent); cursor: not-allowed; transform: none; opacity: 1; }
-.ribbon .phone { grid-column: 2; grid-row: 1 / span 3; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
+.ribbon .phone { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
 .ribbon .phone svg { width: 96px; height: 96px; border-radius: 8px; }
 
 .roadmap { padding: var(--sec) 0 0; }
+/* The roadmap is its own Strip: window cards that scroll sideways and bleed to the screen edges, with a Minimap. */
+.roadmap .scroller { margin-top: var(--head-gap); --item-w: min(420px, 80vw); --rail-gap: 18px; --rail-pad: max(24px, calc((100vw - 1240px) / 2)); }
+.roadmap .rail:focus-visible { outline-offset: -3px; }
+.road figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 14px; }
+.road figcaption b { font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
+.road .when { padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--pro) 14%, transparent); color: var(--pro-text); font-size: 13px; font-weight: 750; }
+.road figcaption > span:last-child { flex-basis: 100%; color: var(--ink-2); font-size: 16px; font-weight: 600; line-height: 1.45; }
+.roadmap .ctl .nav .btn { width: 40px; padding: 0; }
 .roadmap .lead { max-width: 52ch; }
 .faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--head-gap) clamp(32px, 5vw, 80px); align-items: start; padding: var(--sec) 0 0; }
 .faq .lead { margin-top: 18px; }
@@ -1798,9 +1810,8 @@ a41c9e2 Add search to the Minimap
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
           <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
-          <p class="txt">Also free: rules for your apps, gestures, your own shortcuts, a config file and a CLI, and crash recovery.</p>
+          <div class="also-free"><b>Also in Free</b><ul><li>Rules for your apps</li><li>Gestures</li><li>Your own shortcuts</li><li>A config file and a CLI</li><li>Crash recovery</li></ul></div>
         </div>
-        <a class="btn ink" href="#install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Install the free version</a>
       </div>
       <div class="col pro" id="pro">
         <div class="col-head"><h3>PaperMac Pro</h3><b><small>from</small> <span data-regular>$39</span><span data-launch>$19.50</span></b></div>
@@ -1834,12 +1845,18 @@ a41c9e2 Add search to the Minimap
 
 
         <p class="buy-notice">Full refund within 14 days, no questions asked. By buying, you agree to the <a href="/terms">Terms</a>.</p>
+
+        <div class="phone">
+          <svg viewBox="0 0 45 45" class="segno"><title>QR code for the PaperMac Pro 27 checkout</title><path class="qrline" stroke="#000" d="M4 4.5h7m4 0h1m4 0h1m1 0h2m2 0h1m2 0h2m3 0h7m-37 1h1m5 0h1m1 0h2m2 0h3m1 0h2m1 0h1m2 0h1m3 0h1m3 0h1m5 0h1m-37 1h1m1 0h3m1 0h1m1 0h1m10 0h4m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m1 0h3m2 0h4m2 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m2 0h1m2 0h5m1 0h2m3 0h1m4 0h1m1 0h1m1 0h3m1 0h1m-37 1h1m5 0h1m3 0h3m2 0h1m2 0h1m1 0h3m2 0h2m1 0h1m1 0h1m5 0h1m-37 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-29 1h1m2 0h1m2 0h1m5 0h1m3 0h1m1 0h1m1 0h1m-29 1h1m5 0h1m1 0h1m1 0h1m2 0h1m1 0h1m2 0h2m2 0h3m1 0h2m1 0h2m2 0h3m-35 1h1m2 0h2m1 0h2m3 0h3m5 0h1m2 0h1m1 0h1m1 0h1m1 0h4m1 0h2m-33 1h2m1 0h1m1 0h1m1 0h3m4 0h2m2 0h2m2 0h4m1 0h1m3 0h3m-36 1h5m3 0h3m1 0h4m1 0h1m3 0h1m4 0h1m1 0h1m2 0h2m2 0h1m-36 1h1m1 0h4m2 0h3m1 0h1m5 0h2m2 0h1m3 0h1m2 0h2m1 0h2m1 0h1m-37 1h1m1 0h2m3 0h3m1 0h2m3 0h2m1 0h2m2 0h1m3 0h2m2 0h1m1 0h1m1 0h1m-36 1h3m2 0h2m4 0h1m1 0h1m1 0h1m1 0h1m2 0h3m2 0h4m1 0h4m1 0h2m-36 1h2m5 0h1m3 0h2m3 0h3m2 0h1m1 0h1m2 0h1m1 0h1m1 0h1m1 0h2m-35 1h1m1 0h2m1 0h2m1 0h2m1 0h1m1 0h4m2 0h1m2 0h1m3 0h1m2 0h3m2 0h2m-36 1h2m3 0h1m4 0h2m1 0h1m4 0h1m2 0h1m1 0h1m4 0h2m1 0h1m2 0h2m-36 1h2m1 0h1m1 0h3m1 0h3m3 0h1m1 0h1m1 0h1m3 0h1m1 0h1m1 0h3m1 0h3m2 0h1m-34 1h2m2 0h1m3 0h4m9 0h1m3 0h1m1 0h2m1 0h1m2 0h1m-37 1h2m3 0h2m2 0h4m1 0h4m4 0h1m1 0h4m1 0h2m1 0h1m-33 1h1m2 0h3m1 0h6m2 0h1m3 0h1m1 0h1m1 0h1m1 0h3m4 0h1m1 0h1m1 0h1m-36 1h1m1 0h2m1 0h2m1 0h2m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h8m1 0h2m-37 1h1m6 0h1m1 0h3m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h1m3 0h3m2 0h1m-37 1h2m3 0h3m1 0h3m2 0h6m3 0h1m1 0h1m4 0h3m2 0h2m-37 1h1m1 0h3m3 0h3m5 0h2m1 0h1m2 0h2m1 0h1m2 0h1m2 0h1m2 0h1m-35 1h1m2 0h1m2 0h1m3 0h5m3 0h1m1 0h3m2 0h9m1 0h2m-37 1h1m1 0h1m4 0h5m1 0h3m6 0h2m5 0h3m1 0h2m-35 1h1m2 0h2m1 0h1m1 0h1m1 0h2m1 0h2m2 0h3m2 0h2m1 0h2m1 0h5m1 0h1m-27 1h1m3 0h1m2 0h6m1 0h2m4 0h1m3 0h1m2 0h1m-36 1h7m5 0h5m2 0h3m1 0h1m4 0h1m1 0h1m1 0h1m2 0h2m-37 1h1m5 0h1m4 0h3m3 0h4m2 0h1m3 0h2m3 0h1m2 0h1m-36 1h1m1 0h3m1 0h1m2 0h2m1 0h1m1 0h3m2 0h2m1 0h2m1 0h1m1 0h6m1 0h2m-36 1h1m1 0h3m1 0h1m3 0h1m1 0h1m3 0h5m2 0h2m2 0h1m1 0h2m5 0h1m-37 1h1m1 0h3m1 0h1m2 0h5m1 0h3m2 0h1m5 0h2m7 0h2m-37 1h1m5 0h1m2 0h4m1 0h1m7 0h1m1 0h1m5 0h1m1 0h2m2 0h1m-37 1h7m1 0h2m3 0h3m4 0h1m1 0h1m1 0h1m3 0h2m1 0h1m1 0h1m2 0h1"/></svg>
+          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
+        </div>
+
       </div>
       <div class="offer" id="lifetime">
         <h4>PaperMac Lifetime</h4>
         <p class="launch-note" data-launch>Launch price until Dec 1, then $99</p>
         <p class="price"><b data-regular>$99</b><b data-launch>$49.50</b></p>
-        <p class="scope">PaperMac 27 and every future version. Lifetime costs about 2½ times today's Pro 27 price.</p>
+        <p class="scope">PaperMac 27 and every future version.</p>
 
 <a class="btn pro alt" href="https://checkout.dodopayments.com/buy/pdt_0NsJYAFEuCrx9em14riE8?quantity=1">Buy Lifetime</a>
 
@@ -1849,25 +1866,32 @@ a41c9e2 Add search to the Minimap
       <div class="ribbon-foot">
         <p>Pay once. One person, up to 5 Macs at once.</p>
 
-
-        <div class="phone">
-          <svg viewBox="0 0 45 45" class="segno"><title>QR code for the PaperMac Pro 27 checkout</title><path class="qrline" stroke="#000" d="M4 4.5h7m4 0h1m4 0h1m1 0h2m2 0h1m2 0h2m3 0h7m-37 1h1m5 0h1m1 0h2m2 0h3m1 0h2m1 0h1m2 0h1m3 0h1m3 0h1m5 0h1m-37 1h1m1 0h3m1 0h1m1 0h1m10 0h4m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m1 0h3m2 0h4m2 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m2 0h1m2 0h5m1 0h2m3 0h1m4 0h1m1 0h1m1 0h3m1 0h1m-37 1h1m5 0h1m3 0h3m2 0h1m2 0h1m1 0h3m2 0h2m1 0h1m1 0h1m5 0h1m-37 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-29 1h1m2 0h1m2 0h1m5 0h1m3 0h1m1 0h1m1 0h1m-29 1h1m5 0h1m1 0h1m1 0h1m2 0h1m1 0h1m2 0h2m2 0h3m1 0h2m1 0h2m2 0h3m-35 1h1m2 0h2m1 0h2m3 0h3m5 0h1m2 0h1m1 0h1m1 0h1m1 0h4m1 0h2m-33 1h2m1 0h1m1 0h1m1 0h3m4 0h2m2 0h2m2 0h4m1 0h1m3 0h3m-36 1h5m3 0h3m1 0h4m1 0h1m3 0h1m4 0h1m1 0h1m2 0h2m2 0h1m-36 1h1m1 0h4m2 0h3m1 0h1m5 0h2m2 0h1m3 0h1m2 0h2m1 0h2m1 0h1m-37 1h1m1 0h2m3 0h3m1 0h2m3 0h2m1 0h2m2 0h1m3 0h2m2 0h1m1 0h1m1 0h1m-36 1h3m2 0h2m4 0h1m1 0h1m1 0h1m1 0h1m2 0h3m2 0h4m1 0h4m1 0h2m-36 1h2m5 0h1m3 0h2m3 0h3m2 0h1m1 0h1m2 0h1m1 0h1m1 0h1m1 0h2m-35 1h1m1 0h2m1 0h2m1 0h2m1 0h1m1 0h4m2 0h1m2 0h1m3 0h1m2 0h3m2 0h2m-36 1h2m3 0h1m4 0h2m1 0h1m4 0h1m2 0h1m1 0h1m4 0h2m1 0h1m2 0h2m-36 1h2m1 0h1m1 0h3m1 0h3m3 0h1m1 0h1m1 0h1m3 0h1m1 0h1m1 0h3m1 0h3m2 0h1m-34 1h2m2 0h1m3 0h4m9 0h1m3 0h1m1 0h2m1 0h1m2 0h1m-37 1h2m3 0h2m2 0h4m1 0h4m4 0h1m1 0h4m1 0h2m1 0h1m-33 1h1m2 0h3m1 0h6m2 0h1m3 0h1m1 0h1m1 0h1m1 0h3m4 0h1m1 0h1m1 0h1m-36 1h1m1 0h2m1 0h2m1 0h2m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h8m1 0h2m-37 1h1m6 0h1m1 0h3m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h1m3 0h3m2 0h1m-37 1h2m3 0h3m1 0h3m2 0h6m3 0h1m1 0h1m4 0h3m2 0h2m-37 1h1m1 0h3m3 0h3m5 0h2m1 0h1m2 0h2m1 0h1m2 0h1m2 0h1m2 0h1m-35 1h1m2 0h1m2 0h1m3 0h5m3 0h1m1 0h3m2 0h9m1 0h2m-37 1h1m1 0h1m4 0h5m1 0h3m6 0h2m5 0h3m1 0h2m-35 1h1m2 0h2m1 0h1m1 0h1m1 0h2m1 0h2m2 0h3m2 0h2m1 0h2m1 0h5m1 0h1m-27 1h1m3 0h1m2 0h6m1 0h2m4 0h1m3 0h1m2 0h1m-36 1h7m5 0h5m2 0h3m1 0h1m4 0h1m1 0h1m1 0h1m2 0h2m-37 1h1m5 0h1m4 0h3m3 0h4m2 0h1m3 0h2m3 0h1m2 0h1m-36 1h1m1 0h3m1 0h1m2 0h2m1 0h1m1 0h3m2 0h2m1 0h2m1 0h1m1 0h6m1 0h2m-36 1h1m1 0h3m1 0h1m3 0h1m1 0h1m3 0h5m2 0h2m2 0h1m1 0h2m5 0h1m-37 1h1m1 0h3m1 0h1m2 0h5m1 0h3m2 0h1m5 0h2m7 0h2m-37 1h1m5 0h1m2 0h4m1 0h1m7 0h1m1 0h1m5 0h1m1 0h2m2 0h1m-37 1h7m1 0h2m3 0h3m4 0h1m1 0h1m1 0h1m3 0h2m1 0h1m1 0h1m2 0h1"/></svg>
-          <div><b>Buy Pro 27 on your phone</b><p>Scan to open the same checkout.</p></div>
-        </div>
-
-        <p class="bill">Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.</p>
+        <p class="bill">Tax added at checkout where applicable. Sold by Dodo Payments.</p>
       </div>
     </div>
   </section>
 
-  <section class="roadmap wrap" id="roadmap" aria-labelledby="roadmap-h" data-page>
-    <h2 id="roadmap-h">Coming soon</h2>
-    <p class="lead">Planned for upcoming betas. Not included in Free or Pro.</p>
-    <ul class="engine">
-      <li><strong>Window tabs.</strong><p>Keep several windows in one column as tabs.</p></li>
-      <li><strong>Stack scrolling.</strong><p>Scroll through a stack of windows inside its column.</p></li>
-      <li><strong>Stack height controls.</strong><p>Choose how tall each window in a stack is.</p></li>
-    </ul>
+  <section class="roadmap" id="roadmap" aria-labelledby="roadmap-h" data-page>
+    <div class="wrap">
+      <h2 id="roadmap-h">Coming soon</h2>
+      <p class="lead">What we’re building next, on a Strip of its own.</p>
+    </div>
+    <div class="scroller" data-strip-scroller>
+      <div class="rail" tabindex="0" role="region" aria-label="Upcoming features">
+        <figure class="pic road" data-pic="smart"><div class="mini" aria-hidden="true"></div><figcaption><b>Smart Strips</b> <span class="when">Next beta</span><span>New windows that match go straight to a named Strip on their Desktop.</span></figcaption></figure>
+        <figure class="pic road" data-pic="quickjump"><div class="mini" aria-hidden="true"></div><figcaption><b>Quick Jump</b> <span class="when">Next beta</span><span>Hold ⌘⌥⇧ to show Jump labels on the Minimap, then type one to go there.</span></figcaption></figure>
+        <figure class="pic road" data-pic="tabs"><div class="mini" aria-hidden="true"></div><figcaption><b>Window tabs</b> <span class="when">Planned</span><span>Keep several windows in one column as tabs.</span></figcaption></figure>
+        <figure class="pic road" data-pic="stackscroll"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack scrolling</b> <span class="when">Planned</span><span>Scroll through a tall stack of windows inside its column.</span></figcaption></figure>
+        <figure class="pic road" data-pic="stackheights"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack height controls</b> <span class="when">Planned</span><span>Choose how tall each window in a stack is.</span></figcaption></figure>
+      </div>
+      <div class="ctl">
+        <div class="railmap"></div>
+        <div class="nav">
+          <button class="btn quiet small prev" type="button" aria-label="Previous feature"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
+          <button class="btn quiet small next" type="button" aria-label="Next feature"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="faq wrap" id="faq" aria-labelledby="faq-h" data-page>
@@ -4895,6 +4919,29 @@ a41c9e2 Add search to the Minimap
   const W = (id, x, y, w, h, k = "ed", fl = "") => ({ id, x, y, w, h, k, fl });
   const row = (ids, xs, ws, y = 0, h = 100, f = "", ks = "phedtemudced") => [...ids].map((id, i) => W(id, xs[i], y, ws[i], h, ks.slice((i * 2) % 12, (i * 2) % 12 + 2), id === f ? "f" : ""));
   const S = {
+    smart: [
+      [...row("ab", [1, 51], [48, 48], 0, 48.5, "b"), ...row("c", [1], [48], 51.5, 48.5, "", "teed")],
+      [...row("ab", [1, 51], [48, 48], 0, 48.5), ...row("c", [1], [48], 51.5, 48.5, "", "teed"), W("d", 30, 22, 40, 52, "ed", "f lift")],
+      [...row("ab", [1, 51], [48, 48], 0, 48.5), ...row("c", [1], [48], 51.5, 48.5, "", "teed"), W("d", 51, 51.5, 48, 48.5, "ed", "f")],
+    ],
+    quickjump: [
+      row("abcd", [-30, 20, 70, 120], [48, 48, 48, 48], 0, 100, "b"),
+      [...row("abcd", [-30, 20, 70, 120], [48, 48, 48, 48], 0, 100, "b"), W("mm", 24, 78, 52, 16, "mm"), W("cur", 52, 84, 4, 9, "cur")],
+      [...row("abcd", [-80, -30, 20, 70], [48, 48, 48, 48], 0, 100, "d"), W("mm", 24, 78, 52, 16, "mm"), W("mv", 59.5, 75.5, 16, 21, "mv")],
+    ],
+    tabs: [
+      [W("t1", 26, 0, 15, 7, "dc", "f"), W("t2", 42.5, 0, 15, 7, "dc"), W("t3", 59, 0, 15, 7, "dc"), W("a", 26, 9, 48, 91, "ed", "f"), W("x", -26, 0, 48, 100, "ph"), W("y", 78, 0, 48, 100, "te")],
+      [W("t1", 26, 0, 15, 7, "dc"), W("t2", 42.5, 0, 15, 7, "dc", "f"), W("t3", 59, 0, 15, 7, "dc"), W("b", 26, 9, 48, 91, "te", "f"), W("x", -26, 0, 48, 100, "ph"), W("y", 78, 0, 48, 100, "te")],
+      [W("t1", 26, 0, 15, 7, "dc"), W("t2", 42.5, 0, 15, 7, "dc"), W("t3", 59, 0, 15, 7, "dc", "f"), W("c", 26, 9, 48, 91, "ph", "f"), W("x", -26, 0, 48, 100, "ph"), W("y", 78, 0, 48, 100, "te")],
+    ],
+    stackscroll: [0, 1, 2].map(step => [
+      W("x", -26, 0, 48, 100, "ph"), W("y", 78, 0, 48, 100, "te"),
+      ...["ed", "dc", "te", "mu"].map((k, i) => W("s" + i, 26, (i - step) * 51.5, 48, 48.5, k, i === step + 1 ? "f" : "")),
+    ]),
+    stackheights: [[31, 31, 31], [60, 17.5, 17.5], [17.5, 60, 17.5]].map((hs, n) => [
+      W("x", -26, 0, 48, 100, "ph"), W("y", 78, 0, 48, 100, "te"),
+      ...hs.map((h, i) => W("h" + i, 26, hs.slice(0, i).reduce((a, b) => a + b + 3.5, 0), 48, h, ["ed", "dc", "te"][i], i === n ? "f" : "")),
+    ]),
     strip: [
       row("abcde", [-30, 20, 70, 120, 170], [48, 48, 48, 48, 48], 0, 100, "b"),
       row("abcde", [-80, -30, 20, 70, 120], [48, 48, 48, 48, 48], 0, 100, "c"),

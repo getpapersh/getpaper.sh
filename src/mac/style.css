@@ -908,7 +908,7 @@ footer .brand img { width: 28px; height: 28px; }
   .pics .pic, .pics .pic.big { grid-column: span 1; }
   .pics .pic.big:first-child, .pics .slot-pro { grid-column: 1 / -1; }
   .pic figcaption, .pics .pic.big figcaption { font-size: 15px; }
-  .free .scroller { --rail-pad: 16px; }
+  .free .scroller, .roadmap .scroller { --rail-pad: 16px; }
   .theme { margin-left: 0; }
 }
 @media (max-width: 480px) {
@@ -927,7 +927,10 @@ footer .brand img { width: 28px; height: 28px; }
 html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
-.compare .pics .txt { grid-column: 1 / -1; }
+.also-free { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 18px; border-top: 1.5px solid var(--line); }
+.also-free b { margin-right: 6px; font-weight: 850; }
+.also-free ul { display: contents; }
+.also-free li { list-style: none; padding: 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); font-size: 14px; font-weight: 700; }
 .compare .pic figcaption { font-size: 15.5px; font-weight: 700; }
 .compare .pic figcaption b { font-weight: 900; }
 .compare .txt { align-self: center; margin: 0; font-weight: 700; font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
@@ -965,14 +968,14 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 
 /* The Pro ribbon: an editorial band under the matrix, ruled like the columns above it. Pro 27 is the recommended
    offer, so only it gets the filled button. */
-.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(6, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
+.ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(7, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
 .ribbon > * { padding: clamp(24px, 2.6vw, 36px); }
-.ribbon-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 28px; border-top: 1.5px solid var(--line); }
-.ribbon-foot > * { grid-column: 1; margin: 0; }
-.ribbon-foot > p:first-child { font-weight: 750; color: var(--ink); }
+.ribbon-foot { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; border-top: 1.5px solid var(--line); }
+.ribbon-foot > * { margin: 0; }
+.ribbon-foot > p:first-child { font-weight: 850; font-stretch: 112%; font-size: clamp(19px, 1.6vw, 22px); letter-spacing: -.01em; color: var(--ink); }
 .ribbon-foot .sales-closed { justify-self: start; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
-.ribbon-foot .bill { font-size: 13px; line-height: 1.45; color: var(--ink-2); font-weight: 600; }
-.offer { display: grid; grid-row: 1 / span 6; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
+.ribbon-foot .bill { font-size: 15px; font-weight: 650; color: var(--ink-2); }
+.offer { display: grid; grid-row: 1 / span 7; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
 #free-offer { border-left: 0; }
 .offer h4 { margin: 0; font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
 .offer .launch-note { margin: 0; color: var(--pro-text); font-size: 14px; font-weight: 750; }
@@ -987,14 +990,23 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .offer > .scope { grid-row: 4; margin-top: 10px; }
 .offer > .btn { grid-row: 5; align-self: end; }
 .offer > .buy-notice { grid-row: 6; margin-top: 10px; }
+.offer > .phone { grid-row: 7; margin-top: 18px; }
 .btn.pro.alt { background: transparent; color: var(--pro-text); box-shadow: inset 0 0 0 1.5px currentColor; }
 .btn.pro.alt:hover { background: color-mix(in srgb, var(--pro) 12%, transparent); }
 /* Disabled Buy buttons stay visible but must not read as clickable: a muted outline with no fill. */
 .btn.pro:disabled, .btn.pro.alt:disabled { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink-2) 55%, transparent); cursor: not-allowed; transform: none; opacity: 1; }
-.ribbon .phone { grid-column: 2; grid-row: 1 / span 3; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
+.ribbon .phone { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
 .ribbon .phone svg { width: 96px; height: 96px; border-radius: 8px; }
 
 .roadmap { padding: var(--sec) 0 0; }
+/* The roadmap is its own Strip: window cards that scroll sideways and bleed to the screen edges, with a Minimap. */
+.roadmap .scroller { margin-top: var(--head-gap); --item-w: min(420px, 80vw); --rail-gap: 18px; --rail-pad: max(24px, calc((100vw - 1240px) / 2)); }
+.roadmap .rail:focus-visible { outline-offset: -3px; }
+.road figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 14px; }
+.road figcaption b { font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
+.road .when { padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--pro) 14%, transparent); color: var(--pro-text); font-size: 13px; font-weight: 750; }
+.road figcaption > span:last-child { flex-basis: 100%; color: var(--ink-2); font-size: 16px; font-weight: 600; line-height: 1.45; }
+.roadmap .ctl .nav .btn { width: 40px; padding: 0; }
 .roadmap .lead { max-width: 52ch; }
 .faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--head-gap) clamp(32px, 5vw, 80px); align-items: start; padding: var(--sec) 0 0; }
 .faq .lead { margin-top: 18px; }

@@ -92,8 +92,7 @@ assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lif
 assert '<b data-regular>$39</b><b data-launch>$19.50</b>' in product and '<b data-regular>$99</b><b data-launch>$49.50</b>' in product
 assert not any(tag in product for tag in ['<s>', '<del', '<strike', 'line-through'])
 assert 'Date.now() < Date.parse("2026-12-02T07:59:00Z")' in product and 'html:not(.launch) [data-launch], .launch [data-regular] { display: none; }' in product
-assert 'Lifetime costs about 2½ times today\'s Pro 27 price.' in product
-assert 'Sales tax or VAT is added at checkout. Sold through Dodo Payments, the merchant of record.' in product
+assert 'Tax added at checkout where applicable. Sold by Dodo Payments.' in product
 assert 'Your edition never expires.' in product
 assert 'optional discounted upgrades' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
@@ -142,12 +141,11 @@ if sales_off:
     assert '<p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>' in product
 else:
     assert '<p class="sales-closed"' not in product
-    assert re.search(r'<div class="ribbon-foot">.*?QR code for the PaperMac Pro 27 checkout', product, re.S)
+    assert 'QR code for the PaperMac Pro 27 checkout' in offers['pro-27']
 # The owner wants Homebrew reachable at the top, before the demo.
 assert product.index('brew tap getpapersh/tap &amp;&amp; brew install --cask papermac') < product.index('data-strip-demo')
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
-assert 'Not included in Free or Pro.' in product
 assert 'BETABELIEVER' not in product and 'EARLY' not in product
 assert 'built on private macOS APIs' in product
 for route in ['terms', 'privacy']:
