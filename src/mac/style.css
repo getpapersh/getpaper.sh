@@ -927,11 +927,21 @@ footer .brand img { width: 28px; height: 28px; }
 html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .compare .pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
 .compare .pics .pic { grid-column: auto; }
-.also-free { grid-column: 1 / -1; padding-top: 20px; border-top: 1.5px solid var(--line); }
-.also-free > b { font-weight: 850; font-stretch: 112%; font-size: 19px; letter-spacing: -.01em; }
-.also-free ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; margin: 14px 0 0; padding: 0; list-style: none; }
-.also-free li { color: var(--ink-2); font-size: 15px; font-weight: 600; line-height: 1.45; }
-.also-free li strong { display: block; color: var(--ink); font-weight: 800; }
+/* One comparison of every feature on the page, under the picture tour and above the prices. */
+.matrix { margin-top: var(--head-gap); }
+.matrix h3 { margin: 0 0 18px; font-weight: 900; font-stretch: 118%; font-size: clamp(24px, 2.2vw, 32px); letter-spacing: -.025em; }
+.matrix table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.matrix thead th { position: sticky; top: 0; padding: 12px 16px; box-shadow: inset 0 -3px var(--ink); background: var(--paper); text-align: center; font-weight: 850; font-stretch: 112%; font-size: 18px; }
+.matrix thead th:first-child { text-align: left; }
+.matrix th[scope=row] { padding: 12px 16px 12px 0; text-align: left; font-weight: 650; color: var(--ink); }
+.matrix td { width: 20%; padding: 12px 16px; text-align: center; font-weight: 650; color: var(--ink-2); }
+.matrix tbody tr:not(.group) { border-bottom: 1.5px solid var(--line); }
+.matrix tr > :last-child { background: color-mix(in srgb, var(--pro) 6%, transparent); }
+/* The sticky header row needs an opaque tint, or rows show through it while scrolling. */
+.matrix thead th:last-child { background: color-mix(in srgb, var(--pro) 6%, var(--paper)); }
+.matrix .group th { padding: 26px 0 8px; text-align: left; font-weight: 850; font-stretch: 112%; font-size: 18px; letter-spacing: -.01em; background: none; }
+.matrix .ck { width: 20px; height: 20px; vertical-align: middle; fill: none; stroke: var(--pro-text); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.matrix .no { display: inline-block; width: 14px; height: 2px; border-radius: 1px; vertical-align: middle; background: color-mix(in srgb, var(--ink-2) 60%, transparent); }
 .compare .pic figcaption { font-size: 15.5px; font-weight: 700; }
 .compare .pic figcaption b { font-weight: 900; }
 .compare .txt { align-self: center; margin: 0; font-weight: 700; font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
@@ -971,12 +981,15 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
    offer, so only it gets the filled button. */
 .ribbon { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(6, auto) auto; margin-top: 20px; border: 1.5px solid var(--line); border-top: 3px solid var(--ink); background: var(--slab); }
 .ribbon > * { padding: clamp(24px, 2.6vw, 36px); }
-/* The purchase lines sit centred; the phone checkout sits at the right of the same row. */
-.ribbon-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; row-gap: 8px; column-gap: 24px; text-align: center; border-top: 1.5px solid var(--line); }
-.ribbon-foot > * { grid-column: 2; margin: 0; }
-.ribbon-foot > .phone { grid-column: 3; grid-row: 1 / span 3; justify-self: end; text-align: left; }
-.ribbon-foot > p:first-child { font-weight: 850; font-stretch: 112%; font-size: clamp(19px, 1.6vw, 22px); letter-spacing: -.01em; color: var(--ink); }
-.ribbon-foot .sales-closed { justify-self: center; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+/* The purchase lines sit left and the phone checkout right, both centred on the row; without a phone checkout the
+   lines centre on their own. */
+.ribbon-foot { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px 40px; border-top: 1.5px solid var(--line); }
+.ribbon-foot:not(:has(> .phone)) { justify-content: center; text-align: center; }
+.ribbon-foot:not(:has(> .phone)) .sales-closed { justify-self: center; }
+.foot-text { display: grid; gap: 6px; }
+.foot-text > * { margin: 0; }
+.foot-text > p:first-child { font-weight: 850; font-stretch: 112%; font-size: clamp(19px, 1.6vw, 22px); letter-spacing: -.01em; color: var(--ink); }
+.ribbon-foot .sales-closed { justify-self: start; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .ribbon-foot .bill { font-size: 15px; font-weight: 650; color: var(--ink-2); }
 .offer { display: grid; grid-row: 1 / span 6; grid-template-rows: subgrid; row-gap: 0; border-left: 1.5px solid var(--line); }
 #free-offer { border-left: 0; }
@@ -1058,12 +1071,13 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 
 @media (max-width: 1100px) {
   .ribbon .phone { display: none; }
+  .ribbon-foot { justify-content: center; text-align: center; }
+  .ribbon-foot .sales-closed { justify-self: center; }
 }
 @media (max-width: 960px) {
   .native .grid { grid-template-columns: minmax(0, 1fr); }
   .engine { grid-template-columns: minmax(0, 1fr); }
   .optional dl { grid-template-columns: minmax(0, 1fr); }
-  .also-free ul { grid-template-columns: minmax(0, 1fr); }
   .native-side, .native .welcome { grid-column: 1 / -1; }
   .faq { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1081,6 +1095,8 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
   .hero .get-actions > .cmd { display: none; }
   .get-actions > .btn { flex: 1 1 100%; }
   .faq summary { font-size: 17px; }
+  .matrix table { font-size: 14px; }
+  .matrix td { width: 22%; padding-inline: 6px; }
   .steps > li { grid-template-columns: 40px minmax(0, 1fr); column-gap: 14px; }
   .steps > li::before { font-size: 32px; }
 }
