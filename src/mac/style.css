@@ -914,7 +914,11 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .get-meta p { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 650; }
 
 .native { padding: var(--sec) 0 0; }
-.native .grid { margin-top: var(--head-gap); }
+.native .grid { margin-top: 56px; }
+.native .lead { max-width: 56ch; }
+.engine { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 40px; margin: var(--head-gap) 0 0; padding: 22px 0 0; list-style: none; border-top: 3px solid var(--ink); }
+.engine strong { display: block; font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
+.engine p { margin: 8px 0 0; max-width: 46ch; color: var(--ink-2); font-size: 16px; font-weight: 600; line-height: 1.55; }
 .native-side { grid-column: 1 / span 6; display: grid; gap: 32px; align-content: start; }
 .native .welcome { grid-column: 7 / span 6; }
 .plain { display: grid; gap: 18px; padding-top: 22px; border-top: 1.5px solid var(--line); }
@@ -1010,6 +1014,7 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 }
 @media (max-width: 960px) {
   .native .grid { grid-template-columns: minmax(0, 1fr); }
+  .engine { grid-template-columns: minmax(0, 1fr); }
   .optional dl { grid-template-columns: minmax(0, 1fr); }
   .native-side, .native .welcome { grid-column: 1 / -1; }
   .faq { grid-template-columns: minmax(0, 1fr); }

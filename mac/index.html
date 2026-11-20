@@ -931,7 +931,11 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 .get-meta p { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 650; }
 
 .native { padding: var(--sec) 0 0; }
-.native .grid { margin-top: var(--head-gap); }
+.native .grid { margin-top: 56px; }
+.native .lead { max-width: 56ch; }
+.engine { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 40px; margin: var(--head-gap) 0 0; padding: 22px 0 0; list-style: none; border-top: 3px solid var(--ink); }
+.engine strong { display: block; font-weight: 850; font-stretch: 112%; font-size: 20px; letter-spacing: -.015em; }
+.engine p { margin: 8px 0 0; max-width: 46ch; color: var(--ink-2); font-size: 16px; font-weight: 600; line-height: 1.55; }
 .native-side { grid-column: 1 / span 6; display: grid; gap: 32px; align-content: start; }
 .native .welcome { grid-column: 7 / span 6; }
 .plain { display: grid; gap: 18px; padding-top: 22px; border-top: 1.5px solid var(--line); }
@@ -1027,6 +1031,7 @@ html:not(.launch) [data-launch], .launch [data-regular] { display: none; }
 }
 @media (max-width: 960px) {
   .native .grid { grid-template-columns: minmax(0, 1fr); }
+  .engine { grid-template-columns: minmax(0, 1fr); }
   .optional dl { grid-template-columns: minmax(0, 1fr); }
   .native-side, .native .welcome { grid-column: 1 / -1; }
   .faq { grid-template-columns: minmax(0, 1fr); }
@@ -1710,6 +1715,12 @@ a41c9e2 Add search to the Minimap
 
   <section class="native wrap" aria-labelledby="native-h" data-page>
     <h2 id="native-h">Native to macOS</h2>
+    <p class="lead">PaperMac runs on top of your native Spaces instead of replacing them, so Mission Control, gestures and full-screen apps keep working, and System Integrity Protection stays on.</p>
+    <ul class="engine">
+      <li><strong>Real macOS Spaces.</strong><p>Every Desktop is a real Space with its own Strip. Some Mac tilers swap Spaces for their own workspaces or need System Integrity Protection turned off; PaperMac does neither.</p></li>
+      <li><strong>Windows stay live.</strong><p>Windows past the screen edge are never minimized, and on macOS 27 WindowServer doesn’t draw them while they’re out of view. On one two-display Mac we measured, WindowServer’s idle CPU fell from 23–39% to about 9% with PaperMac running.</p></li>
+      <li><strong>Instant Desktops.</strong><p>Switching Desktops skips the slide animation, and a window moves to another Desktop or display in one step.</p></li>
+    </ul>
     <div class="grid">
       <div class="native-side">
         <figure class="menubar">
