@@ -1212,7 +1212,7 @@ a[href^="mailto:"]:focus-visible {
     </div>
     <div class="wrap get-row">
       <div class="get-actions">
-        <a class="btn ink" href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.8.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download for Mac</a>
+        <a class="btn ink" href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.10.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download for Mac</a>
         <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the Homebrew install command"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button>
       </div>
       <div class="get-meta">
@@ -1878,6 +1878,7 @@ a41c9e2 Add search to the Minimap
           <tr><th scope="row">Hold a modifier and scroll to glide along the Strip</th><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td></tr>
           <tr><th scope="row">One plain config file, ready for your dotfiles</th><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td></tr>
           <tr><th scope="row">The papermac CLI for scripts and status bars</th><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td><td><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg><span class="sr-only">Included</span></td></tr>
+          <tr><th scope="row">Support</th><td>Bug reports only. No response promised.</td><td>Email support for Pro 27 and Lifetime</td></tr>
         </tbody>
       </table>
     </div>
@@ -2001,7 +2002,7 @@ a41c9e2 Add search to the Minimap
       <li>
         <h3>Install it</h3>
         <div class="get-actions">
-          <a class="btn ink" href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.8.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download for Mac</a>
+          <a class="btn ink" href="https://dl.getpaper.sh/papermac/PaperMac-27.0.0-beta.10.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13.5h10"/></svg>Download for Mac</a>
           <button class="cmd" type="button" data-copy="brew tap getpapersh/tap &amp;&amp; brew install --cask papermac" data-after="Copied: paste it in Terminal to install PaperMac." aria-label="Copy the Homebrew install command"><code>brew tap getpapersh/tap &amp;&amp; brew install --cask papermac</code><span class="lbl">Copy</span></button>
         </div>
         <div class="script">
@@ -2043,6 +2044,20 @@ a41c9e2 Add search to the Minimap
   </div>
 </footer>
 
+<script id="checkout-attribution">
+(() => {
+  const params = new URLSearchParams(location.search);
+  const clean = (name) => (params.get(name) ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 64) || "direct";
+  const source = clean("utm_source");
+  const campaign = clean("utm_campaign");
+  for (const link of document.querySelectorAll("#pro-27 a.btn.pro, #lifetime a.btn.pro")) {
+    const checkout = new URL(link.href);
+    checkout.searchParams.set("metadata_utm_source", source);
+    checkout.searchParams.set("metadata_utm_campaign", campaign);
+    link.href = checkout.href;
+  }
+})();
+</script>
 <script>
 (() => {
   const $ = (s, r = document) => r.querySelector(s);

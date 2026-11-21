@@ -143,7 +143,7 @@ QUIT="osascript [-e] [quit app id \"dev.jsonmartin.papermac\"]"
 new_case fresh
 run
 check "install succeeds" status 0
-check "install says what and where" says "Installing PaperMac 27.0.0-beta.8 (notarized)."
+check "install says what and where" says "Installing PaperMac 27.0.0-beta.10 (notarized)."
 check "install names the destination" says "Installing to $apps/PaperMac.app"
 check "install runs the steps in order" calls "$CURL [$DMG] [$URL]
 shasum [-a] [256] [$DMG]
@@ -411,7 +411,7 @@ new_case detach-fails
 run -- STUB_DETACH_FAILS=1
 check "a detach failure fails" status 1
 check "a detach failure still installed the app" app_is "$apps/PaperMac.app" new
-check "a detach failure says the app is installed" says "PaperMac 27.0.0-beta.8 is installed at $apps/PaperMac.app. Open it with:"
+check "a detach failure says the app is installed" says "PaperMac 27.0.0-beta.10 is installed at $apps/PaperMac.app. Open it with:"
 check "a detach failure gives the detach command" says "Detach it with: hdiutil detach '"
 check "a detach failure keeps the download" [ -f "$(find "$case_dir/tmp" -name PaperMac.dmg | head -n 1)" ]
 check "a detach failure says where the download is" says "The download is kept at"
