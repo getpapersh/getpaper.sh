@@ -33,7 +33,7 @@
       <div>
         <h1 id="title">PaperMac</h1>
         <p class="tag">Go beyond Mission Control. Unleash your desktop on an infinite canvas.</p>
-        <p class="lede">A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.</p>
+        <p class="lede">A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen. Built for macOS 27 Golden Gate.</p>
       </div>
       <video class="hero-promo" controls muted loop playsinline preload="none" width="960" height="540" poster="../media/papermac/promo.jpg" aria-label="PaperMac promo"><source src="../media/papermac/promo.mp4" type="video/mp4">Your browser cannot play this video.</video>
     </div>
@@ -409,15 +409,15 @@ km,m
             </div>
           </div>
           <div class="win ph" data-app="Browser" data-new>
-            <b class="tb">Weekly Metrics</b>
+            <b class="tb">Weekly Notes</b>
             <div class="demo-toolbar browser-toolbar" aria-hidden="true">
               <span class="browser-arrows">‹ &nbsp; ›</span>
-              <span class="browser-address">Analytics / This week</span>
+              <span class="browser-address">Notes / This week</span>
             </div>
             <div class="window-body guide">
               <h3>This week</h3>
-              <p>Daily active users are up after the Minimap release.</p>
-              <dl><div><dt>Active</dt><dd>12,480</dd></div><div><dt>Signups</dt><dd>+18%</dd></div><div><dt>Churn</dt><dd>1.9%</dd></div></dl>
+              <p>Notes and drafts from the team’s latest review.</p>
+              <dl><div><dt>Inbox</dt><dd>Notes</dd></div><div><dt>Drafts</dt><dd>Review</dd></div><div><dt>Files</dt><dd>Archive</dd></div></dl>
             </div>
           </div>
           <div class="win chat" data-app="Chat" data-new>
@@ -653,6 +653,7 @@ a41c9e2 Add search to the Minimap
           <figure class="pic" data-pic="overview"><div class="mini" aria-hidden="true"></div><figcaption>Zoom out to Overview</figcaption></figure>
           <figure class="pic" data-pic="minimap"><div class="mini" aria-hidden="true"></div><figcaption>The Minimap shows where you are</figcaption></figure>
           <figure class="pic" data-pic="switcher"><div class="mini" aria-hidden="true"></div><figcaption>Switch windows with Option-Tab</figcaption></figure>
+          <figure class="pic" data-pic="quickjump"><div class="mini" aria-hidden="true"></div><figcaption><b>Quick Jump</b> shows labels on the Minimap while you hold its chord (⌘⌥⇧ by default). Type a label to jump.</figcaption></figure>
           <figure class="pic" data-pic="send"><div class="mini" aria-hidden="true"></div><figcaption>Send a window to another Desktop or display</figcaption></figure>
           <figure class="pic" data-pic="displays"><div class="mini" aria-hidden="true"></div><figcaption>Every display scrolls on its own</figcaption></figure>
           <figure class="pic" data-pic="select"><div class="mini" aria-hidden="true"></div><figcaption>Select several windows and arrange them at once</figcaption></figure>
@@ -668,6 +669,7 @@ a41c9e2 Add search to the Minimap
           <figure class="pic" data-pic="previews"><div class="mini" aria-hidden="true"></div><figcaption>Window previews on hover</figcaption></figure>
           <figure class="pic" data-pic="synced"><div class="mini" aria-hidden="true"></div><figcaption>Strips that stay in sync across displays</figcaption></figure>
           <figure class="pic" data-pic="names"><div class="mini" aria-hidden="true"></div><figcaption>Desktops that name themselves</figcaption></figure>
+          <figure class="pic" data-pic="smart"><div class="mini" aria-hidden="true"></div><figcaption><b>Smart Strips</b> route matching new windows into a named Strip on their Desktop. On by default. Turn them off in Settings › Labs.</figcaption></figure>
           <figure class="pic" data-pic="snooze"><div class="mini" aria-hidden="true"></div><figcaption>Snooze a window until you need it</figcaption></figure>
           <figure class="pic" data-pic="groups"><div class="mini" aria-hidden="true"></div><figcaption>Lock windows into groups that move together</figcaption></figure>
         </div>
@@ -762,13 +764,11 @@ a41c9e2 Add search to the Minimap
 
   <section class="roadmap" id="roadmap" aria-labelledby="roadmap-h" data-page>
     <div class="wrap">
-      <h2 id="roadmap-h">New and coming soon</h2>
-      <p class="lead">What’s in the beta and what we’re building next, on a Strip of its own.</p>
+      <h2 id="roadmap-h">Coming soon</h2>
+      <p class="lead">What we’re building next, on a Strip of its own.</p>
     </div>
     <div class="scroller" data-strip-scroller>
-      <div class="rail" tabindex="0" role="region" aria-label="Current and upcoming features">
-        <figure class="pic road" data-pic="smart"><div class="mini" aria-hidden="true"></div><figcaption><b>Smart Strips</b> <span class="when">In Labs</span><span>New windows that match go straight to a named Strip on their Desktop.</span></figcaption></figure>
-        <figure class="pic road" data-pic="quickjump"><div class="mini" aria-hidden="true"></div><figcaption><b>Quick Jump</b> <span class="when">In Beta 10</span><span>Hold ⌘⌥⇧ to show Jump labels on the Minimap, then type one to go there.</span></figcaption></figure>
+      <div class="rail" tabindex="0" role="region" aria-label="Upcoming features">
         <figure class="pic road" data-pic="tabs"><div class="mini" aria-hidden="true"></div><figcaption><b>Window tabs</b> <span class="when">Planned</span><span>Keep several windows in one column as tabs.</span></figcaption></figure>
         <figure class="pic road" data-pic="stackscroll"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack scrolling</b> <span class="when">Planned</span><span>Scroll through a tall stack of windows inside its column.</span></figcaption></figure>
         <figure class="pic road" data-pic="stackheights"><div class="mini" aria-hidden="true"></div><figcaption><b>Stack height controls</b> <span class="when">Planned</span><span>Choose how tall each window in a stack is.</span></figcaption></figure>
