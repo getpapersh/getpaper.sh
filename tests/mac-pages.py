@@ -85,16 +85,15 @@ for route in ['index.html', 'mac/index.html', 'mac/activate/index.html', 'terms/
     assert not any(tag == 'form' for tag, attributes in page.tags), route
 
 product = (site / 'mac/index.html').read_text()
-assert 'A scrolling window manager for macOS that sets your windows side by side on a Strip running past the edges of the screen.' in product
-assert 'Free forever' not in product
+assert '<p class="tag">A scrolling window manager for macOS 27 that never shrinks your windows.</p>' in product
+assert '>Free forever</a> · macOS 27 or newer ·' in product
 assert '#activate=' not in product
-assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. PaperMac Lifetime also covers every future version.' in product
-assert '<b data-regular>$39</b><b data-launch>$19.50</b>' in product and '<b data-regular>$99</b><b data-launch>$49.50</b>' in product
+assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. Lifetime includes future major versions.' in product
 assert not any(tag in product for tag in ['<s>', '<del', '<strike', 'line-through'])
 assert 'Date.now() < Date.parse("2026-12-02T07:59:00Z")' in product and 'html:not(.launch) [data-launch], .launch [data-regular] { display: none; }' in product
-assert 'Tax added at checkout where applicable. Sold by Dodo Payments.' in product
+assert 'Prices in USD. Tax is added at checkout where applicable, and checkout may show a local price for your country.' in product
 assert 'Your edition never expires.' in product
-assert 'optional discounted upgrades' in product
+assert 'Lifetime includes future major versions. With Pro 27, a new edition is a separate purchase, even if you bought this one recently.' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
 assert 'up to 5 Macs at once' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
@@ -121,25 +120,32 @@ offers = re.findall(r'<div class="offer" id="(pro-27|lifetime)">(.*?)\n      </d
 assert [name for name, body in offers] == ['pro-27', 'lifetime']
 offers = dict(offers)
 # Each offer shows its own prices, its own Buy control and, right after it, the refund and Terms notice.
-editions = {'pro-27': ('$39', '$19.50', 'Buy Pro 27', pro_checkout), 'lifetime': ('$99', '$49.50', 'Buy Lifetime', lifetime_checkout)}
+editions = {
+    'pro-27': ('$39', '<b>$19.50</b> launch price <small>(regular $39)</small>', 'Buy Pro 27', pro_checkout),
+    'lifetime': ('$99', 'Lifetime <b>$49.50</b> <small>(regular $99)</small>', 'Buy Lifetime', lifetime_checkout),
+}
 sales_off = pro_checkout == lifetime_checkout == 'off'
 for name, (regular, launch, label, checkout) in editions.items():
     body = offers[name]
-    assert f'<b data-regular>{regular}</b><b data-launch>{launch}</b>' in body, name
-    assert f'<p class="launch-note" data-launch>Launch price until Dec 1, then {regular}</p>' in body, name
+    assert f'<p class="price"><span data-regular><b>{regular}</b></span><span data-launch>{launch}</span></p>' in body, name
     if sales_off:
         control = r'<button class="btn pro[^"]*" type="button" disabled aria-describedby="buy-closed">' + re.escape(label) + '</button>'
     else:
         control = r'<a class="btn pro[^"]*" href="' + re.escape(html.escape(checkout, quote=True)) + '">' + re.escape(label) + '</a>'
     assert re.search(control + r'\s*' + re.escape(buy_notice), body), name
-assert '<b><small>from</small> <span data-regular>$39</span><span data-launch>$19.50</span></b>' in product
-assert not any(text in product for text in ['Try Pro free', 'trial-cta', 'qr-placeholder', 'sales-unavailable'])
-assert len([attrs for tag, attrs in Page(product).tags if tag in ('a', 'button') and 'pro' in attrs.get('class', '').split()]) == 2
+top_offer = re.search(r'<div class="top-offer">(.*?)</div>', product, re.S)[1]
+assert '<span data-regular><b>$39</b></span><span data-launch><b>$19.50</b> launch price <small>(regular $39)</small></span>' in top_offer
+assert '<p>Pay once. Full refund within 14 days.</p>' in top_offer
+assert '<a href="#lifetime"><span data-regular>or Lifetime $99</span><span data-launch>or Lifetime $49.50 (regular $99)</span></a>' in top_offer
+assert not any(text in product.lower() for text in ['unleash', 'trial', 'try pro free', 'dec 1', 'qr-placeholder', 'sales-unavailable'])
+assert len([attrs for tag, attrs in Page(product).tags if tag in ('a', 'button') and 'pro' in attrs.get('class', '').split()]) == 3
 if sales_off:
+    assert '<button class="btn pro" type="button" disabled aria-describedby="buy-closed">Buy Pro 27</button>' in top_offer
     assert 'QR code for the PaperMac Pro 27 checkout' not in product
     assert '<svg class="segno"' not in product
     assert '<p class="sales-closed" id="buy-closed">Buying Pro opens during the beta</p>' in product
 else:
+    assert f'<a class="btn pro" href="{html.escape(pro_checkout, quote=True)}">Buy Pro 27</a>' in top_offer
     assert '<p class="sales-closed"' not in product
     assert re.search(r'<div class="ribbon-foot">.*?QR code for the PaperMac Pro 27 checkout', product, re.S)
 # The owner wants Homebrew reachable at the top, before the demo.
@@ -147,7 +153,7 @@ assert product.index('brew tap getpapersh/tap &amp;&amp; brew install --cask pap
 download_notice = '<p class="buy-notice download-notice">By downloading, you agree to the <a href="/terms">Terms</a>.</p>'
 assert product.count(download_notice) == 2
 assert 'BETABELIEVER' not in product and 'EARLY' not in product
-assert 'built on private macOS APIs' in product
+assert 'PaperMac uses private macOS APIs to do things the public ones can\'t' in product
 for route in ['terms', 'privacy']:
     assert any(tag == 'a' and attrs.get('href') == '/' + route for tag, attrs in Page(product).tags)
     legal_html = (site / route / 'index.html').read_text()
