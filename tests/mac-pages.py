@@ -91,9 +91,9 @@ assert '#activate=' not in product
 assert 'PaperMac Pro 27 covers PaperMac 27 on macOS 27 Golden Gate. Lifetime includes future major versions.' in product
 assert not any(tag in product for tag in ['<s>', '<del', '<strike', 'line-through'])
 assert 'Date.now() < Date.parse("2026-12-02T07:59:00Z")' in product and 'html:not(.launch) [data-launch], .launch [data-regular] { display: none; }' in product
-assert '<p class="bill">Prices in USD. Tax is added at checkout where applicable, and checkout may show a local price for your country. Sold by Dodo Payments.</p>' in product
+assert '<p class="bill">Fair local pricing: checkout adjusts the price for your country.</p>' in product
 assert 'Your edition never expires.' in product
-assert 'Your edition never expires. Keep using PaperMac Pro 27 on macOS 27. With Pro 27, a new edition is a separate purchase, even if you bought this one recently.' in product
+assert 'Your edition never expires. Keep using PaperMac Pro 27 on macOS 27. With Pro 27, the next edition is a discounted upgrade.' in product
 assert 'brew tap getpapersh/tap &amp;&amp; brew install --cask papermac' in product
 assert 'up to 5 Macs at once' in product
 assert not any(phrase in product.lower() for phrase in ['lifetime support', 'every update', 'support for pro 27 ends', 'to be published', 'supported for the life'])
